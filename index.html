@@ -3,22 +3,35 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Sổ Trình Ký Hồ Sơ</title>
+<title>ĐĂNG KÝ HỒ SƠ TRÌNH KÝ</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
 <link rel="stylesheet" href="so_trinh_ky.css">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
 
+<div class="logo-container">
+    <img src="01.HinhAnh/Logo DTR 2024.png" alt="Logo">
+</div>
+
 <div class="header">
-  <div class="logo"><i class="ti ti-file-certificate"></i>Sổ Trình Ký Hồ Sơ</div>
+
+  <div class="logo">
+    ĐĂNG KÝ HỒ SƠ TRÌNH KÝ
+  </div>
+
   <div class="header-right">
     <div class="role-switch">
       <span>Người trình ký</span>
-      <label class="toggle"><input type="checkbox" id="roleToggle" onchange="switchRole()"><span class="slider-t"></span></label>
+      <label class="toggle">
+        <input type="checkbox" id="roleToggle" onchange="switchRole()">
+        <span class="slider-t"></span>
+      </label>
       <span>Trợ lý</span>
     </div>
-    <span class="role-badge role-user" id="roleBadge"><i class="ti ti-user" style="font-size:12px"></i>Người trình ký</span>
+    <span class="role-badge role-user" id="roleBadge">
+      <i class="ti ti-user" style="font-size:12px"></i>Người trình ký
+    </span>
   </div>
 </div>
 

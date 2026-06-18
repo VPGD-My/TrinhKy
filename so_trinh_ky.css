@@ -53,32 +53,51 @@ body {
 .header {
   background: var(--bg);
   border-bottom: 1px solid var(--border);
-  padding: 12px 20px;
+  padding: 15px 20px;
   display: flex;
   align-items: center;
   justify-content: space-between;
   position: sticky;
   top: 0;
   z-index: 100;
+  position: relative;
+}
+
+.logo-container{
+    position: fixed;    /* luôn nằm trên cùng */
+    top: 10px;
+    left: 10px;
+    z-index: 1000;
+}
+
+.logo-container img{
+    height: 40px;       /* chỉnh kích thước logo */
+    width: auto;
 }
 
 .logo {
-  font-size: 16px;
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  font-family: Calibri, "Segoe UI", sans-serif;
+  font-size: 25px;
+  color: #0070C0;
   font-weight: 600;
   display: flex;
   align-items: center;
-  gap: 8px;
-  color: var(--text);
+  gap: 16px;
 }
 
-.logo i {
+.logo-icon{
   color: var(--blue);
+  font-size: 24px;
 }
 
 .header-right {
   display: flex;
   align-items: center;
   gap: 10px;
+  margin-left: auto;
 }
 
 /* ── Role Badge ──────────────────────────────────────────── */
@@ -88,7 +107,7 @@ body {
   border-radius: var(--radius);
   font-weight: 500;
   display: flex;
-  align-items: center;
+  align-items: left;
   gap: 4px;
 }
 
