@@ -350,6 +350,58 @@ tbody td {
   font-weight: 500;
 }
 
+/* ── Dropdown (Người gửi) ──────────────────────────── */
+.autocomplete {
+  position: relative;
+}
+
+#employeeList {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+
+  background: #fff;
+  border: 1px solid #e5e5e5;
+  border-radius: 8px;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.12);
+
+  max-height: 220px;
+  overflow-y: auto;
+
+  z-index: 9999;
+
+  display: none;
+}
+
+.autocomplete-item {
+  padding: 8px 10px;
+  cursor: pointer;
+  border-bottom: 1px solid #f1f1f1;
+
+  display: block;
+  white-space: nowrap;
+}
+
+.autocomplete-item:hover {
+  background: #f5f7ff;
+}
+
+.autocomplete-item.active {
+  background: #e8f0ff;
+}
+
+.emp-name {
+  font-weight: 600;
+  font-size: 13px;
+  color: #222;
+}
+
+.emp-email {
+  font-style: italic;
+  font-size: 12px;
+  color: #777;
+}
 /* ── Action Buttons (table row) ──────────────────────────── */
 .action-btn {
   padding: 4px 8px;

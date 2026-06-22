@@ -1,1139 +1,1372 @@
 <!DOCTYPE html>
 <html lang="vi">
+
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>ĐĂNG KÝ HỒ SƠ TRÌNH KÝ</title>
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
-<link rel="stylesheet" href="so_trinh_ky.css">
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ĐĂNG KÝ HỒ SƠ TRÌNH KÝ</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
+  <link rel="stylesheet" href="so_trinh_ky.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
+
 <body>
 
-<div class="logo-container">
+  <div class="logo-container">
     <img src="01.HinhAnh/Logo DTR 2024.png" alt="Logo">
-</div>
-
-<div class="header">
-
-  <div class="logo">
-    ĐĂNG KÝ HỒ SƠ TRÌNH KÝ
   </div>
 
-  <div class="header-right">
-    <div class="role-switch">
-      <span>Người trình ký</span>
-      <label class="toggle">
-        <input type="checkbox" id="roleToggle" onchange="switchRole()">
-        <span class="slider-t"></span>
-      </label>
-      <span>Trợ lý</span>
+  <div class="header">
+
+    <div class="logo">
+      ĐĂNG KÝ HỒ SƠ TRÌNH KÝ
     </div>
-    <span class="role-badge role-user" id="roleBadge">
-      <i class="ti ti-user" style="font-size:12px"></i>Người trình ký
-    </span>
-  </div>
-</div>
 
-<div class="nav-tabs">
-  <div class="nav-tab active" onclick="showTab('tab-records',this)"><i class="ti ti-files"></i>Danh sách hồ sơ</div>
-  <div class="nav-tab" id="tab-config-nav" onclick="showTab('tab-config',this)" style="display:none"><i class="ti ti-settings"></i>Cấu hình &amp; Ngày nghỉ</div>
-</div>
-
-<div class="main">
-
-<div id="tab-records" class="tab-content active">
-  <div class="stats" id="statsBar"></div>
-  <div class="toolbar">
-    <div class="toolbar-left">
-      <div class="search-box"><i class="ti ti-search" style="font-size:14px;color:#9b9895"></i><input type="text" placeholder="Tìm hồ sơ..." id="searchInput" oninput="renderTable()"></div>
-      <select class="filter" id="filterLoai" onchange="renderTable()">
-        <option value="">Tất cả loại</option>
-        <option>Hợp đồng</option><option>Phụ lục</option><option>Công văn</option><option>Biên bản</option><option>Tờ trình</option><option>Khác</option>
-      </select>
-      <select class="filter" id="filterStatus" onchange="renderTable()">
-        <option value="">Tất cả trạng thái</option>
-        <option value="pending">Chờ xác nhận</option>
-        <option value="processing">Đang xử lý</option>
-        <option value="done">Hoàn thành</option>
-      </select>
-    </div>
-    <div style="display:flex;gap:8px">
-      <button class="btn" id="importBtn" onclick="document.getElementById('fileImport').click()" style="display:none"><i class="ti ti-file-upload"></i>Import Excel</button>
-      <input type="file" id="fileImport" accept=".xlsx,.xls" style="display:none" onchange="handleImportFile(event)">
-      <button class="btn btn-success" id="exportBtn" onclick="exportExcel()" style="display:none"><i class="ti ti-file-spreadsheet"></i>Xuất Excel</button>
-      <button class="btn btn-primary" onclick="openAddModal()"><i class="ti ti-plus"></i>Đăng ký hồ sơ</button>
-    </div>
-  </div>
-  <div class="table-wrap">
-    <table>
-      <thead>
-        <tr>
-          <th>STT</th><th>Thứ</th><th>Giờ nhận HS</th><th>Ngày gửi HS</th>
-          <th>Loại hồ sơ</th><th>Tên hồ sơ</th><th>SL bản cứng</th>
-          <th>Phòng ban</th><th>Người gửi</th><th>Đối tác</th>
-          <th>Ưu tiên</th><th>Ngày DK trả HS</th><th>Ngày trả HS</th>
-          <th>Giờ trả HS</th><th>Người nhận HS</th><th>Ghi chú / Yêu cầu</th>
-          <th>Trạng thái</th><th style="min-width:130px">Thao tác</th>
-        </tr>
-      </thead>
-      <tbody id="tbody"></tbody>
-    </table>
-  </div>
-</div>
-
-<div id="tab-config" class="tab-content">
-  <div class="config-wrap">
-    <div class="card-box">
-      <div class="card-box-header">
-        <h3><i class="ti ti-clock" style="font-size:15px;color:var(--blue)"></i>Quy tắc thời gian trả hồ sơ</h3>
+    <div class="header-right">
+      <div class="role-switch">
+        <span>Người trình ký</span>
+        <label class="toggle">
+          <input type="checkbox" id="roleToggle" onchange="switchRole()">
+          <span class="slider-t"></span>
+        </label>
+        <span>Trợ lý</span>
       </div>
-      <table class="cfg-table">
-        <thead><tr><th>Mức ưu tiên</th><th>Ngày làm việc</th></tr></thead>
-        <tbody id="priorityConfigBody"></tbody>
-      </table>
-      <div class="cfg-info"><i class="ti ti-info-circle" style="font-size:13px;flex-shrink:0;margin-top:1px"></i>Ngày làm việc: Thứ 2 – Thứ 6, trừ các ngày công tác / lễ ở danh sách bên phải.</div>
+      <span class="role-badge role-user" id="roleBadge">
+        <i class="ti ti-user" style="font-size:12px"></i>Người trình ký
+      </span>
     </div>
-    <div class="card-box">
-      <div class="card-box-header">
-        <h3><i class="ti ti-calendar-off" style="font-size:15px;color:#854F0B"></i>Ngày công tác / Nghỉ lễ</h3>
-        <span style="font-size:12px;color:var(--text3)" id="offDayCount">0 mục</span>
-      </div>
-      <div style="padding:12px 16px;border-bottom:1px solid var(--border);display:flex;flex-direction:column;gap:10px">
-        <div class="radio-row">
-          <label><input type="radio" name="offMode" value="range" checked onchange="toggleOffMode()"> Khoảng ngày cụ thể</label>
-          <label><input type="radio" name="offMode" value="recur" onchange="toggleOffMode()"> Lặp lại hằng tuần</label>
-        </div>
-        <div id="offRangeFields" class="recur-row">
-          <input type="date" class="field" id="offStart" style="flex:1;min-width:130px">
-          <span style="font-size:12px;color:var(--text2)">đến</span>
-          <input type="date" class="field" id="offEnd" style="flex:1;min-width:130px">
-        </div>
-        <div id="offRecurFields" class="recur-row" style="display:none">
-          <select id="offWeekday" style="flex:1">
-            <option value="1">Thứ 2 hằng tuần</option>
-            <option value="2">Thứ 3 hằng tuần</option>
-            <option value="3">Thứ 4 hằng tuần</option>
-            <option value="4">Thứ 5 hằng tuần</option>
-            <option value="5" selected>Thứ 6 hằng tuần</option>
-            <option value="6">Thứ 7 hằng tuần</option>
-            <option value="0">Chủ nhật hằng tuần</option>
+  </div>
+
+  <div class="nav-tabs">
+    <div class="nav-tab active" onclick="showTab('tab-records',this)"><i class="ti ti-files"></i>Danh sách hồ sơ</div>
+    <div class="nav-tab" id="tab-config-nav" onclick="showTab('tab-config',this)" style="display:none"><i
+        class="ti ti-settings"></i>Cấu hình &amp; Ngày nghỉ</div>
+  </div>
+
+  <div class="main">
+
+    <div id="tab-records" class="tab-content active">
+      <div class="stats" id="statsBar"></div>
+      <div class="toolbar">
+        <div class="toolbar-left">
+          <div class="search-box"><i class="ti ti-search" style="font-size:14px;color:#9b9895"></i><input type="text"
+              placeholder="Tìm hồ sơ..." id="searchInput" oninput="renderTable()"></div>
+          <select class="filter" id="filterLoai" onchange="renderTable()">
+            <option value="">Tất cả loại</option>
+            <option>Hợp đồng/Phụ lục</option>
+            <option>Duyệt giá/Đề xuất</option>
+            <option>Biên bản</option>
+            <option>Đơn hàng/PO</option>
+            <option>Thanh toán/Quyết toán</option>
+            <option>VB ngân hàng/Tài chính</option>
+            <option>Báo cáo/Tài liệu</option>
+            <option>Quy trình/Quy định</option>
+            <option>Quyết định/Ủy quyền</option>
+            <option>Khác</option>
+          </select>
+          <select class="filter" id="filterStatus" onchange="renderTable()">
+            <option value="">Tất cả trạng thái</option>
+            <option value="pending">Chờ xác nhận</option>
+            <option value="processing">Đang xử lý</option>
+            <option value="done">Hoàn thành</option>
           </select>
         </div>
-        <div class="recur-row">
-          <input type="text" class="field" id="newOffReason" placeholder="Lý do (tùy chọn)" style="flex:1">
-          <button class="btn btn-sm" onclick="addOffDay()"><i class="ti ti-plus"></i>Thêm</button>
+        <div style="display:flex;gap:8px">
+          <button class="btn" id="importBtn" onclick="document.getElementById('fileImport').click()"
+            style="display:none"><i class="ti ti-file-upload"></i>Import Excel</button>
+          <input type="file" id="fileImport" accept=".xlsx,.xls" style="display:none"
+            onchange="handleImportFile(event)">
+          <button class="btn btn-success" id="exportBtn" onclick="exportExcel()" style="display:none"><i
+              class="ti ti-file-spreadsheet"></i>Xuất Excel</button>
+          <button class="btn btn-primary" onclick="openAddModal()"><i class="ti ti-plus"></i>Đăng ký hồ sơ</button>
         </div>
       </div>
-      <div id="offDayList"></div>
-    </div>
-
-  </div>
-</div>
-
-</div>
-
-<!-- Password Modal -->
-<div class="modal-bg" id="pwModal" style="display:none">
-  <div class="modal pw-modal">
-    <div class="modal-body" style="text-align:center;padding:28px 24px 20px">
-      <div class="pw-icon"><i class="ti ti-lock"></i></div>
-      <h2 style="font-size:15px;font-weight:600;margin-bottom:4px">Đăng nhập quyền Trợ lý</h2>
-      <p style="font-size:12px;color:var(--text2);margin-bottom:16px">Vui lòng nhập mật khẩu để chuyển sang quyền Trợ lý</p>
-      <input type="password" class="field" id="pwInput" placeholder="Nhập mật khẩu..." style="text-align:center" onkeydown="if(event.key==='Enter')confirmAdminLogin()">
-      <div class="pw-error" id="pwError"><i class="ti ti-alert-circle"></i> Sai mật khẩu, vui lòng thử lại</div>
-    </div>
-    <div class="modal-footer" style="justify-content:center">
-      <button class="btn" onclick="cancelAdminLogin()">Hủy</button>
-      <button class="btn btn-primary" onclick="confirmAdminLogin()"><i class="ti ti-login"></i>Đăng nhập</button>
-    </div>
-  </div>
-</div>
-
-<!-- Import Modal -->
-<div class="modal-bg" id="importModal" style="display:none">
-  <div class="modal" style="max-width:820px">
-    <div class="modal-header">
-      <h2><i class="ti ti-file-upload" style="color:var(--blue);margin-right:6px"></i>Import dữ liệu từ Excel</h2>
-      <button class="action-btn" onclick="closeImportModal()" style="padding:4px 6px"><i class="ti ti-x"></i></button>
-    </div>
-    <div class="modal-body" style="padding:16px 20px">
-      <div id="importSummary" style="margin-bottom:12px"></div>
-      <div id="importModeRow" style="display:flex;align-items:center;gap:16px;margin-bottom:14px;padding:10px 14px;background:var(--bg2);border-radius:var(--radius);border:1px solid var(--border)">
-        <span style="font-size:13px;font-weight:500">Chế độ import:</span>
-        <label style="display:flex;align-items:center;gap:5px;font-size:13px;cursor:pointer"><input type="radio" name="importMode" value="replace" checked> Thay thế toàn bộ dữ liệu hiện tại</label>
-        <label style="display:flex;align-items:center;gap:5px;font-size:13px;cursor:pointer"><input type="radio" name="importMode" value="append"> Thêm vào cuối danh sách</label>
-      </div>
-      <div style="overflow-x:auto;border:1px solid var(--border);border-radius:var(--radius);max-height:340px;overflow-y:auto">
-        <table style="width:100%;border-collapse:collapse;min-width:900px;font-size:12px">
-          <thead id="importPreviewHead" style="position:sticky;top:0"></thead>
-          <tbody id="importPreviewBody"></tbody>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>STT</th>
+              <th>Thứ</th>
+              <th>Giờ nhận HS</th>
+              <th>Ngày gửi HS</th>
+              <th>Loại hồ sơ</th>
+              <th>Tên hồ sơ</th>
+              <th>SL bản cứng</th>
+              <th>Phòng ban</th>
+              <th>Người gửi</th>
+              <th>Đối tác</th>
+              <th>Ưu tiên</th>
+              <th>Ngày DK trả HS</th>
+              <th>Ngày trả HS</th>
+              <th>Giờ trả HS</th>
+              <th>Người nhận HS</th>
+              <th>Ghi chú / Yêu cầu</th>
+              <th>Trạng thái</th>
+              <th style="min-width:130px">Thao tác</th>
+            </tr>
+          </thead>
+          <tbody id="tbody"></tbody>
         </table>
       </div>
-      <div id="importWarnings" style="margin-top:10px"></div>
     </div>
-    <div class="modal-footer">
-      <button class="btn" onclick="closeImportModal()">Hủy</button>
-      <button class="btn btn-primary" id="importConfirmBtn" onclick="confirmImport()"><i class="ti ti-check"></i>Xác nhận import</button>
-    </div>
-  </div>
-</div>
 
-<!-- Main Record Modal -->
-
-<div class="modal-bg" id="modal" style="display:none">
-  <div class="modal">
-    <div class="modal-header">
-      <h2 id="modalTitle">Đăng ký hồ sơ mới</h2>
-      <button class="action-btn" onclick="closeModal()" style="padding:4px 6px"><i class="ti ti-x"></i></button>
-    </div>
-    <div class="modal-body">
-      <div class="form-grid">
-        <div class="form-group">
-          <label>Loại hồ sơ<span class="required">*</span></label>
-          <select class="field" id="f_loai" required><option value="">-- Chọn --</option><option>Hợp đồng</option><option>Phụ lục</option><option>Công văn</option><option>Biên bản</option><option>Tờ trình</option><option>Khác</option></select>
+    <div id="tab-config" class="tab-content">
+      <div class="config-wrap">
+        <div class="card-box">
+          <div class="card-box-header">
+            <h3><i class="ti ti-clock" style="font-size:15px;color:var(--blue)"></i>Quy tắc thời gian trả hồ sơ</h3>
+          </div>
+          <table class="cfg-table">
+            <thead>
+              <tr>
+                <th>Mức ưu tiên</th>
+                <th>Ngày làm việc</th>
+              </tr>
+            </thead>
+            <tbody id="priorityConfigBody"></tbody>
+          </table>
+          <div class="cfg-info"><i class="ti ti-info-circle"
+              style="font-size:13px;flex-shrink:0;margin-top:1px"></i>Ngày làm việc: Thứ 2 – Thứ 6, trừ các ngày công
+            tác / lễ ở danh sách bên phải.</div>
         </div>
-        <div class="form-group">
-          <label>Tên hồ sơ<span class="required">*</span></label>
-          <input type="text" class="field" id="f_ten" placeholder="Nhập tên hồ sơ..." required>
-        </div>
-        <div class="form-group">
-          <label>Số lượng bản cứng<span class="required">*</span></label>
-          <input type="number" class="field" id="f_sl" min="1" value="1" required>
-        </div>
-        <div class="form-group">
-          <label>Phòng ban<span class="required">*</span></label>
-          <select class="field" id="f_phong" required><option value="">-- Chọn --</option><option>Kinh doanh</option><option>Pháp lý</option><option>Kế toán</option><option>Nhân sự</option><option>Kỹ thuật</option><option>Ban Giám đốc</option><option>Khác</option></select>
-        </div>
-        <div class="form-group">
-          <label>Người gửi<span class="required">*</span></label>
-          <input type="text" class="field" id="f_nguoigui" placeholder="Họ và tên..." required>
-        </div>
-        <div class="form-group">
-          <label>Đối tác<span class="required">*</span></label>
-          <input type="text" class="field" id="f_doitac" placeholder="Tên đối tác / công ty..." required>
-        </div>
-        <div class="form-group">
-          <label>Mức ưu tiên<span class="required">*</span></label>
-          <select class="field" id="f_uutien" onchange="previewDeadline()" required>
-            <option value="2">Ưu tiên 2 – Trung bình (3 ngày LV)</option>
-            <option value="1">Ưu tiên 1 – Cao (1 ngày LV)</option>
-            <option value="3">Ưu tiên 3 – Thấp (7 ngày LV)</option>
-          </select>
-        </div>
-        <div class="form-group">
-          <label>Ngày dự kiến trả HS <span style="font-size:11px;color:var(--text3)">(tự động)</span></label>
-          <input type="text" class="field" id="f_ngaydk_preview" disabled placeholder="Tính sau khi Trợ lý xác nhận nhận HS">
-        </div>
-        <div class="info-box">
-          <i class="ti ti-info-circle" style="font-size:14px;flex-shrink:0"></i>
-          <span>Ngày dự kiến trả sẽ tự động tính từ ngày Trợ lý xác nhận nhận hồ sơ, theo số ngày làm việc của mức ưu tiên, trừ các ngày công tác / nghỉ lễ đã cấu hình.</span>
-        </div>
-
-        <div class="admin-zone" id="adminSection" style="display:none">
-          <div class="admin-zone-title"><i class="ti ti-shield-lock" style="font-size:12px"></i>Thông tin Trợ lý xác nhận</div>
-          <div class="form-grid" style="gap:10px">
-            <div class="form-group">
-              <label>Giờ nhận hồ sơ</label>
-              <input type="time" class="field" id="f_gionhan">
+        <div class="card-box">
+          <div class="card-box-header">
+            <h3><i class="ti ti-calendar-off" style="font-size:15px;color:#854F0B"></i>Ngày công tác / Nghỉ lễ</h3>
+            <span style="font-size:12px;color:var(--text3)" id="offDayCount">0 mục</span>
+          </div>
+          <div
+            style="padding:12px 16px;border-bottom:1px solid var(--border);display:flex;flex-direction:column;gap:10px">
+            <div class="radio-row">
+              <label><input type="radio" name="offMode" value="range" checked onchange="toggleOffMode()"> Khoảng ngày cụ
+                thể</label>
+              <label><input type="radio" name="offMode" value="recur" onchange="toggleOffMode()"> Lặp lại hằng
+                tuần</label>
             </div>
-            <div class="form-group">
-              <label>Ngày nhận hồ sơ</label>
-              <input type="date" class="field" id="f_ngaygui" onchange="recalcDeadlineInModal()">
+            <div id="offRangeFields" class="recur-row">
+              <input type="date" class="field" id="offStart" style="flex:1;min-width:130px">
+              <span style="font-size:12px;color:var(--text2)">đến</span>
+              <input type="date" class="field" id="offEnd" style="flex:1;min-width:130px">
             </div>
-            <div class="form-group">
-              <label>Ngày trả hồ sơ</label>
-              <input type="date" class="field" id="f_ngaytra">
+            <div id="offRecurFields" class="recur-row" style="display:none">
+              <select id="offWeekday" style="flex:1">
+                <option value="1">Thứ 2 hằng tuần</option>
+                <option value="2">Thứ 3 hằng tuần</option>
+                <option value="3">Thứ 4 hằng tuần</option>
+                <option value="4">Thứ 5 hằng tuần</option>
+                <option value="5" selected>Thứ 6 hằng tuần</option>
+                <option value="6">Thứ 7 hằng tuần</option>
+                <option value="0">Chủ nhật hằng tuần</option>
+              </select>
             </div>
-            <div class="form-group">
-              <label>Giờ trả hồ sơ</label>
-              <input type="time" class="field" id="f_giortra">
-            </div>
-            <div class="form-group">
-              <label>Người nhận HS</label>
-              <input type="text" class="field" id="f_nguoinhan" placeholder="Người nhận lại hồ sơ...">
-            </div>
-            <div class="form-group">
-              <label>Ghi chú / Yêu cầu</label>
-              <input type="text" class="field" id="f_ghichu" placeholder="Ghi chú...">
+            <div class="recur-row">
+              <input type="text" class="field" id="newOffReason" placeholder="Lý do (tùy chọn)" style="flex:1">
+              <button class="btn btn-sm" onclick="addOffDay()"><i class="ti ti-plus"></i>Thêm</button>
             </div>
           </div>
-          <div class="admin-note"><i class="ti ti-lock" style="font-size:11px"></i>Chỉ Trợ lý mới chỉnh sửa được mục này</div>
+          <div id="offDayList"></div>
         </div>
+
       </div>
     </div>
-    <div class="modal-footer">
-      <button class="btn" onclick="closeModal()">Hủy</button>
-      <button class="btn btn-primary" onclick="saveRecord()"><i class="ti ti-check"></i>Lưu hồ sơ</button>
+
+  </div>
+
+  <!-- Password Modal -->
+  <div class="modal-bg" id="pwModal" style="display:none">
+    <div class="modal pw-modal">
+      <div class="modal-body" style="text-align:center;padding:28px 24px 20px">
+        <div class="pw-icon"><i class="ti ti-lock"></i></div>
+        <h2 style="font-size:15px;font-weight:600;margin-bottom:4px">Chuyển sang quyền Trợ lý</h2>
+        <p style="font-size:12px;color:var(--text2);margin-bottom:16px">Vui lòng nhập mật khẩu để chuyển sang quyền Trợ
+          lý</p>
+        <input type="password" class="field" id="pwInput" placeholder="Nhập mật khẩu..." style="text-align:center"
+          onkeydown="if(event.key==='Enter')confirmAdminLogin()">
+        <div class="pw-error" id="pwError"><i class="ti ti-alert-circle"></i> Sai mật khẩu, vui lòng thử lại</div>
+      </div>
+      <div class="modal-footer" style="justify-content:center">
+        <button class="btn" onclick="cancelAdminLogin()">Hủy</button>
+        <button class="btn btn-primary" onclick="confirmAdminLogin()"><i class="ti ti-login"></i>Kích hoạt</button>
+      </div>
     </div>
   </div>
-</div>
 
-<div id="confirmModal" class="modal-bg" style="display:none">
-  <div class="confirm-box">
-    <h3>Thông báo</h3>
-    <p id="confirmMessage">Bạn có chắc chắn muốn xóa hồ sơ này?</p>
-
-    <div class="confirm-actions">
-      <button class="btn btn-secondary" onclick="closeConfirmModal()">
-        Hủy
-      </button>
-
-      <button class="btn btn-danger" id="confirmOkBtn">
-        Xóa
-      </button>
+  <!-- Import Modal -->
+  <div class="modal-bg" id="importModal" style="display:none">
+    <div class="modal" style="max-width:820px">
+      <div class="modal-header">
+        <h2><i class="ti ti-file-upload" style="color:var(--blue);margin-right:6px"></i>Import dữ liệu từ Excel</h2>
+        <button class="action-btn" onclick="closeImportModal()" style="padding:4px 6px"><i class="ti ti-x"></i></button>
+      </div>
+      <div class="modal-body" style="padding:16px 20px">
+        <div id="importSummary" style="margin-bottom:12px"></div>
+        <div id="importModeRow"
+          style="display:flex;align-items:center;gap:16px;margin-bottom:14px;padding:10px 14px;background:var(--bg2);border-radius:var(--radius);border:1px solid var(--border)">
+          <span style="font-size:13px;font-weight:500">Chế độ import:</span>
+          <label style="display:flex;align-items:center;gap:5px;font-size:13px;cursor:pointer"><input type="radio"
+              name="importMode" value="replace" checked> Thay thế toàn bộ dữ liệu hiện tại</label>
+          <label style="display:flex;align-items:center;gap:5px;font-size:13px;cursor:pointer"><input type="radio"
+              name="importMode" value="append"> Thêm vào cuối danh sách</label>
+        </div>
+        <div
+          style="overflow-x:auto;border:1px solid var(--border);border-radius:var(--radius);max-height:340px;overflow-y:auto">
+          <table style="width:100%;border-collapse:collapse;min-width:900px;font-size:12px">
+            <thead id="importPreviewHead" style="position:sticky;top:0"></thead>
+            <tbody id="importPreviewBody"></tbody>
+          </table>
+        </div>
+        <div id="importWarnings" style="margin-top:10px"></div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn" onclick="closeImportModal()">Hủy</button>
+        <button class="btn btn-primary" id="importConfirmBtn" onclick="confirmImport()"><i class="ti ti-check"></i>Xác
+          nhận import</button>
+      </div>
     </div>
   </div>
-</div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-<script>
-  const SUPABASE_URL =
-'https://uujkzjoaxkndkpendiej.supabase.co';
+  <!-- Main Record Modal -->
 
-const SUPABASE_KEY =
-'sb_publishable_mHMxM2cefCNjReBXXDJDlg_f0gHmSj0';
+  <div class="modal-bg" id="modal" style="display:none">
+    <div class="modal">
+      <div class="modal-header">
+        <h2 id="modalTitle">Đăng ký hồ sơ mới</h2>
+        <button class="action-btn" onclick="closeModal()" style="padding:4px 6px"><i class="ti ti-x"></i></button>
+      </div>
+      <div class="modal-body">
+        <div class="form-grid">
+          <div class="form-group">
+            <label>Loại hồ sơ<span class="required">*</span></label>
+            <select class="field" id="f_loai" required>
+              <option value="">-- Chọn --</option>
+              <option>Hợp đồng/Phụ lục</option>
+              <option>Duyệt giá/Đề xuất</option>
+              <option>Biên bản</option>
+              <option>Đơn hàng/PO</option>
+              <option>Thanh toán/Quyết toán</option>
+              <option>VB ngân hàng/Tài chính</option>
+              <option>Báo cáo/Tài liệu</option>
+              <option>Quy trình/Quy định</option>
+              <option>Quyết định/Ủy quyền</option>
+              <option>Khác</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Tên hồ sơ<span class="required">*</span></label>
+            <input type="text" class="field" id="f_ten" placeholder="Nhập tên hồ sơ..." required>
+          </div>
+          <div class="form-group">
+            <label>Số lượng bản cứng<span class="required">*</span></label>
+            <input type="number" class="field" id="f_sl" min="1" value="1" required>
+          </div>
+          <div class="form-group">
+            <label>Phòng ban<span class="required">*</span></label>
+            <select class="field" id="f_phong" required>
+              <option value="">-- Chọn --</option>
+              <option>Ban Cải tiến</option>
+              <option>HSE</option>
+              <option>Cung ứng</option>
+              <option>Ban EPR</option>
+              <option>HCNS</option>
+              <option>Sản xuất</option>
+              <option>Kế toán</option>
+              <option>Kinh doanh</option>
+              <option>KSNB</option>
+              <option>Kỹ thuật</option>
+              <option>Marketing</option>
+              <option>Mua hàng &amp; XNK</option>
+              <option>QLCL</option>
+              <option>QTHT</option>
+              <option>R&amp;D</option>
+              <option>VPGĐ</option>
+              <option>XDCB</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Người gửi<span class="required">*</span></label>
+            <div class="form-group">
+                        <div class="form-group">
+                <div class="form-group autocomplete">
+                <input type="text" id="employeeInput" class="field" placeholder="Nhập tên người gửi...">
+                <div id="employeeList" class="autocomplete-list"></div>
+              </div>
+              </div>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Đối tác<span class="required">*</span></label>
+            <input type="text" class="field" id="f_doitac" placeholder="Tên đối tác / công ty..." required>
+          </div>
+          <div class="form-group">
+            <label>Mức ưu tiên<span class="required">*</span></label>
+            <select class="field" id="f_uutien" onchange="previewDeadline()" required>
+              <option value="2">Ưu tiên 2 – Trung bình (3 ngày LV)</option>
+              <option value="1">Ưu tiên 1 – Cao (1 ngày LV)</option>
+              <option value="3">Ưu tiên 3 – Thấp (7 ngày LV)</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Ngày dự kiến trả HS <span style="font-size:11px;color:var(--text3)">(tự động)</span></label>
+            <input type="text" class="field" id="f_ngaydk_preview" disabled
+              placeholder="Tính sau khi Trợ lý xác nhận nhận HS">
+          </div>
+          <div class="info-box">
+            <i class="ti ti-info-circle" style="font-size:14px;flex-shrink:0"></i>
+            <span>Ngày dự kiến trả sẽ tự động tính từ ngày Trợ lý xác nhận nhận hồ sơ, theo số ngày làm việc của mức ưu
+              tiên, trừ các ngày công tác / nghỉ lễ đã cấu hình.</span>
+          </div>
 
-const sb =
-window.supabase.createClient(
-  SUPABASE_URL,
-  SUPABASE_KEY
-);
+          <div class="admin-zone" id="adminSection" style="display:none">
+            <div class="admin-zone-title"><i class="ti ti-shield-lock" style="font-size:12px"></i>Thông tin Trợ lý xác
+              nhận</div>
+            <div class="form-grid" style="gap:10px">
+              <div class="form-group">
+                <label>Giờ nhận hồ sơ</label>
+                <input type="time" class="field" id="f_gionhan">
+              </div>
+              <div class="form-group">
+                <label>Ngày nhận hồ sơ</label>
+                <input type="date" class="field" id="f_ngaygui" onchange="recalcDeadlineInModal()">
+              </div>
+              <div class="form-group">
+                <label>Ngày trả hồ sơ</label>
+                <input type="date" class="field" id="f_ngaytra">
+              </div>
+              <div class="form-group">
+                <label>Giờ trả hồ sơ</label>
+                <input type="time" class="field" id="f_giortra">
+              </div>
+              <div class="form-group">
+                <label>Người nhận HS</label>
+                <input type="text" class="field" id="f_nguoinhan" placeholder="Người nhận lại hồ sơ...">
+              </div>
+              <div class="form-group">
+                <label>Ghi chú / Yêu cầu</label>
+                <input type="text" class="field" id="f_ghichu" placeholder="Ghi chú...">
+              </div>
+            </div>
+            <div class="admin-note"><i class="ti ti-lock" style="font-size:11px"></i>Chỉ Trợ lý mới chỉnh sửa được mục
+              này</div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn" onclick="closeModal()">Hủy</button>
+        <button class="btn btn-primary" onclick="saveRecord()"><i class="ti ti-check"></i>Lưu hồ sơ</button>
+      </div>
+    </div>
+  </div>
 
-const DAYS_VN=['Chủ nhật','Thứ 2','Thứ 3','Thứ 4','Thứ 5','Thứ 6','Thứ 7'];
-const ADMIN_PASSWORD='admin123'; // mật khẩu demo - có thể thay đổi
-let isAdmin=false, editId=null, nextId=4;
+  <div id="confirmModal" class="modal-bg" style="display:none">
+    <div class="confirm-box">
+      <h3>Thông báo</h3>
+      <p id="confirmMessage">Bạn có chắc chắn muốn xóa hồ sơ này?</p>
 
-let priorityConfig=[
-  {level:1,label:'Ưu tiên 1 – Cao',days:1},
-  {level:2,label:'Ưu tiên 2 – Trung bình',days:3},
-  {level:3,label:'Ưu tiên 3 – Thấp',days:7},
-];
+      <div class="confirm-actions">
+        <button class="btn btn-secondary" onclick="closeConfirmModal()">
+          Hủy
+        </button>
 
-// offDays: each item is either {type:'range', start, end, reason}
-// or {type:'recur', weekday: 0-6, reason}
-let offDays=[]
-let records=[]
+        <button class="btn btn-danger" id="confirmOkBtn">
+          Xóa
+        </button>
+      </div>
+    </div>
+  </div>
 
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <script>
+    const SUPABASE_URL =
+      'https://uujkzjoaxkndkpendiej.supabase.co';
 
-// async function testConnection() {
+    const SUPABASE_KEY =
+      'sb_publishable_mHMxM2cefCNjReBXXDJDlg_f0gHmSj0';
 
-//     const { data, error } = await sb
-//   .from('records')
-//   .select('*');
+    const sb =
+      window.supabase.createClient(
+        SUPABASE_URL,
+        SUPABASE_KEY
+      );
 
-//     console.log('DATA:', data);
-//     console.log('ERROR:', error);
-// }
+    const DAYS_VN = ['Chủ nhật', 'Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7'];
+    const ADMIN_PASSWORD = 'admin123'; // mật khẩu demo - có thể thay đổi
+    let isAdmin = false, editId = null, nextId = 4;
 
-function calcStatus(data) {
-  const hasNgayGui = !!data.ngaygui;
-  const hasGioNhan = !!data.gionhan;
+    let priorityConfig = [
+      { level: 1, label: 'Ưu tiên 1 – Cao', days: 1 },
+      { level: 2, label: 'Ưu tiên 2 – Trung bình', days: 3 },
+      { level: 3, label: 'Ưu tiên 3 – Thấp', days: 7 },
+    ];
 
-  if (!hasNgayGui && !hasGioNhan) {
-    return 'pending';
-  }
+    // offDays: each item is either {type:'range', start, end, reason}
+    // or {type:'recur', weekday: 0-6, reason}
+    let offDays = []
+    let records = []
 
-  if (hasNgayGui || hasGioNhan) {
-    return 'processing';
-  }
+    let employees = [];
 
-  return 'pending';
-}
+    let currentSort = '';
 
-function isOffDay(dateStr){
-  const d = new Date(dateStr + 'T00:00:00');
-  const dow = d.getDay();
+    // async function testConnection() {
 
-  return offDays.some(o => {
+    //     const { data, error } = await sb
+    //   .from('records')
+    //   .select('*');
 
-    // nghỉ lặp lại (ví dụ Chủ nhật)
-    if(o.type === 'recur'){
-      return o.weekday === dow;
+    //     console.log('DATA:', data);
+    //     console.log('ERROR:', error);
+    // }
+
+    function findEmployeeByName(name) {
+        return employees.find(e =>
+          e.fullname?.trim().toLowerCase() === name?.trim().toLowerCase()
+        );
+      }
+
+    async function submitForm() {
+      const nguoigui = selectedEmployee?.fullname || "";
+      const email = selectedEmployee?.email || "";
+      const nguoigui_id = selectedEmployee?.id || "";
+      const payload = {
+        nguoigui: selectedEmployee.fullname,
+        email: selectedEmployee.email,
+        teams_sent: false
+      };
+
+      const emp = findEmployeeByName(senderName);
+
+      if (!emp) {
+        alert("Không tìm thấy nhân sự!");
+        return;
+      }
+
+      const { error } = await sb.from('records').insert([payload]);
+
+      if (error) {
+        console.error(error);
+        alert("Lỗi insert");
+        return;
+      }
+
+      await loadRecords(); 
+      alert("OK đã lưu Supabase");
     }
 
-    // nghỉ theo khoảng
-    const start = new Date(o.start + 'T00:00:00');
-    const end = new Date(o.end + 'T23:59:59');
+    function calcStatus(data) {
 
-    return d >= start && d <= end;
-  });
-}
+      if (data.ngaytra) {
+        return 'done';
+      }
 
-function addWorkingDays(startStr, n){
-  if(!startStr) return '';
+      if (data.ngaygui && data.gionhan) {
+        return 'processing';
+      }
 
-  let d = new Date(startStr + 'T00:00:00');
-  let added = 0;
-
-  while(added < n){
-    d.setDate(d.getDate() + 1);
-
-    const ds = d.toISOString().split('T')[0];
-    const dow = d.getDay();
-
-    const isWeekend = dow === 0 || dow === 6;
-    const isOff = isOffDay(ds);
-
-    if(!isWeekend && !isOff){
-      added++;
+      return 'pending';
     }
-  }
 
-  return d.toISOString().split('T')[0];
+    function isOffDay(dateStr) {
+      const d = new Date(dateStr + 'T00:00:00');
+      const dow = d.getDay();
+
+      return offDays.some(o => {
+
+        // nghỉ lặp lại (ví dụ Chủ nhật)
+        if (o.type === 'recur') {
+          return o.weekday === dow;
+        }
+
+        // nghỉ theo khoảng
+        const start = new Date(o.start + 'T00:00:00');
+        const end = new Date(o.end + 'T23:59:59');
+
+        return d >= start && d <= end;
+      });
+    }
+
+      async function loadEmployees() {
+  const res = await sb
+    .from('employees')
+    .select('*');
+
+  console.log("FULL RESPONSE:", res);
+
+  employees = res.data ?? [];
 }
 
-function calcDeadline(ngaygui,priority){
-  const cfg=priorityConfig.find(p=>p.level===priority);
-  return(cfg&&ngaygui)?addWorkingDays(ngaygui,cfg.days):'';
-}
+    function addWorkingDays(startStr, n) {
+      if (!startStr) return '';
 
-function fmtDate(d){if(!d)return'—';const p=d.split('-');return p[2]+'/'+p[1]+'/'+p[0];}
-function dayVN(ds){if(!ds)return'—';return DAYS_VN[new Date(ds+'T00:00:00').getDay()];}
-function nowTime(){const n=new Date();return n.getHours().toString().padStart(2,'0')+':'+n.getMinutes().toString().padStart(2,'0');}
-function todayStr(){return new Date().toISOString().split('T')[0];}
+      let d = new Date(startStr + 'T00:00:00');
+      let added = 0;
 
-function showTab(id,el){
-  document.querySelectorAll('.tab-content').forEach(t=>t.classList.remove('active'));
-  document.querySelectorAll('.nav-tab').forEach(t=>t.classList.remove('active'));
-  document.getElementById(id).classList.add('active');
-  el.classList.add('active');
-  if(id==='tab-config')renderConfigTab();
-}
+      while (added < n) {
+        d.setDate(d.getDate() + 1);
 
-function switchRole(){
-  const toggle=document.getElementById('roleToggle');
-  if(toggle.checked){
-    // Trying to switch to Admin -> require password
-    toggle.checked=false; // revert until password confirmed
-    document.getElementById('pwInput').value='';
-    document.getElementById('pwError').style.display='none';
-    document.getElementById('pwModal').style.display='flex';
-    setTimeout(()=>document.getElementById('pwInput').focus(),50);
-    return;
-  }
-  applyRole(false);
-}
+        const ds = d.toISOString().split('T')[0];
+        const dow = d.getDay();
 
-function confirmAdminLogin(){
-  const val=document.getElementById('pwInput').value;
-  if(val===ADMIN_PASSWORD){
-    document.getElementById('pwModal').style.display='none';
-    document.getElementById('roleToggle').checked=true;
-    applyRole(true);
-  } else {
-    document.getElementById('pwError').style.display='block';
-  }
-}
+        const isWeekend = dow === 0 || dow === 6;
+        const isOff = isOffDay(ds);
 
-function cancelAdminLogin(){
-  document.getElementById('pwModal').style.display='none';
-  document.getElementById('roleToggle').checked=false;
-  applyRole(false);
-}
+        if (!isWeekend && !isOff) {
+          added++;
+        }
+      }
 
-function applyRole(admin){
-  isAdmin=admin;
-  const b=document.getElementById('roleBadge');
-  b.className='role-badge '+(isAdmin?'role-admin':'role-user');
-  b.innerHTML=isAdmin?'<i class="ti ti-shield" style="font-size:12px"></i>Trợ lý':'<i class="ti ti-user" style="font-size:12px"></i>Người trình ký';
-  document.getElementById('exportBtn').style.display=isAdmin?'inline-flex':'none';
-  document.getElementById('importBtn').style.display=isAdmin?'inline-flex':'none';
-  document.getElementById('tab-config-nav').style.display=isAdmin?'flex':'none';
-  if(!isAdmin&&document.getElementById('tab-config').classList.contains('active')){
-    showTab('tab-records',document.querySelector('.nav-tab'));
-  }
-  renderTable();updateStats();
-}
+      return d.toISOString().split('T')[0];
+    }
 
-function updateStats(){
-  const t=records.length,p=records.filter(r=>r.status==='pending').length,
-    pr=records.filter(r=>r.status==='processing').length,d=records.filter(r=>r.status==='done').length;
-  document.getElementById('statsBar').innerHTML=`
+    function calcDeadline(ngaygui, priority) {
+      const cfg = priorityConfig.find(p => p.level === priority);
+      return (cfg && ngaygui) ? addWorkingDays(ngaygui, cfg.days) : '';
+    }
+
+    function fmtDate(d) { if (!d) return '—'; const p = d.split('-'); return p[2] + '/' + p[1] + '/' + p[0]; }
+    function dayVN(ds) { if (!ds) return '—'; return DAYS_VN[new Date(ds + 'T00:00:00').getDay()]; }
+    function nowTime() { const n = new Date(); return n.getHours().toString().padStart(2, '0') + ':' + n.getMinutes().toString().padStart(2, '0'); }
+    function todayStr() { return new Date().toISOString().split('T')[0]; }
+
+    function showTab(id, el) {
+      document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+      document.getElementById(id).classList.add('active');
+      el.classList.add('active');
+      if (id === 'tab-config') renderConfigTab();
+    }
+
+    function switchRole() {
+      const toggle = document.getElementById('roleToggle');
+      if (toggle.checked) {
+        // Trying to switch to Admin -> require password
+        toggle.checked = false; // revert until password confirmed
+        document.getElementById('pwInput').value = '';
+        document.getElementById('pwError').style.display = 'none';
+        document.getElementById('pwModal').style.display = 'flex';
+        setTimeout(() => document.getElementById('pwInput').focus(), 50);
+        return;
+      }
+      applyRole(false);
+    }
+
+    function confirmAdminLogin() {
+      const val = document.getElementById('pwInput').value;
+      if (val === ADMIN_PASSWORD) {
+        document.getElementById('pwModal').style.display = 'none';
+        document.getElementById('roleToggle').checked = true;
+        applyRole(true);
+      } else {
+        document.getElementById('pwError').style.display = 'block';
+      }
+    }
+
+    function cancelAdminLogin() {
+      document.getElementById('pwModal').style.display = 'none';
+      document.getElementById('roleToggle').checked = false;
+      applyRole(false);
+    }
+
+    function applyRole(admin) {
+      isAdmin = admin;
+      const b = document.getElementById('roleBadge');
+      b.className = 'role-badge ' + (isAdmin ? 'role-admin' : 'role-user');
+      b.innerHTML = isAdmin ? '<i class="ti ti-shield" style="font-size:12px"></i>Trợ lý' : '<i class="ti ti-user" style="font-size:12px"></i>Người trình ký';
+      document.getElementById('exportBtn').style.display = isAdmin ? 'inline-flex' : 'none';
+      document.getElementById('importBtn').style.display = isAdmin ? 'inline-flex' : 'none';
+      document.getElementById('tab-config-nav').style.display = isAdmin ? 'flex' : 'none';
+      if (!isAdmin && document.getElementById('tab-config').classList.contains('active')) {
+        showTab('tab-records', document.querySelector('.nav-tab'));
+      }
+      renderTable(); updateStats();
+    }
+
+    function updateStats() {
+      const t = records.length, p = records.filter(r => r.status === 'pending').length,
+        pr = records.filter(r => r.status === 'processing').length, d = records.filter(r => r.status === 'done').length;
+      document.getElementById('statsBar').innerHTML = `
     <div class="stat"><div class="stat-label">Tổng hồ sơ</div><div class="stat-val">${t}</div></div>
     <div class="stat"><div class="stat-label">Chờ xác nhận</div><div class="stat-val" style="color:#854F0B">${p}</div></div>
     <div class="stat"><div class="stat-label">Đang xử lý</div><div class="stat-val" style="color:#185FA5">${pr}</div></div>
     <div class="stat"><div class="stat-label">Hoàn thành</div><div class="stat-val" style="color:#3B6D11">${d}</div></div>
   `;
-}
+    }
 
-function getFiltered(){
-  const q=document.getElementById('searchInput').value.toLowerCase();
-  const loai=document.getElementById('filterLoai').value;
-  const st=document.getElementById('filterStatus').value;
-  return records.filter(r=>{
-    const mq=!q||(r.ten+r.nguoigui+r.doitac+r.phong).toLowerCase().includes(q);
-    return mq&&(!loai||r.loai===loai)&&(!st||r.status===st);
-  });
-}
+    function getFiltered() {
+      const q = document.getElementById('searchInput').value.toLowerCase();
+      const loai = document.getElementById('filterLoai').value;
+      const st = document.getElementById('filterStatus').value;
+      return records.filter(r => {
+        const mq = !q || (r.ten + r.nguoigui + r.doitac + r.phong).toLowerCase().includes(q);
+        return mq && (!loai || r.loai === loai) && (!st || r.status === st);
+      });
+    }
 
-function renderTable(){
-  const data=getFiltered(),tbody=document.getElementById('tbody'),today=todayStr();
-  if(!data.length){tbody.innerHTML=`<tr><td colspan="18"><div class="empty"><i class="ti ti-inbox"></i>Chưa có hồ sơ nào</div></td></tr>`;return;}
-  tbody.innerHTML=data.map((r,i)=>{
-    const utLabel=r.priority===1?'Cao':r.priority===3?'Thấp':'Trung bình';
-    const utBadge=r.priority===1?'badge-cao':r.priority===3?'badge-thap':'badge-tb';
-    const stBadge=r.status==='done'?'badge-done':r.status==='processing'?'badge-processing':'badge-pending';
-    const stLabel=r.status==='done'?'Hoàn thành':r.status==='processing'?'Đang xử lý':'Chờ xác nhận';
-    const isOverdue=r.ngaydk&&r.ngaydk<today&&r.status!=='done';
-    const deadlineCell=r.ngaydk?`<span class="${isOverdue?'overdue':''}">${fmtDate(r.ngaydk)} (${dayVN(r.ngaydk)})${isOverdue?' ⚠':''}</span>`:'—';
-    let actions='';
-    if(isAdmin&&r.status==='pending')
-      actions+=`<button class="action-btn action-confirm" onclick="quickConfirm(${r.id})"><i class="ti ti-inbox"></i>Nhận HS</button>`;
-    if(isAdmin&&r.status==='processing')
-      actions+=`<button class="action-btn action-done" onclick="markDone(${r.id})"><i class="ti ti-circle-check"></i>Đã ký</button>`;
-    actions+=`<button class="action-btn" onclick="openEdit(${r.id})"><i class="ti ti-edit"></i></button>`;
-    if(isAdmin)actions+=`<button class="action-btn action-del" onclick="deleteRecord(${r.id})"><i class="ti ti-trash"></i></button>`;
-    return`<tr>
-      <td style="color:#9b9895;font-size:12px">${i+1}</td>
-      <td>${dayVN(r.ngaygui)}</td><td>${r.gionhan||'—'}</td><td>${fmtDate(r.ngaygui)}</td>
+    function renderTable() {
+      const data = getFiltered(), tbody = document.getElementById('tbody'), today = todayStr();
+      if (!data.length) { tbody.innerHTML = `<tr><td colspan="18"><div class="empty"><i class="ti ti-inbox"></i>Chưa có hồ sơ nào</div></td></tr>`; return; }
+      tbody.innerHTML = data.map((r, i) => {
+        const utLabel = r.priority === 1 ? 'Cao' : r.priority === 3 ? 'Thấp' : 'Trung bình';
+        const utBadge = r.priority === 1 ? 'badge-cao' : r.priority === 3 ? 'badge-thap' : 'badge-tb';
+        const stBadge = r.status === 'done' ? 'badge-done' : r.status === 'processing' ? 'badge-processing' : 'badge-pending';
+        const stLabel = r.status === 'done' ? 'Hoàn thành' : r.status === 'processing' ? 'Đang xử lý' : 'Chờ xác nhận';
+        const isOverdue = r.ngaydk && r.ngaydk < today && r.status !== 'done';
+        const deadlineCell = r.ngaydk ? `<span class="${isOverdue ? 'overdue' : ''}">${fmtDate(r.ngaydk)} (${dayVN(r.ngaydk)})${isOverdue ? ' ⚠' : ''}</span>` : '—';
+        let actions = '';
+        if (isAdmin && r.status === 'pending')
+          actions += `<button class="action-btn action-confirm" onclick="quickConfirm(${r.id})"><i class="ti ti-inbox"></i>Nhận HS</button>`;
+        if (isAdmin && r.status === 'processing')
+          actions += `<button class="action-btn action-done" onclick="markDone(${r.id})"><i class="ti ti-circle-check"></i>Đã ký</button>`;
+        // Chỉ cho edit nếu là admin, hoặc là user và hồ sơ vẫn đang chờ xác nhận
+        if (isAdmin || r.status === 'pending') {
+          actions += `<button class="action-btn" onclick="openEdit(${r.id})"><i class="ti ti-edit"></i></button>`;
+        }
+        if (isAdmin) actions += `<button class="action-btn action-del" onclick="deleteRecord(${r.id})"><i class="ti ti-trash"></i></button>`;
+        return `<tr>
+      <td style="color:#9b9895;font-size:12px">${i + 1}</td>
+      <td>${dayVN(r.ngaygui)}</td><td>${r.gionhan || '—'}</td><td>${fmtDate(r.ngaygui)}</td>
       <td>${r.loai}</td>
       <td style="max-width:190px;white-space:normal;word-break:break-word">${r.ten}</td>
       <td style="text-align:center">${r.sl}</td>
-      <td>${r.phong}</td><td>${r.nguoigui}</td><td>${r.doitac||'—'}</td>
+      <td>${r.phong}</td><td>${r.nguoigui}</td><td>${r.doitac || '—'}</td>
       <td><span class="badge ${utBadge}">${utLabel}</span></td>
       <td>${deadlineCell}</td>
-      <td>${fmtDate(r.ngaytra)}</td><td>${r.giortra||'—'}</td>
-      <td>${r.nguoinhan||'—'}</td>
-      <td style="max-width:150px;white-space:normal;word-break:break-word;color:#6b6966;font-size:12px">${r.ghichu||'—'}</td>
+      <td>${fmtDate(r.ngaytra)}</td><td>${r.giortra || '—'}</td>
+      <td>${r.nguoinhan || '—'}</td>
+      <td style="max-width:150px;white-space:normal;word-break:break-word;color:#6b6966;font-size:12px">${r.ghichu || '—'}</td>
       <td><span class="badge ${stBadge}">${stLabel}</span></td>
       <td style="display:flex;gap:4px;flex-wrap:wrap;align-items:center">${actions}</td>
     </tr>`;
-  }).join('');
-}
-
-async function quickConfirm(id){
-  const r = records.find(x => x.id === id);
-  if(!r) return;
-
-  const data = {
-    ...r,
-    gionhan: nowTime(),
-    ngaygui: todayStr(),
-    ngaydk: calcDeadline(todayStr(), r.priority),
-    status: 'processing'
-  };
-
-  await updateSupabase(id, data);
-
-  await loadRecords();
-  showToast('Đã nhận hồ sơ');
-}
-
-async function markDone(id){
-  const r = records.find(x => x.id === id);
-  if(!r) return;
-
-  const data = {
-    ...r,
-    ngaytra: todayStr(),
-    giortra: nowTime(),
-    status: 'done'
-  };
-
-  const ok = await updateSupabase(id, data);
-
-  if(ok){
-    await loadRecords();
-    updateStats();
-    showToast('Đã ký hồ sơ');
-  }
-}
-
-function deleteRecord(id){
-  if(!confirm('Xác nhận xóa hồ sơ này?'))return;
-  records=records.filter(r=>r.id!==id);renderTable();updateStats();
-}
-
-function openAddModal(){
-  editId=null;
-  document.getElementById('modalTitle').textContent='Đăng ký hồ sơ mới';
-  clearForm();
-  document.getElementById('adminSection').style.display=isAdmin?'block':'none';
-  setAdminFields(isAdmin);
-  document.getElementById('modal').style.display='flex';
-}
-
-function openEdit(id){
-  const r=records.find(x=>x.id===id);if(!r)return;
-  editId=id;
-  document.getElementById('modalTitle').textContent='Chỉnh sửa hồ sơ #'+id;
-  document.getElementById('f_loai').value=r.loai;
-  document.getElementById('f_ten').value=r.ten;
-  document.getElementById('f_sl').value=r.sl;
-  document.getElementById('f_phong').value=r.phong;
-  document.getElementById('f_nguoigui').value=r.nguoigui;
-  document.getElementById('f_doitac').value=r.doitac||'';
-  document.getElementById('f_uutien').value=r.priority;
-  document.getElementById('f_ngaydk_preview').value=r.ngaydk?fmtDate(r.ngaydk)+' ('+dayVN(r.ngaydk)+')':'';
-  document.getElementById('f_gionhan').value=r.gionhan||'';
-  document.getElementById('f_ngaygui').value=r.ngaygui||'';
-  document.getElementById('f_ngaytra').value=r.ngaytra||'';
-  document.getElementById('f_giortra').value=r.giortra||'';
-  document.getElementById('f_nguoinhan').value=r.nguoinhan||'';
-  document.getElementById('f_ghichu').value=r.ghichu||'';
-  document.getElementById('adminSection').style.display=isAdmin?'block':'none';
-  setAdminFields(isAdmin);
-  document.getElementById('modal').style.display='flex';
-}
-
-function openConfirmModal(message, onConfirm){
-
-  document.getElementById('confirmMessage').textContent = message;
-
-  const modal = document.getElementById('confirmModal');
-  modal.style.display = 'flex';
-
-  document.getElementById('confirmOkBtn').onclick = () => {
-      closeConfirmModal();
-      onConfirm();
-  };
-}
-
-function closeConfirmModal(){
-  document.getElementById('confirmModal').style.display = 'none';
-}
-
-document.getElementById('confirmModal')
-  .addEventListener('click', function(e){
-    if(e.target === this){
-      closeConfirmModal();
+      }).join('');
     }
-});
 
-function setAdminFields(on){
-  ['f_gionhan','f_ngaygui','f_ngaytra','f_giortra','f_nguoinhan','f_ghichu'].forEach(id=>{
-    document.getElementById(id).disabled=!on;
-  });
-}
+    async function quickConfirm(id) {
+      const r = records.find(x => x.id === id);
+      if (!r) return;
 
-function clearForm(){
-  ['f_loai','f_ten','f_phong','f_nguoigui','f_doitac','f_ngaydk_preview','f_gionhan','f_ngaygui','f_ngaytra','f_giortra','f_nguoinhan','f_ghichu'].forEach(id=>document.getElementById(id).value='');
-  document.getElementById('f_sl').value=1;
-  document.getElementById('f_uutien').value='2';
-}
+      const data = {
+        ...r,
+        gionhan: nowTime(),
+        ngaygui: todayStr(),
+        ngaydk: calcDeadline(todayStr(), r.priority)
+      };
 
-function previewDeadline(){
-  const ng=document.getElementById('f_ngaygui').value;
-  const p=parseInt(document.getElementById('f_uutien').value);
-  if(ng&&p){const d=calcDeadline(ng,p);document.getElementById('f_ngaydk_preview').value=d?fmtDate(d)+' ('+dayVN(d)+')':'';}
-}
+      data.status = calcStatus(data);
 
-function recalcDeadlineInModal(){previewDeadline();}
+      await updateSupabase(id, data);
 
-async function saveToSupabase(data){
+      await loadRecords();
+      showToast('Đã nhận hồ sơ');
+    }
 
-  const { error } = await sb
-    .from('records')
-    .insert([{
-      thu: data.thu || '',
-      gionhan: data.gionhan || null,
-      ngaygui: data.ngaygui || null,
+  async function markDone(id) {
+    const r = records.find(x => x.id === id);
+    if (!r) return;
 
-      loaihs: data.loai,
-      tenhs: data.ten,
-      sl: data.sl,
+    const data = {
+      ...r,
+      ngaytra: todayStr(),
+      giortra: nowTime(),
+      status: "done"
+    };
 
-      phongban: data.phong,
-      nguoigui: data.nguoigui,
-      doitac: data.doitac,
+    const ok = await updateSupabase(id, data);
 
-      uutien: data.priority,
+    if (ok) {
+      await loadRecords();
+      updateStats();
 
-      ngaydukientra: data.ngaydk || null,
-      ngaytra: data.ngaytra || null,
-      giotra: data.giortra || null,
+      // 🔥 gửi thông báo
+      await sendDoneNotification(r);
 
-      nguoinhan: data.nguoinhan || '',
-      ghichu: data.ghichu || '',
-
-      status: calcStatus(data),
-
-      created_by: 'Admin',
-      updated_by: 'Admin'
-    }]);
-
-  if(error){
-    console.error(error);
-    showToast("❌ Lỗi lưu dữ liệu: " + error.message);
-    return false;
+      showToast('Đã ký hồ sơ');
+    }
   }
+// Gửi tin nhắn thông báo hoàn thành
+    function getEmployeeEmailByName(name) {
+      const emp = employees.find(e =>
+        e.fullname?.trim().toLowerCase() === name?.trim().toLowerCase()
+      );
+      return emp?.email;
+    }
 
-  return true;
-}
+    async function sendDoneNotification(record) {
+        const SUPABASE_FUNCTION_URL = "https://uujkzjoaxkndkpendiej.supabase.co/functions/v1/notify-teams";
+        const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV1amt6am9heGtuZGtwZW5kaWVqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE1ODk4MzcsImV4cCI6MjA5NzE2NTgzN30.DdYnnQuZYQcF4E11Z1J7Im-aOFPD0G7KAVO3PrmDXSI"; // ← dán đầy đủ anon key của bạn vào đây
 
-async function updateSupabase(id, data){
+        const email = getEmployeeEmailByName(record.nguoigui);
 
-  const { error } = await sb
-    .from('records')
-    .update({
-
-      thu: data.thu || '',
-      gionhan: data.gionhan || null,
-      ngaygui: data.ngaygui || null,
-
-      loaihs: data.loai,
-      tenhs: data.ten,
-      sl: data.sl,
-
-      phongban: data.phong,
-      nguoigui: data.nguoigui,
-      doitac: data.doitac,
-
-      uutien: data.priority,
-
-      ngaydukientra: data.ngaydk || null,
-      ngaytra: data.ngaytra || null,
-      giotra: data.giortra || null,
-
-      nguoinhan: data.nguoinhan || '',
-      ghichu: data.ghichu || '',
-
-      status: data.status,
-
-      updated_by: 'Admin',
-      updated_at: new Date().toISOString()
-
-    })
-    .eq('id', id);
-
-  if(error){
-    console.error(error);
-    showToast("❌ Lỗi cập nhật: " + error.message);
-    return false;
-  }
-
-  return true;
-}
-
-async function deleteRecord(id) {
-  if (!id) {
-    showToast('ID không hợp lệ');
-    return;
-  }
-
-  openConfirmModal(
-    'Bạn có chắc chắn muốn xóa hồ sơ này?',
-    async () => {
-      try {
-        const { error } = await sb
-          .from('records')
-          .delete()
-          .eq('id', id);
-
-        if (error) {
-          showToast('Lỗi: ' + error.message);
+        if (!email) {
+          console.log("Không tìm thấy email người gửi");
           return;
         }
 
-        await loadRecords();
-        showToast('Đã xóa hồ sơ');
-      } catch (err) {
-        showToast('Lỗi hệ thống: ' + err.message);
+        try {
+          const response = await fetch(SUPABASE_FUNCTION_URL, {
+            method: "POST",
+            headers: {
+              "Authorization": `Bearer ${SUPABASE_ANON_KEY}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              email: email,
+              ten_ho_so: record.ten,
+              nguoi_nhan: record.nguoigui,
+              phong_ban: record.phong,      // mới thêm
+              ngay_gui: record.ngaygui,     // mới thêm
+            }),
+          });
+
+          const result = await response.json();
+          if (!result.success) {
+            console.error("Gửi thông báo Teams thất bại:", result.error);
+          }
+        } catch (err) {
+          console.error("Lỗi gọi notify-teams:", err);
+        }
       }
+
+
+    function deleteRecord(id) {
+      if (!confirm('Xác nhận xóa hồ sơ này?')) return;
+      records = records.filter(r => r.id !== id); renderTable(); updateStats();
     }
-  );
-}
 
-async function loadOffDays(){
-  const { data, error } = await sb
-    .from('off_days')
-    .select('*')
-    .order('id');
+    function openAddModal() {
+      selectedEmployee = null;
+      document.getElementById("employeeInput").value = "";
+      editId = null;
+      document.getElementById('modalTitle').textContent = 'Đăng ký hồ sơ mới';
+      clearForm();
+      document.getElementById('adminSection').style.display = isAdmin ? 'block' : 'none';
+      setAdminFields(isAdmin);
+      document.getElementById('modal').style.display = 'flex';
+    }
 
-  if(error){
-    console.error(error);
-    return;
-  }
+    function openEdit(id) {
+      const r = records.find(x => x.id === id);
+        if (!r) return;
+        if (!isAdmin && r.status !== 'pending') {
+          showToast('Hồ sơ đã được tiếp nhận, không thể chỉnh sửa');
+          return;
+        }
+      editId = id;
+      document.getElementById('modalTitle').textContent = 'Chỉnh sửa hồ sơ #' + id;
+      document.getElementById('f_loai').value = r.loai;
+      document.getElementById('f_ten').value = r.ten;
+      document.getElementById('f_sl').value = r.sl;
+      document.getElementById('f_phong').value = r.phong;
+      document.getElementById('f_doitac').value = r.doitac || '';
+      document.getElementById('f_uutien').value = r.priority;
+      document.getElementById('f_ngaydk_preview').value = r.ngaydk ? fmtDate(r.ngaydk) + ' (' + dayVN(r.ngaydk) + ')' : '';
+      document.getElementById('f_gionhan').value = r.gionhan || '';
+      document.getElementById('f_ngaygui').value = r.ngaygui || '';
+      document.getElementById('f_ngaytra').value = r.ngaytra || '';
+      document.getElementById('f_giortra').value = r.giortra || '';
+      document.getElementById('f_nguoinhan').value = r.nguoinhan || '';
+      document.getElementById('f_ghichu').value = r.ghichu || '';
+      document.getElementById('adminSection').style.display = isAdmin ? 'block' : 'none';
+      setAdminFields(isAdmin);
+      document.getElementById('modal').style.display = 'flex';
+    }
 
-  offDays = data.map(d => ({
-    type: d.type,
-    start: d.start_date,
-    end: d.end_date,
-    weekday: d.weekday,
-    reason: d.reason
-  }));
+    function openConfirmModal(message, onConfirm) {
 
-  renderOffDays();
-}
+      document.getElementById('confirmMessage').textContent = message;
 
-async function loadRecords(){
+      const modal = document.getElementById('confirmModal');
+      modal.style.display = 'flex';
 
-    await loadOffDays();
+      document.getElementById('confirmOkBtn').onclick = () => {
+        closeConfirmModal();
+        onConfirm();
+      };
+    }
 
-  const { data, error } = await sb
-    .from('records')
-    .select('*')
-    .order('id');
-  console.log('DB STATUS:', data.map(x => x.status));
-  if(error){
-    console.error(error);
-    return;
-  }
+    function closeConfirmModal() {
+      document.getElementById('confirmModal').style.display = 'none';
+    }
 
-  records = data.map(r => ({
-    id: r.id,
+    document.getElementById('confirmModal')
+      .addEventListener('click', function (e) {
+        if (e.target === this) {
+          closeConfirmModal();
+        }
+      });
 
-    thu: r.thu || '',
-    gionhan: r.gionhan || '',
-    ngaygui: r.ngaygui || '',
+    function setAdminFields(on) {
+      ['f_gionhan', 'f_ngaygui', 'f_ngaytra', 'f_giortra', 'f_nguoinhan', 'f_ghichu'].forEach(id => {
+        document.getElementById(id).disabled = !on;
+      });
+    }
 
-    loai: r.loaihs,
-    ten: r.tenhs,
-    sl: r.sl,
+        function clearForm() {
+      [
+        'f_loai',
+        'f_ten',
+        'f_phong',
+        'f_doitac',
+        'f_ngaydk_preview',
+        'f_gionhan',
+        'f_ngaygui',
+        'f_ngaytra',
+        'f_giortra',
+        'f_nguoinhan',
+        'f_ghichu'
+      ].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.value = '';
+      });
 
-    phong: r.phongban,
-    nguoigui: r.nguoigui,
-    doitac: r.doitac,
+      document.getElementById('f_sl').value = 1;
+      document.getElementById('f_uutien').value = '2';
+    }
 
-    priority: parseInt(r.uutien || 2),
+    function previewDeadline() {
+      const ng = document.getElementById('f_ngaygui').value;
+      const p = parseInt(document.getElementById('f_uutien').value);
+      if (ng && p) { const d = calcDeadline(ng, p); document.getElementById('f_ngaydk_preview').value = d ? fmtDate(d) + ' (' + dayVN(d) + ')' : ''; }
+    }
 
-    ngaydk: r.ngaydukientra || '',
-    ngaytra: r.ngaytra || '',
-    giortra: r.giotra || '',
+    function recalcDeadlineInModal() { previewDeadline(); }
 
-    nguoinhan: r.nguoinhan || '',
-    ghichu: r.ghichu || '',
+    async function saveToSupabase(data) {
 
-    status: r.status || 'pending',
+      const { error } = await sb
+        .from('records')
+        .insert([{
+          thu: data.thu || '',
+          gionhan: data.gionhan || null,
+          ngaygui: data.ngaygui || null,
 
-    created_by: r.created_by,
-    created_at: r.created_at,
-    updated_by: r.updated_by,
-    updated_at: r.updated_at
-  }));
+          loaihs: data.loai,
+          tenhs: data.ten,
+          sl: data.sl,
 
-  renderTable();
-  updateStats();
-}
+          phongban: data.phong,
+          nguoigui: data.nguoigui,
+          doitac: data.doitac,
 
-const t=document.createElement('div');
+          uutien: data.priority,
 
-t.style.cssText='background:red;color:white';
+          ngaydukientra: data.ngaydk || null,
+          ngaytra: data.ngaytra || null,
+          giotra: data.giortra || null,
 
-async function saveRecord(){
-  const loai=document.getElementById('f_loai').value,ten=document.getElementById('f_ten').value.trim(),
-    phong=document.getElementById('f_phong').value,nguoigui=document.getElementById('f_nguoigui').value.trim(),
-    doitac=document.getElementById('f_doitac').value.trim(),sl=document.getElementById('f_sl').value;
-  if(!loai||!ten||!phong||!nguoigui||!doitac||!sl||parseInt(sl)<1){showToast('Vui lòng điền đầy đủ tất cả các trường bắt buộc (*)');return;}
-  const priority=parseInt(document.getElementById('f_uutien').value);
-  const ngaygui=isAdmin?document.getElementById('f_ngaygui').value:(editId?records.find(r=>r.id===editId).ngaygui||'':'');
-  const data={loai,ten,phong,nguoigui,priority,
-    sl:parseInt(document.getElementById('f_sl').value)||1,
-    doitac,
-    gionhan:isAdmin?document.getElementById('f_gionhan').value:(editId?records.find(r=>r.id===editId).gionhan||'':''),
-    ngaygui,ngaydk:calcDeadline(ngaygui,priority),
-    ngaytra:isAdmin?document.getElementById('f_ngaytra').value:(editId?records.find(r=>r.id===editId).ngaytra||'':''),
-    giortra:isAdmin?document.getElementById('f_giortra').value:(editId?records.find(r=>r.id===editId).giortra||'':''),
-    nguoinhan:isAdmin?document.getElementById('f_nguoinhan').value.trim():(editId?records.find(r=>r.id===editId).nguoinhan||'':''),
-    ghichu:isAdmin?document.getElementById('f_ghichu').value.trim():(editId?records.find(r=>r.id===editId).ghichu||'':''),
-  };
-  if(editId){
+          nguoinhan: data.nguoinhan || '',
+          ghichu: data.ghichu || '',
 
-    const idx = records.findIndex(r => r.id === editId);
-    const old = records[idx];
-    const ok = await updateSupabase(editId, data);
+          status: calcStatus(data),
 
-    if(ok){
+          created_by: 'Admin',
+          updated_by: 'Admin'
+        }]);
+
+      if (error) {
+        console.error(error);
+        showToast("❌ Lỗi lưu dữ liệu: " + error.message);
+        return false;
+      }
+
+      return true;
+    }
+
+    async function updateSupabase(id, data) {
+
+      const { error } = await sb
+        .from('records')
+        .update({
+
+          thu: data.thu || '',
+          gionhan: data.gionhan || null,
+          ngaygui: data.ngaygui || null,
+
+          loaihs: data.loai,
+          tenhs: data.ten,
+          sl: data.sl,
+
+          phongban: data.phong,
+          nguoigui: data.nguoigui,
+          doitac: data.doitac,
+
+          uutien: data.priority,
+
+          ngaydukientra: data.ngaydk || null,
+          ngaytra: data.ngaytra || null,
+          giotra: data.giortra || null,
+
+          nguoinhan: data.nguoinhan || '',
+          ghichu: data.ghichu || '',
+
+          status: calcStatus(data),
+
+          updated_by: 'Admin',
+          updated_at: new Date().toISOString()
+
+        })
+        .eq('id', id);
+
+      if (error) {
+        console.error(error);
+        showToast("❌ Lỗi cập nhật: " + error.message);
+        return false;
+      }
+
+      return true;
+    }
+
+    async function deleteRecord(id) {
+      if (!id) {
+        showToast('ID không hợp lệ');
+        return;
+      }
+
+      openConfirmModal(
+        'Bạn có chắc chắn muốn xóa hồ sơ này?',
+        async () => {
+          try {
+            const { error } = await sb
+              .from('records')
+              .delete()
+              .eq('id', id);
+
+            if (error) {
+              showToast('Lỗi: ' + error.message);
+              return;
+            }
+
+            await loadRecords();
+            showToast('Đã xóa hồ sơ');
+          } catch (err) {
+            showToast('Lỗi hệ thống: ' + err.message);
+          }
+        }
+      );
+    }
+
+    async function loadOffDays() {
+      const { data, error } = await sb
+        .from('off_days')
+        .select('*')
+        .order('id');
+
+      if (error) {
+        console.error(error);
+        return;
+      }
+
+      offDays = data.map(d => ({
+        type: d.type,
+        start: d.start_date,
+        end: d.end_date,
+        weekday: d.weekday,
+        reason: d.reason
+      }));
+
+      renderOffDays();
+    }
+
+    async function loadRecords() {
+
+      await loadOffDays();
+
+      const { data, error } = await sb
+        .from('records')
+        .select('*')
+        .order('id');
+      console.log('DB STATUS:', data.map(x => x.status));
+      if (error) {
+        console.error(error);
+        return;
+      }
+
+      records = data.map(r => ({
+        id: r.id,
+
+        thu: r.thu || '',
+        gionhan: r.gionhan || '',
+        ngaygui: r.ngaygui || '',
+
+        loai: r.loaihs,
+        ten: r.tenhs,
+        sl: r.sl,
+
+        phong: r.phongban,
+        nguoigui: r.nguoigui,
+        doitac: r.doitac,
+
+        priority: parseInt(r.uutien || 2),
+
+        ngaydk: r.ngaydukientra || '',
+        ngaytra: r.ngaytra || '',
+        giortra: r.giotra || '',
+
+        nguoinhan: r.nguoinhan || '',
+        ghichu: r.ghichu || '',
+
+        status: r.status || 'pending',
+
+        created_by: r.created_by,
+        created_at: r.created_at,
+        updated_by: r.updated_by,
+        updated_at: r.updated_at
+      }));
+
+      renderTable();
+      updateStats();
+    }
+
+    const t = document.createElement('div');
+
+    t.style.cssText = 'background:red;color:white';
+
+    async function saveRecord() {
+      const loai = document.getElementById('f_loai').value, ten = document.getElementById('f_ten').value.trim(),
+        phong = document.getElementById('f_phong').value;
+        const nguoigui = selectedEmployee?.fullname;
+        const email = selectedEmployee?.email;
+        const nguoigui_id = selectedEmployee?.id;
+        if (!nguoigui) {
+          showToast("Vui lòng chọn người gửi từ danh sách gợi ý");
+          return;
+        }
+        doitac = document.getElementById('f_doitac').value.trim(), sl = document.getElementById('f_sl').value;
+      if (!loai || !ten || !phong || !nguoigui || !doitac || !sl || parseInt(sl) < 1) { showToast('Vui lòng điền đầy đủ tất cả các trường bắt buộc (*)'); return; }
+      const priority = parseInt(document.getElementById('f_uutien').value);
+      const ngaygui = isAdmin ? document.getElementById('f_ngaygui').value : (editId ? records.find(r => r.id === editId).ngaygui || '' : '');
+      
+      const data = {
+        loai, ten, phong, nguoigui, priority,
+        sl: parseInt(document.getElementById('f_sl').value) || 1,
+        doitac,
+        gionhan: isAdmin ? document.getElementById('f_gionhan').value : (editId ? records.find(r => r.id === editId).gionhan || '' : ''),
+        ngaygui, ngaydk: calcDeadline(ngaygui, priority),
+        ngaytra: isAdmin ? document.getElementById('f_ngaytra').value : (editId ? records.find(r => r.id === editId).ngaytra || '' : ''),
+        giortra: isAdmin ? document.getElementById('f_giortra').value : (editId ? records.find(r => r.id === editId).giortra || '' : ''),
+        nguoinhan: isAdmin ? document.getElementById('f_nguoinhan').value.trim() : (editId ? records.find(r => r.id === editId).nguoinhan || '' : ''),
+        ghichu: isAdmin ? document.getElementById('f_ghichu').value.trim() : (editId ? records.find(r => r.id === editId).ghichu || '' : ''),
+      };
+    if (editId) {
+
+        const prevStatus = records.find(r => r.id === editId)?.status;
+
+        // Tính lại trạng thái
+        if (data.ngaytra) {
+          data.status = 'done';
+        }
+        else if (data.ngaygui && data.gionhan) {
+          data.status = 'processing';
+        }
+        else {
+          data.status = 'pending';
+          data.ngaydk = '';     // xóa luôn ngày dự kiến trả
+        }
+
+        const ok = await updateSupabase(editId, data);
+
+        if (ok) {
+          await loadRecords();
+          showToast('✅ Cập nhật hồ sơ thành công');
+
+          // 🔥 Gửi thông báo nếu vừa chuyển sang "Hoàn thành"
+          if (data.status === 'done' && prevStatus !== 'done') {
+            await sendDoneNotification(data);
+          }
+        }
+
+      } else {
+        data.status = calcStatus(data);
+
+        await saveToSupabase(data);
+
         await loadRecords();
-        showToast('✅ Cập nhật hồ sơ thành công');
+      }
+      closeModal();
+      showToast('Đã lưu hồ sơ');
     }
 
-} else {
-    data.status = calcStatus(data);
+    function closeModal() { document.getElementById('modal').style.display = 'none'; }
 
-    await saveToSupabase(data);
-
-    await loadRecords();
-}
-  closeModal();
-showToast('Đã lưu hồ sơ');
-}
-
-function closeModal(){document.getElementById('modal').style.display='none';}
-
-function renderConfigTab(){
-  document.getElementById('priorityConfigBody').innerHTML=priorityConfig.map(p=>`
+    function renderConfigTab() {
+      document.getElementById('priorityConfigBody').innerHTML = priorityConfig.map(p => `
     <tr>
-      <td><span class="badge ${p.level===1?'badge-cao':p.level===3?'badge-thap':'badge-tb'}">${p.label}</span></td>
+      <td><span class="badge ${p.level === 1 ? 'badge-cao' : p.level === 3 ? 'badge-thap' : 'badge-tb'}">${p.label}</span></td>
       <td style="display:flex;align-items:center;gap:6px">
         <input type="number" min="1" max="30" value="${p.days}" onchange="updatePriorityDays(${p.level},this.value)">
         <span style="font-size:12px;color:#6b6966">ngày làm việc</span>
       </td>
     </tr>
   `).join('');
-  renderOffDays();
-}
-
-function updatePriorityDays(level,val){
-  const p=priorityConfig.find(x=>x.level===level);
-  if(p)p.days=parseInt(val)||p.days;
-  // Recalculate all processing records' deadlines
-  records.forEach(r=>{if(r.status==='processing'&&r.ngaygui&&r.priority===level)r.ngaydk=calcDeadline(r.ngaygui,r.priority);});
-  renderTable();
-}
-
-function toggleOffMode(){
-  const mode=document.querySelector('input[name="offMode"]:checked').value;
-  document.getElementById('offRangeFields').style.display=mode==='range'?'flex':'none';
-  document.getElementById('offRecurFields').style.display=mode==='recur'?'flex':'none';
-}
-
-function renderOffDays(){
-  document.getElementById('offDayCount').textContent=offDays.length+' mục';
-  const list=document.getElementById('offDayList');
-  if(!offDays.length){list.innerHTML='<div style="padding:12px 16px;font-size:13px;color:#9b9895;font-style:italic">Chưa có ngày nào được thêm</div>';return;}
-  const sorted=[...offDays].sort((a,b)=>{
-    const ka=a.type==='recur'?'9'+a.weekday:a.start;
-    const kb=b.type==='recur'?'9'+b.weekday:b.start;
-    return ka.localeCompare(kb);
-  });
-  list.innerHTML=`<div class="off-list">${sorted.map((o,idx)=>{
-    const realIdx=offDays.indexOf(o);
-    let label,badge;
-    if(o.type==='recur'){
-      label=DAYS_VN[o.weekday]+' hằng tuần';
-      badge='<span class="off-type-badge">Lặp lại</span>';
-    } else if(o.start===o.end){
-      label=fmtDate(o.start);
-      badge='<span class="off-type-badge">Ngày lẻ</span>';
-    } else {
-      label=fmtDate(o.start)+' – '+fmtDate(o.end);
-      badge='<span class="off-type-badge">Khoảng ngày</span>';
+      renderOffDays();
     }
-    return`<div class="chip">
+
+    function updatePriorityDays(level, val) {
+      const p = priorityConfig.find(x => x.level === level);
+      if (p) p.days = parseInt(val) || p.days;
+      // Recalculate all processing records' deadlines
+      records.forEach(r => { if (r.status === 'processing' && r.ngaygui && r.priority === level) r.ngaydk = calcDeadline(r.ngaygui, r.priority); });
+      renderTable();
+    }
+
+    function toggleOffMode() {
+      const mode = document.querySelector('input[name="offMode"]:checked').value;
+      document.getElementById('offRangeFields').style.display = mode === 'range' ? 'flex' : 'none';
+      document.getElementById('offRecurFields').style.display = mode === 'recur' ? 'flex' : 'none';
+    }
+
+    function renderOffDays() {
+      document.getElementById('offDayCount').textContent = offDays.length + ' mục';
+      const list = document.getElementById('offDayList');
+      if (!offDays.length) { list.innerHTML = '<div style="padding:12px 16px;font-size:13px;color:#9b9895;font-style:italic">Chưa có ngày nào được thêm</div>'; return; }
+      const sorted = [...offDays].sort((a, b) => {
+        const ka = a.type === 'recur' ? '9' + a.weekday : a.start;
+        const kb = b.type === 'recur' ? '9' + b.weekday : b.start;
+        return ka.localeCompare(kb);
+      });
+      list.innerHTML = `<div class="off-list">${sorted.map((o, idx) => {
+        const realIdx = offDays.indexOf(o);
+        let label, badge;
+        if (o.type === 'recur') {
+          label = DAYS_VN[o.weekday] + ' hằng tuần';
+          badge = '<span class="off-type-badge">Lặp lại</span>';
+        } else if (o.start === o.end) {
+          label = fmtDate(o.start);
+          badge = '<span class="off-type-badge">Ngày lẻ</span>';
+        } else {
+          label = fmtDate(o.start) + ' – ' + fmtDate(o.end);
+          badge = '<span class="off-type-badge">Khoảng ngày</span>';
+        }
+        return `<div class="chip">
       <i class="ti ti-calendar-x" style="font-size:13px;color:#854F0B"></i>
       ${badge}
-      <span><strong>${label}</strong>${o.reason?' – '+o.reason:''}</span>
+      <span><strong>${label}</strong>${o.reason ? ' – ' + o.reason : ''}</span>
       <button onclick="removeOffDay(${realIdx})" title="Xóa"><i class="ti ti-x" style="font-size:12px"></i></button>
     </div>`;
-  }).join('')}</div>`;
-}
-
-async function addOffDay(){
-  const mode=document.querySelector('input[name="offMode"]:checked').value;
-  const reason=document.getElementById('newOffReason').value.trim();
-
-  let entry;
-
-  if(mode==='range'){
-    const start=document.getElementById('offStart').value;
-    const end=document.getElementById('offEnd').value || start;
-
-    if(!start){
-      showToast('Vui lòng chọn ngày bắt đầu');
-      return;
+      }).join('')}</div>`;
     }
 
-    entry={ type:'range', start, end, reason };
+    async function addOffDay() {
+      const mode = document.querySelector('input[name="offMode"]:checked').value;
+      const reason = document.getElementById('newOffReason').value.trim();
 
-  } else {
-    const weekday=parseInt(document.getElementById('offWeekday').value);
-    entry={ type:'recur', weekday, start:null, end:null, reason };
-  }
+      let entry;
 
-  // ✅ SAVE SUPABASE
-  const { error } = await sb.from('off_days').insert([{
-    type: entry.type,
-    start_date: entry.start,
-    end_date: entry.end,
-    weekday: entry.weekday,
-    reason: entry.reason
-  }]);
+      if (mode === 'range') {
+        const start = document.getElementById('offStart').value;
+        const end = document.getElementById('offEnd').value || start;
 
-  if(error){
-    showToast('Lỗi lưu ngày nghỉ: ' + error.message);
-    return;
-  }
+        if (!start) {
+          showToast('Vui lòng chọn ngày bắt đầu');
+          return;
+        }
 
-  // reload từ DB
-  await loadOffDays();
+        entry = { type: 'range', start, end, reason };
 
-  document.getElementById('newOffReason').value='';
-  showToast('Đã thêm ngày nghỉ');
-}
+      } else {
+        const weekday = parseInt(document.getElementById('offWeekday').value);
+        entry = { type: 'recur', weekday, start: null, end: null, reason };
+      }
 
-async function removeOffDay(idx){
-  const item = offDays[idx];
+      // ✅ SAVE SUPABASE
+      const { error } = await sb.from('off_days').insert([{
+        type: entry.type,
+        start_date: entry.start,
+        end_date: entry.end,
+        weekday: entry.weekday,
+        reason: entry.reason
+      }]);
 
-  const { error } = await sb
-    .from('off_days')
-    .delete()
-    .eq('type', item.type)
-    .eq('reason', item.reason)
-    .eq('start_date', item.start)
-    .eq('weekday', item.weekday);
+      if (error) {
+        showToast('Lỗi lưu ngày nghỉ: ' + error.message);
+        return;
+      }
 
-  if(error){
-    showToast('Lỗi xóa ngày nghỉ');
-    return;
-  }
+      // reload từ DB
+      await loadOffDays();
 
-  await loadOffDays();
-  showToast('Đã xóa ngày nghỉ');
-}
-
-function exportExcel(){
-  if(!isAdmin){showToast('Chỉ Trợ lý mới có quyền xuất Excel');return;}
-  if(typeof XLSX==='undefined'){showToast('Thư viện xuất Excel chưa tải xong, vui lòng thử lại sau giây lát.');return;}
-  try{
-    const header=['STT','Thứ','Giờ nhận HS','Ngày gửi hồ sơ','Loại hồ sơ','Tên hồ sơ','SL bản cứng','Phòng ban','Người gửi','Đối tác','Ưu tiên','Ngày DK trả HS','Ngày trả hồ sơ','Giờ trả hồ sơ','Người nhận HS','Ghi chú / Yêu cầu','Trạng thái'];
-    const rows=records.map((r,i)=>{
-      const utLabel=r.priority===1?'Ưu tiên 1 - Cao':r.priority===3?'Ưu tiên 3 - Thấp':'Ưu tiên 2 - Trung bình';
-      const stLabel=r.status==='done'?'Hoàn thành':r.status==='processing'?'Đang xử lý':'Chờ xác nhận';
-      return[
-        i+1,
-        dayVN(r.ngaygui),
-        r.gionhan||'',
-        r.ngaygui?fmtDate(r.ngaygui):'',
-        r.loai||'',
-        r.ten||'',
-        r.sl||0,
-        r.phong||'',
-        r.nguoigui||'',
-        r.doitac||'',
-        utLabel,
-        r.ngaydk?fmtDate(r.ngaydk):'',
-        r.ngaytra?fmtDate(r.ngaytra):'',
-        r.giortra||'',
-        r.nguoinhan||'',
-        r.ghichu||'',
-        stLabel
-      ];
-    });
-    const wsData=[header,...rows];
-    const ws=XLSX.utils.aoa_to_sheet(wsData);
-    ws['!cols']=[6,10,12,14,14,32,12,14,18,22,22,16,14,12,18,28,14].map(w=>({wch:w}));
-    const wb=XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb,ws,'So trinh ky');
-    const today=new Date();
-    const fname='So_Trinh_Ky_Ho_So_'+today.getFullYear()+'-'+String(today.getMonth()+1).padStart(2,'0')+'-'+String(today.getDate()).padStart(2,'0')+'.xlsx';
-    XLSX.writeFile(wb,fname);
-  }catch(err){
-    showToast('Có lỗi khi xuất Excel: '+err.message);
-    console.error(err);
-  }
-}
-
-// ── IMPORT EXCEL ─────────────────────────────────────────────
-let importedRows=[];
-
-// Column header aliases -> internal field mapping
-const COL_MAP={
-  'loại hồ sơ':'loai','loai ho so':'loai','loai':'loai',
-  'tên hồ sơ':'ten','ten ho so':'ten','ten':'ten',
-  'sl bản cứng':'sl','so luong':'sl','sl':'sl','số lượng bản cứng':'sl',
-  'phòng ban':'phong','phong ban':'phong','phong':'phong',
-  'người gửi':'nguoigui','nguoi gui':'nguoigui','nguoigui':'nguoigui',
-  'đối tác':'doitac','doi tac':'doitac','doitac':'doitac',
-  'ưu tiên':'priority','uu tien':'priority',
-  'giờ nhận hs':'gionhan','gio nhan':'gionhan','giờ nhận':'gionhan',
-  'ngày gửi hồ sơ':'ngaygui','ngay gui':'ngaygui','ngày gửi hs':'ngaygui',
-  'ngày dự kiến trả hs':'ngaydk','ngay du kien tra':'ngaydk','ngày dk trả hs':'ngaydk',
-  'ngày trả hồ sơ':'ngaytra','ngay tra':'ngaytra','ngày trả hs':'ngaytra',
-  'giờ trả hs':'giortra','gio tra':'giortra','giờ trả hồ sơ':'giortra',
-  'người nhận hs':'nguoinhan','nguoi nhan':'nguoinhan','người nhận hs':'nguoinhan',
-  'ghi chú / yêu cầu':'ghichu','ghi chu':'ghichu','ghi chú':'ghichu','yêu cầu':'ghichu',
-  'trạng thái':'status','trang thai':'status',
-};
-
-function normKey(s){return(s||'').toString().toLowerCase().trim().replace(/\s+/g,' ');}
-
-function parsePriority(v){
-  if(!v)return 2;
-  const s=v.toString().toLowerCase();
-  if(s.includes('1')||s.includes('cao'))return 1;
-  if(s.includes('3')||s.includes('thấp')||s.includes('thap'))return 3;
-  return 2;
-}
-
-function parseStatus(v){
-  if(!v)return'pending';
-  const s=v.toString().toLowerCase();
-  if(s.includes('hoàn')||s.includes('hoan')||s.includes('done'))return'done';
-  if(s.includes('đang')||s.includes('xử lý')||s.includes('processing'))return'processing';
-  return'pending';
-}
-
-function parseExcelDate(v){
-  if(!v)return'';
-  // If already string like dd/mm/yyyy or yyyy-mm-dd
-  if(typeof v==='string'){
-    const iso=/^\d{4}-\d{2}-\d{2}$/.test(v);
-    if(iso)return v;
-    const dmy=v.match(/^(\d{1,2})[\/-](\d{1,2})[\/-](\d{2,4})$/);
-    if(dmy){const y=dmy[3].length===2?'20'+dmy[3]:dmy[3];return`${y}-${dmy[2].padStart(2,'0')}-${dmy[1].padStart(2,'0')}`;}
-    return'';
-  }
-  if(typeof v==='number'){
-    // Excel serial date
-    const d=new Date(Math.round((v-25569)*86400*1000));
-    return d.toISOString().split('T')[0];
-  }
-  return'';
-}
-
-function handleImportFile(e){
-  const file=e.target.files[0];
-  e.target.value=''; // reset so same file can be re-selected
-  if(!file)return;
-  if(typeof XLSX==='undefined'){showToast('Thư viện Excel chưa sẵn sàng, vui lòng thử lại.');return;}
-  const reader=new FileReader();
-  reader.onload=function(ev){
-    try{
-      const wb=XLSX.read(ev.target.result,{type:'array',cellDates:false});
-      const ws=wb.Sheets[wb.SheetNames[0]];
-      const raw=XLSX.utils.sheet_to_json(ws,{header:1,defval:''});
-      if(!raw||raw.length<2){showToast('File Excel không có dữ liệu hoặc thiếu tiêu đề cột.');return;}
-
-      // Detect header row (first row)
-      const headerRow=raw[0];
-      const colIdx={};
-      headerRow.forEach((h,i)=>{
-        const norm=normKey(h);
-        if(COL_MAP[norm])colIdx[COL_MAP[norm]]=i;
-      });
-
-      const dataRows=raw.slice(1).filter(r=>r.some(c=>c!==null&&c!==undefined&&c!==''));
-      importedRows=dataRows.map((row,i)=>{
-        const get=f=>colIdx[f]!==undefined?row[colIdx[f]]:'';
-        return{
-          _rowNum:i+2,
-          loai:(get('loai')||'').toString().trim(),
-          ten:(get('ten')||'').toString().trim(),
-          sl:parseInt(get('sl'))||1,
-          phong:(get('phong')||'').toString().trim(),
-          nguoigui:(get('nguoigui')||'').toString().trim(),
-          doitac:(get('doitac')||'').toString().trim(),
-          priority:parsePriority(get('priority')),
-          gionhan:(get('gionhan')||'').toString().trim(),
-          ngaygui:parseExcelDate(get('ngaygui')),
-          ngaydk:parseExcelDate(get('ngaydk')),
-          ngaytra:parseExcelDate(get('ngaytra')),
-          giortra:(get('giortra')||'').toString().trim(),
-          nguoinhan:(get('nguoinhan')||'').toString().trim(),
-          ghichu:(get('ghichu')||'').toString().trim(),
-          status:parseStatus(get('status')),
-        };
-      });
-
-      renderImportPreview(headerRow,colIdx,file.name);
-      document.getElementById('importModal').style.display='flex';
-    }catch(err){
-      showToast('Lỗi đọc file: '+err.message);
-      console.error(err);
+      document.getElementById('newOffReason').value = '';
+      showToast('Đã thêm ngày nghỉ');
     }
-  };
-  reader.readAsArrayBuffer(file);
-}
 
-function renderImportPreview(headerRow,colIdx,fname){
-  const mappedFields=['loai','ten','sl','phong','nguoigui','doitac','priority','gionhan','ngaygui','ngaydk','ngaytra','giortra','nguoinhan','ghichu','status'];
-  const fieldLabels={loai:'Loại HS',ten:'Tên hồ sơ',sl:'SL bản cứng',phong:'Phòng ban',nguoigui:'Người gửi',doitac:'Đối tác',priority:'Ưu tiên',gionhan:'Giờ nhận',ngaygui:'Ngày gửi',ngaydk:'Ngày DK trả',ngaytra:'Ngày trả',giortra:'Giờ trả',nguoinhan:'Người nhận',ghichu:'Ghi chú',status:'Trạng thái'};
-  const detected=mappedFields.filter(f=>colIdx[f]!==undefined);
-  const missing=mappedFields.filter(f=>!['gionhan','ngaygui','ngaydk','ngaytra','giortra','nguoinhan','ghichu','status'].includes(f)&&colIdx[f]===undefined);
+    async function removeOffDay(idx) {
+      const item = offDays[idx];
 
-  document.getElementById('importSummary').innerHTML=`
+      const { error } = await sb
+        .from('off_days')
+        .delete()
+        .eq('type', item.type)
+        .eq('reason', item.reason)
+        .eq('start_date', item.start)
+        .eq('weekday', item.weekday);
+
+      if (error) {
+        showToast('Lỗi xóa ngày nghỉ');
+        return;
+      }
+
+      await loadOffDays();
+      showToast('Đã xóa ngày nghỉ');
+    }
+
+    function exportExcel() {
+      if (!isAdmin) { showToast('Chỉ Trợ lý mới có quyền xuất Excel'); return; }
+      if (typeof XLSX === 'undefined') { showToast('Thư viện xuất Excel chưa tải xong, vui lòng thử lại sau giây lát.'); return; }
+      try {
+        const header = ['STT', 'Thứ', 'Giờ nhận HS', 'Ngày gửi hồ sơ', 'Loại hồ sơ', 'Tên hồ sơ', 'SL bản cứng', 'Phòng ban', 'Người gửi', 'Đối tác', 'Ưu tiên', 'Ngày DK trả HS', 'Ngày trả hồ sơ', 'Giờ trả hồ sơ', 'Người nhận HS', 'Ghi chú / Yêu cầu', 'Trạng thái'];
+        const rows = records.map((r, i) => {
+          const utLabel = r.priority === 1 ? 'Ưu tiên 1 - Cao' : r.priority === 3 ? 'Ưu tiên 3 - Thấp' : 'Ưu tiên 2 - Trung bình';
+          const stLabel = r.status === 'done' ? 'Hoàn thành' : r.status === 'processing' ? 'Đang xử lý' : 'Chờ xác nhận';
+          return [
+            i + 1,
+            dayVN(r.ngaygui),
+            r.gionhan || '',
+            r.ngaygui ? fmtDate(r.ngaygui) : '',
+            r.loai || '',
+            r.ten || '',
+            r.sl || 0,
+            r.phong || '',
+            r.nguoigui || '',
+            r.doitac || '',
+            utLabel,
+            r.ngaydk ? fmtDate(r.ngaydk) : '',
+            r.ngaytra ? fmtDate(r.ngaytra) : '',
+            r.giortra || '',
+            r.nguoinhan || '',
+            r.ghichu || '',
+            stLabel
+          ];
+        });
+        const wsData = [header, ...rows];
+        const ws = XLSX.utils.aoa_to_sheet(wsData);
+        ws['!cols'] = [6, 10, 12, 14, 14, 32, 12, 14, 18, 22, 22, 16, 14, 12, 18, 28, 14].map(w => ({ wch: w }));
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, 'So trinh ky');
+        const today = new Date();
+        const fname = 'So_Trinh_Ky_Ho_So_' + today.getFullYear() + '-' + String(today.getMonth() + 1).padStart(2, '0') + '-' + String(today.getDate()).padStart(2, '0') + '.xlsx';
+        XLSX.writeFile(wb, fname);
+      } catch (err) {
+        showToast('Có lỗi khi xuất Excel: ' + err.message);
+        console.error(err);
+      }
+    }
+
+    // ── IMPORT EXCEL ─────────────────────────────────────────────
+    let importedRows = [];
+
+    // Column header aliases -> internal field mapping
+    const COL_MAP = {
+      'loại hồ sơ': 'loai', 'loai ho so': 'loai', 'loai': 'loai',
+      'tên hồ sơ': 'ten', 'ten ho so': 'ten', 'ten': 'ten',
+      'sl bản cứng': 'sl', 'so luong': 'sl', 'sl': 'sl', 'số lượng bản cứng': 'sl',
+      'phòng ban': 'phong', 'phong ban': 'phong', 'phong': 'phong',
+      'người gửi': 'nguoigui', 'nguoi gui': 'nguoigui', 'nguoigui': 'nguoigui',
+      'đối tác': 'doitac', 'doi tac': 'doitac', 'doitac': 'doitac',
+      'ưu tiên': 'priority', 'uu tien': 'priority',
+      'giờ nhận hs': 'gionhan', 'gio nhan': 'gionhan', 'giờ nhận': 'gionhan',
+      'ngày gửi hồ sơ': 'ngaygui', 'ngay gui': 'ngaygui', 'ngày gửi hs': 'ngaygui',
+      'ngày dự kiến trả hs': 'ngaydk', 'ngay du kien tra': 'ngaydk', 'ngày dk trả hs': 'ngaydk',
+      'ngày trả hồ sơ': 'ngaytra', 'ngay tra': 'ngaytra', 'ngày trả hs': 'ngaytra',
+      'giờ trả hs': 'giortra', 'gio tra': 'giortra', 'giờ trả hồ sơ': 'giortra',
+      'người nhận hs': 'nguoinhan', 'nguoi nhan': 'nguoinhan', 'người nhận hs': 'nguoinhan',
+      'ghi chú / yêu cầu': 'ghichu', 'ghi chu': 'ghichu', 'ghi chú': 'ghichu', 'yêu cầu': 'ghichu',
+      'trạng thái': 'status', 'trang thai': 'status',
+    };
+
+    function normKey(s) { return (s || '').toString().toLowerCase().trim().replace(/\s+/g, ' '); }
+
+    function parsePriority(v) {
+      if (!v) return 2;
+      const s = v.toString().toLowerCase();
+      if (s.includes('1') || s.includes('cao')) return 1;
+      if (s.includes('3') || s.includes('thấp') || s.includes('thap')) return 3;
+      return 2;
+    }
+
+    function parseStatus(v) {
+      if (!v) return 'pending';
+      const s = v.toString().toLowerCase();
+      if (s.includes('hoàn') || s.includes('hoan') || s.includes('done')) return 'done';
+      if (s.includes('đang') || s.includes('xử lý') || s.includes('processing')) return 'processing';
+      return 'pending';
+    }
+
+    function parseExcelDate(v) {
+      if (!v) return '';
+      // If already string like dd/mm/yyyy or yyyy-mm-dd
+      if (typeof v === 'string') {
+        const iso = /^\d{4}-\d{2}-\d{2}$/.test(v);
+        if (iso) return v;
+        const dmy = v.match(/^(\d{1,2})[\/-](\d{1,2})[\/-](\d{2,4})$/);
+        if (dmy) { const y = dmy[3].length === 2 ? '20' + dmy[3] : dmy[3]; return `${y}-${dmy[2].padStart(2, '0')}-${dmy[1].padStart(2, '0')}`; }
+        return '';
+      }
+      if (typeof v === 'number') {
+        // Excel serial date
+        const d = new Date(Math.round((v - 25569) * 86400 * 1000));
+        return d.toISOString().split('T')[0];
+      }
+      return '';
+    }
+
+    function handleImportFile(e) {
+      const file = e.target.files[0];
+      e.target.value = ''; // reset so same file can be re-selected
+      if (!file) return;
+      if (typeof XLSX === 'undefined') { showToast('Thư viện Excel chưa sẵn sàng, vui lòng thử lại.'); return; }
+      const reader = new FileReader();
+      reader.onload = function (ev) {
+        try {
+          const wb = XLSX.read(ev.target.result, { type: 'array', cellDates: false });
+          const ws = wb.Sheets[wb.SheetNames[0]];
+          const raw = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' });
+          if (!raw || raw.length < 2) { showToast('File Excel không có dữ liệu hoặc thiếu tiêu đề cột.'); return; }
+
+          // Detect header row (first row)
+          const headerRow = raw[0];
+          const colIdx = {};
+          headerRow.forEach((h, i) => {
+            const norm = normKey(h);
+            if (COL_MAP[norm]) colIdx[COL_MAP[norm]] = i;
+          });
+
+          const dataRows = raw.slice(1).filter(r => r.some(c => c !== null && c !== undefined && c !== ''));
+          importedRows = dataRows.map((row, i) => {
+            const get = f => colIdx[f] !== undefined ? row[colIdx[f]] : '';
+            return {
+              _rowNum: i + 2,
+              loai: (get('loai') || '').toString().trim(),
+              ten: (get('ten') || '').toString().trim(),
+              sl: parseInt(get('sl')) || 1,
+              phong: (get('phong') || '').toString().trim(),
+              nguoigui: (get('nguoigui') || '').toString().trim(),
+              doitac: (get('doitac') || '').toString().trim(),
+              priority: parsePriority(get('priority')),
+              gionhan: (get('gionhan') || '').toString().trim(),
+              ngaygui: parseExcelDate(get('ngaygui')),
+              ngaydk: parseExcelDate(get('ngaydk')),
+              ngaytra: parseExcelDate(get('ngaytra')),
+              giortra: (get('giortra') || '').toString().trim(),
+              nguoinhan: (get('nguoinhan') || '').toString().trim(),
+              ghichu: (get('ghichu') || '').toString().trim(),
+              status: parseStatus(get('status')),
+            };
+          });
+
+          renderImportPreview(headerRow, colIdx, file.name);
+          document.getElementById('importModal').style.display = 'flex';
+        } catch (err) {
+          showToast('Lỗi đọc file: ' + err.message);
+          console.error(err);
+        }
+      };
+      reader.readAsArrayBuffer(file);
+    }
+
+    function renderImportPreview(headerRow, colIdx, fname) {
+      const mappedFields = ['loai', 'ten', 'sl', 'phong', 'nguoigui', 'doitac', 'priority', 'gionhan', 'ngaygui', 'ngaydk', 'ngaytra', 'giortra', 'nguoinhan', 'ghichu', 'status'];
+      const fieldLabels = { loai: 'Loại HS', ten: 'Tên hồ sơ', sl: 'SL bản cứng', phong: 'Phòng ban', nguoigui: 'Người gửi', doitac: 'Đối tác', priority: 'Ưu tiên', gionhan: 'Giờ nhận', ngaygui: 'Ngày gửi', ngaydk: 'Ngày DK trả', ngaytra: 'Ngày trả', giortra: 'Giờ trả', nguoinhan: 'Người nhận', ghichu: 'Ghi chú', status: 'Trạng thái' };
+      const detected = mappedFields.filter(f => colIdx[f] !== undefined);
+      const missing = mappedFields.filter(f => !['gionhan', 'ngaygui', 'ngaydk', 'ngaytra', 'giortra', 'nguoinhan', 'ghichu', 'status'].includes(f) && colIdx[f] === undefined);
+
+      document.getElementById('importSummary').innerHTML = `
     <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:8px">
       <div style="flex:1;min-width:180px;background:var(--green-bg);color:var(--green-text);border-radius:var(--radius);padding:8px 12px;font-size:12px">
         <strong style="font-size:18px;display:block">${importedRows.length}</strong>dòng dữ liệu đọc được từ <em>${fname}</em>
@@ -1142,80 +1375,151 @@ function renderImportPreview(headerRow,colIdx,fname){
         <strong style="font-size:18px;display:block">${detected.length}/${mappedFields.length}</strong>cột khớp được map tự động
       </div>
     </div>
-    ${missing.length?`<div style="background:#FAEEDA;color:#854F0B;border-radius:var(--radius);padding:8px 12px;font-size:12px;margin-bottom:4px"><i class="ti ti-alert-triangle"></i> Không tìm thấy cột: <strong>${missing.map(f=>fieldLabels[f]).join(', ')}</strong> — các trường này sẽ để trống</div>`:''}
+    ${missing.length ? `<div style="background:#FAEEDA;color:#854F0B;border-radius:var(--radius);padding:8px 12px;font-size:12px;margin-bottom:4px"><i class="ti ti-alert-triangle"></i> Không tìm thấy cột: <strong>${missing.map(f => fieldLabels[f]).join(', ')}</strong> — các trường này sẽ để trống</div>` : ''}
   `;
 
-  // Preview table - show only mapped columns
-  const showFields=detected;
-  document.getElementById('importPreviewHead').innerHTML=`<tr style="background:var(--bg2)">${showFields.map(f=>`<th style="padding:7px 10px;font-size:11px;color:var(--text2);border-bottom:1px solid var(--border);white-space:nowrap;font-weight:500">${fieldLabels[f]}</th>`).join('')}</tr>`;
+      // Preview table - show only mapped columns
+      const showFields = detected;
+      document.getElementById('importPreviewHead').innerHTML = `<tr style="background:var(--bg2)">${showFields.map(f => `<th style="padding:7px 10px;font-size:11px;color:var(--text2);border-bottom:1px solid var(--border);white-space:nowrap;font-weight:500">${fieldLabels[f]}</th>`).join('')}</tr>`;
 
-  const MAX_PREVIEW=50;
-  const previewRows=importedRows.slice(0,MAX_PREVIEW);
-  document.getElementById('importPreviewBody').innerHTML=previewRows.map((r,i)=>{
-    const rowBg=i%2===0?'':'background:var(--bg2)';
-    return`<tr style="${rowBg}">${showFields.map(f=>{
-      let val=r[f];
-      if(f==='priority')val=r.priority===1?'Cao':r.priority===3?'Thấp':'Trung bình';
-      if(f==='status')val=r.status==='done'?'Hoàn thành':r.status==='processing'?'Đang xử lý':'Chờ xác nhận';
-      if(f==='ngaygui'||f==='ngaydk'||f==='ngaytra')val=val?fmtDate(val):'';
-      return`<td style="padding:6px 10px;font-size:12px;border-bottom:1px solid var(--border);max-width:180px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${val||'<span style="color:var(--text3)">—</span>'}</td>`;
-    }).join('')}</tr>`;
-  }).join('');
+      const MAX_PREVIEW = 50;
+      const previewRows = importedRows.slice(0, MAX_PREVIEW);
+      document.getElementById('importPreviewBody').innerHTML = previewRows.map((r, i) => {
+        const rowBg = i % 2 === 0 ? '' : 'background:var(--bg2)';
+        return `<tr style="${rowBg}">${showFields.map(f => {
+          let val = r[f];
+          if (f === 'priority') val = r.priority === 1 ? 'Cao' : r.priority === 3 ? 'Thấp' : 'Trung bình';
+          if (f === 'status') val = r.status === 'done' ? 'Hoàn thành' : r.status === 'processing' ? 'Đang xử lý' : 'Chờ xác nhận';
+          if (f === 'ngaygui' || f === 'ngaydk' || f === 'ngaytra') val = val ? fmtDate(val) : '';
+          return `<td style="padding:6px 10px;font-size:12px;border-bottom:1px solid var(--border);max-width:180px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${val || '<span style="color:var(--text3)">—</span>'}</td>`;
+        }).join('')}</tr>`;
+      }).join('');
 
-  if(importedRows.length>MAX_PREVIEW){
-    document.getElementById('importWarnings').innerHTML=`<div style="font-size:12px;color:var(--text2);text-align:center;padding:4px">Hiển thị ${MAX_PREVIEW}/${importedRows.length} dòng — tất cả sẽ được import khi xác nhận</div>`;
-  } else {
-    document.getElementById('importWarnings').innerHTML='';
+      if (importedRows.length > MAX_PREVIEW) {
+        document.getElementById('importWarnings').innerHTML = `<div style="font-size:12px;color:var(--text2);text-align:center;padding:4px">Hiển thị ${MAX_PREVIEW}/${importedRows.length} dòng — tất cả sẽ được import khi xác nhận</div>`;
+      } else {
+        document.getElementById('importWarnings').innerHTML = '';
+      }
+    }
+
+    function confirmImport() {
+      if (!importedRows.length) { closeImportModal(); return; }
+      const mode = document.querySelector('input[name="importMode"]:checked').value;
+      const newRecs = importedRows.map(r => {
+        const rec = { ...r };
+        delete rec._rowNum;
+        rec.id = nextId++;
+        // Recalculate ngaydk if not in file but ngaygui is present
+        if (!rec.ngaydk && rec.ngaygui) rec.ngaydk = calcDeadline(rec.ngaygui, rec.priority);
+        return rec;
+      });
+      if (mode === 'replace') {
+        records = newRecs;
+      } else {
+        records = [...records, ...newRecs];
+      }
+      closeImportModal();
+      loadRecords();
+      // Small toast
+      showToast(`Đã import thành công ${newRecs.length} hồ sơ!`);
+    }
+
+    function closeImportModal() {
+      document.getElementById('importModal').style.display = 'none';
+      importedRows = [];
+    }
+
+    function showToast(msg) {
+      const t = document.createElement('div');
+      t.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1a1a1a;color:#fff;padding:10px 20px;border-radius:8px;font-size:13px;z-index:999;box-shadow:0 4px 12px rgba(0,0,0,0.25);transition:opacity 0.4s';
+      t.textContent = msg;
+      document.body.appendChild(t);
+      setTimeout(() => { t.style.opacity = '0'; setTimeout(() => t.remove(), 400); }, 2500);
+    }
+
+    document.getElementById('importModal').addEventListener('click', function (e) {
+      if (e.target === this) closeImportModal();
+    });
+
+    // ── END IMPORT ───────────────────────────────────────────────
+
+    document.getElementById('pwModal').addEventListener('click', function (e) {
+      if (e.target === this) cancelAdminLogin();
+    });
+
+    // Delete hoặc Backspace sẽ xóa toàn bộ ngày/giờ
+    ['f_gionhan', 'f_ngaygui', 'f_ngaytra', 'f_giortra'].forEach(id => {
+
+      document.getElementById(id).addEventListener('keydown', e => {
+
+        if (e.key === 'Delete' || e.key === 'Backspace') {
+
+          e.preventDefault();
+
+          e.target.value = '';
+
+          if (id === 'f_ngaygui') {
+            document.getElementById('f_ngaydk_preview').value = '';
+          }
+
+          // cập nhật lại ngày dự kiến trả khi xóa ngày nhận
+          if (id === 'f_ngaygui') {
+            recalcDeadlineInModal();
+          }
+
+        }
+
+      });
+
+    });
+
+    window.addEventListener('load', async () => {
+      await loadEmployees();
+      await loadOffDays();
+      await loadRecords();
+    });
+
+const input = document.getElementById("employeeInput");
+const list = document.getElementById("employeeList");
+
+let selectedEmployee = null;
+
+input.addEventListener("input", function () {
+  const q = this.value.toLowerCase().trim();
+
+  if (!q) {
+    list.style.display = "none";
+    return;
   }
-}
 
-function confirmImport(){
-  if(!importedRows.length){closeImportModal();return;}
-  const mode=document.querySelector('input[name="importMode"]:checked').value;
-  const newRecs=importedRows.map(r=>{
-    const rec={...r};
-    delete rec._rowNum;
-    rec.id=nextId++;
-    // Recalculate ngaydk if not in file but ngaygui is present
-    if(!rec.ngaydk&&rec.ngaygui)rec.ngaydk=calcDeadline(rec.ngaygui,rec.priority);
-    return rec;
-  });
-  if(mode==='replace'){
-    records=newRecs;
-  } else {
-    records=[...records,...newRecs];
-  }
-  closeImportModal();
-  loadRecords();
-  // Small toast
-  showToast(`Đã import thành công ${newRecs.length} hồ sơ!`);
-}
+  const filtered = employees.filter(e =>
+    e.fullname?.toLowerCase().includes(q)
+  );
 
-function closeImportModal(){
-  document.getElementById('importModal').style.display='none';
-  importedRows=[];
-}
+  list.innerHTML = filtered.map(e => `
+  <div class="autocomplete-item" data-id="${e.id}">
+    <div class="emp-name">${e.fullname}</div>
+    <div class="emp-email">${e.email}</div>
+  </div>
+`).join("");
 
-function showToast(msg){
-  const t=document.createElement('div');
-  t.style.cssText='position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1a1a1a;color:#fff;padding:10px 20px;border-radius:8px;font-size:13px;z-index:999;box-shadow:0 4px 12px rgba(0,0,0,0.25);transition:opacity 0.4s';
-  t.textContent=msg;
-  document.body.appendChild(t);
-  setTimeout(()=>{t.style.opacity='0';setTimeout(()=>t.remove(),400);},2500);
-}
-
-document.getElementById('importModal').addEventListener('click',function(e){
-  if(e.target===this)closeImportModal();
+  list.style.display = filtered.length ? "block" : "none";
 });
 
-// ── END IMPORT ───────────────────────────────────────────────
+list.addEventListener("click", function (e) {
+  const item = e.target.closest(".autocomplete-item");
+  if (!item) return;
 
-document.getElementById('pwModal').addEventListener('click',function(e){
-  if(e.target===this)cancelAdminLogin();
+  const emp = employees.find(x => x.id == item.dataset.id);
+
+  input.value = emp.fullname;
+  selectedEmployee = emp;
+
+  list.style.display = "none";
 });
 
-loadRecords();
-loadOffDays();
-</script>
+  </script>
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 </body>
+
 </html>
