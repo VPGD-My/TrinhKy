@@ -8,7 +8,7 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
-console.log("INDEX JS LOADED");
+
 // Hàm build Adaptive Card JSON cho Teams
 function buildAdaptiveCard(
   ten_ho_so: string,
