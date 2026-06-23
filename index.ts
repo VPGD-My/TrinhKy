@@ -14,8 +14,20 @@ function buildAdaptiveCard(
   ten_ho_so: string,
   nguoi_nhan: string,
   phong_ban?: string,
-  ngay_gui?: string
+  ngay_gui?: string,
+  ghichu?: string
 ) {
+  const facts = [
+    { title: "📑 Tên hồ sơ", value: ten_ho_so },
+    { title: "👤 Người gửi", value: nguoi_nhan },
+    { title: "🏬 Phòng ban", value: phong_ban || "—" },
+    { title: "🗓️ Ngày gửi", value: ngay_gui || "—" },
+  ];
+
+  if (ghichu) {
+    facts.push({ title: "📝 Ghi chú", value: ghichu });
+  }
+
   return {
     type: "AdaptiveCard",
     $schema: "http://adaptivecards.io/schemas/adaptive-card.json",
@@ -35,12 +47,7 @@ function buildAdaptiveCard(
           },
           {
             type: "FactSet",
-            facts: [
-              { title: "📑 Tên hồ sơ", value: ten_ho_so },
-              { title: "👤 Người gửi", value: nguoi_nhan },
-              { title: "🏬 Phòng ban", value: phong_ban || "—" },
-              { title: "🗓️ Ngày gửi", value: ngay_gui || "—" },
-            ],
+            facts,
           },
         ],
       },
@@ -54,7 +61,7 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { email, ten_ho_so, nguoi_nhan, phong_ban, ngay_gui } = await req.json();
+    const { email, ten_ho_so, nguoi_nhan, phong_ban, ngay_gui, ghichu } = await req.json();
 
     if (!email || !ten_ho_so) {
       return new Response(
@@ -63,7 +70,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    const card = buildAdaptiveCard(ten_ho_so, nguoi_nhan, phong_ban, ngay_gui);
+    const card = buildAdaptiveCard(ten_ho_so, nguoi_nhan, phong_ban, ngay_gui, ghichu);
 
     const resendResponse = await fetch("https://api.resend.com/emails", {
       method: "POST",
@@ -77,7 +84,7 @@ Deno.serve(async (req) => {
         subject: "[TRINHKY-NOTIFY]",
         text: JSON.stringify({
           to: email,
-          card: JSON.stringify(card),  // gửi nguyên Adaptive Card JSON, thay vì message dạng text
+          card: JSON.stringify(card),
         }),
       }),
     });
