@@ -494,27 +494,28 @@
 }
 
     function addWorkingDays(startStr, n) {
-      if (!startStr) return '';
-
-      let d = new Date(startStr + 'T00:00:00');
-      let added = 0;
-
-      while (added < n) {
-        d.setDate(d.getDate() + 1);
-
-        const ds = d.toISOString().split('T')[0];
-        const dow = d.getDay();
-
-        const isWeekend = dow === 0 || dow === 6;
-        const isOff = isOffDay(ds);
-
-        if (!isWeekend && !isOff) {
-          added++;
+        if (!startStr) return '';
+        let d = new Date(startStr + 'T00:00:00');
+        let added = 0;
+        while (added < n) {
+          d.setDate(d.getDate() + 1);
+          // dùng local date thay vì toISOString() để tránh lệch timezone
+          const year = d.getFullYear();
+          const month = String(d.getMonth() + 1).padStart(2, '0');
+          const day = String(d.getDate()).padStart(2, '0');
+          const ds = `${year}-${month}-${day}`;
+          const dow = d.getDay();
+          const isWeekend = dow === 0 || dow === 6;
+          const isOff = isOffDay(ds);
+          if (!isWeekend && !isOff) {
+            added++;
+          }
         }
+        const year = d.getFullYear();
+        const month = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
       }
-
-      return d.toISOString().split('T')[0];
-    }
 
     function calcDeadline(ngaygui, priority) {
       const cfg = priorityConfig.find(p => p.level === priority);
@@ -1520,7 +1521,6 @@ list.addEventListener("click", function (e) {
 
   </script>
   <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-  <script src="index.js"></script>
 </body>
 
 </html>

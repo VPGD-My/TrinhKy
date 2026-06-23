@@ -13,11 +13,19 @@ html {
   zoom: 68%;
 }
 
+/* ── SCROLL LAYOUT: body → main → table-wrap cuộn ── */
+html, body {
+  height: 100%;
+  overflow: hidden;           /* tắt scroll toàn trang */
+}
+
 body {
   font-family: system-ui, -apple-system, sans-serif;
   font-size: 14px;
   color: #1a1a1a;
   background: #f5f5f4;
+  display: flex;
+  flex-direction: column;
 }
 
 /* ── CSS Variables ───────────────────────────────────────── */
@@ -57,21 +65,19 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  position: sticky;
-  top: 0;
+  flex-shrink: 0;             /* không co lại khi layout flex */
   z-index: 100;
-  position: relative;
 }
 
 .logo-container{
-    position: fixed;    /* luôn nằm trên cùng */
+    position: fixed;
     top: 10px;
     left: 10px;
     z-index: 1000;
 }
 
 .logo-container img{
-    height: 40px;       /* chỉnh kích thước logo */
+    height: 40px;
     width: auto;
 }
 
@@ -168,6 +174,7 @@ body {
   padding: 0 20px;
   background: var(--bg);
   border-bottom: 1px solid var(--border);
+  flex-shrink: 0;             /* cố định, không scroll */
 }
 
 .nav-tab {
@@ -187,10 +194,35 @@ body {
 
 /* ── Tab Content ─────────────────────────────────────────── */
 .tab-content        { display: none; }
-.tab-content.active { display: block; }
+.tab-content.active { display: flex; flex-direction: column; flex: 1; overflow: hidden; }
 
 /* ── Main Layout ─────────────────────────────────────────── */
-.main { padding: 16px 20px; }
+.main {
+  padding: 16px 20px;
+  flex: 1;                    /* chiếm hết chiều cao còn lại */
+  overflow: hidden;           /* chặn scroll ở đây */
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── Stats Bar ───────────────────────────────────────────── */
+.stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+  gap: 10px;
+  margin-bottom: 14px;
+  flex-shrink: 0;             /* cố định */
+}
+
+.stat {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 10px 14px;
+}
+
+.stat-label { font-size: 11px; color: var(--text2); margin-bottom: 3px; }
+.stat-val   { font-size: 22px; font-weight: 600; }
 
 /* ── Toolbar ─────────────────────────────────────────────── */
 .toolbar {
@@ -199,6 +231,7 @@ body {
   margin-bottom: 14px;
   flex-wrap: wrap;
   align-items: center;
+  flex-shrink: 0;             /* cố định */
 }
 
 .toolbar-left {
@@ -269,30 +302,14 @@ select.filter {
 
 .btn-sm { padding: 4px 9px; font-size: 12px; }
 
-/* ── Stats Bar ───────────────────────────────────────────── */
-.stats {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
-  gap: 10px;
-  margin-bottom: 14px;
-}
-
-.stat {
-  background: var(--bg);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 10px 14px;
-}
-
-.stat-label { font-size: 11px; color: var(--text2); margin-bottom: 3px; }
-.stat-val   { font-size: 22px; font-weight: 600; }
-
 /* ── Table ───────────────────────────────────────────────── */
 .table-wrap {
-  overflow-x: auto;
+  flex: 1;                    /* chiếm hết chiều cao còn lại */
+  overflow: auto;             /* cuộn cả ngang lẫn dọc ở đây */
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
   background: var(--bg);
+  min-height: 0;              /* cần thiết để flex child co được */
 }
 
 table {
@@ -310,6 +327,9 @@ thead th {
   color: var(--text2);
   white-space: nowrap;
   border-bottom: 1px solid var(--border);
+  position: sticky;           /* thead dính khi cuộn dọc */
+  top: 0;
+  z-index: 2;
 }
 
 tbody tr          { border-bottom: 1px solid var(--border); }
@@ -321,6 +341,11 @@ tbody td {
   font-size: 13px;
   white-space: nowrap;
   vertical-align: middle;
+}
+
+/* ── Config tab — vẫn scroll bình thường ────────────────── */
+#tab-config.tab-content.active {
+  overflow-y: auto;
 }
 
 /* ── Badges ──────────────────────────────────────────────── */
