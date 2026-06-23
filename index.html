@@ -616,6 +616,7 @@
           actions += `<button class="action-btn action-confirm" onclick="quickConfirm(${r.id})"><i class="ti ti-inbox"></i>Nhận HS</button>`;
         if (isAdmin && r.status === 'processing')
           actions += `<button class="action-btn action-done" onclick="markDone(${r.id})"><i class="ti ti-circle-check"></i>Đã ký</button>`;
+        actions += `<button class="action-btn" onclick="openCopy(${r.id})" title="Copy hồ sơ"><i class="ti ti-copy"></i></button>`;
         // Chỉ cho edit nếu là admin, hoặc là user và hồ sơ vẫn đang chờ xác nhận
         if (isAdmin || r.status === 'pending') {
           actions += `<button class="action-btn" onclick="openEdit(${r.id})"><i class="ti ti-edit"></i></button>`;
@@ -1026,6 +1027,34 @@
     const t = document.createElement('div');
 
     t.style.cssText = 'background:red;color:white';
+
+      function openCopy(id) {
+        const r = records.find(x => x.id === id);
+        if (!r) return;
+
+        editId = null;
+        document.getElementById('modalTitle').textContent = 'Đăng ký hồ sơ mới';
+        clearForm();
+
+        // Điền sẵn các trường người trình ký được phép điền
+        document.getElementById('f_loai').value = r.loai;
+        document.getElementById('f_ten').value = r.ten;
+        document.getElementById('f_sl').value = r.sl;
+        document.getElementById('f_phong').value = r.phong;
+        document.getElementById('f_doitac').value = r.doitac || '';
+        document.getElementById('f_uutien').value = r.priority;
+
+        // Set người gửi
+        const emp = employees.find(e => e.fullname === r.nguoigui);
+        if (emp) {
+          selectedEmployee = emp;
+          document.getElementById('employeeInput').value = emp.fullname;
+        }
+
+        document.getElementById('adminSection').style.display = isAdmin ? 'block' : 'none';
+        setAdminFields(isAdmin);
+        document.getElementById('modal').style.display = 'flex';
+      }
 
 async function saveRecord() {
   const saveBtn = document.querySelector('#modal .btn-primary');
