@@ -389,7 +389,7 @@
 
     const DAYS_VN = ['Chủ nhật', 'Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7'];
     const ADMIN_PASSWORD = 'admin123'; // mật khẩu demo - có thể thay đổi
-    let isAdmin = false, editId = null, nextId = 4;
+    let isAdmin = false, editId = null, nextId = 4, firstLoad = true;
 
     let priorityConfig = [
       { level: 1, label: 'Ưu tiên 1 – Cao', days: 1 },
@@ -637,6 +637,13 @@
       <td style="display:flex;gap:4px;flex-wrap:wrap;align-items:center">${actions}</td>
     </tr>`;
       }).join('');
+      if (firstLoad) {
+        setTimeout(() => {
+          const tableWrap = document.querySelector('.table-wrap');
+          if (tableWrap) tableWrap.scrollTop = tableWrap.scrollHeight;
+        }, 100);
+        firstLoad = false;
+      }
     }
 
     async function quickConfirm(id) {
@@ -1020,70 +1027,80 @@
 
     t.style.cssText = 'background:red;color:white';
 
-    async function saveRecord() {
-      const loai = document.getElementById('f_loai').value, ten = document.getElementById('f_ten').value.trim(),
-        phong = document.getElementById('f_phong').value;
-        const nguoigui = selectedEmployee?.fullname;
-        const email = selectedEmployee?.email;
-        const nguoigui_id = selectedEmployee?.id;
-        if (!nguoigui) {
-          showToast("Vui lòng chọn người gửi từ danh sách gợi ý");
-          return;
-        }
-        doitac = document.getElementById('f_doitac').value.trim(), sl = document.getElementById('f_sl').value;
-      if (!loai || !ten || !phong || !nguoigui || !doitac || !sl || parseInt(sl) < 1) { showToast('Vui lòng điền đầy đủ tất cả các trường bắt buộc (*)'); return; }
-      const priority = parseInt(document.getElementById('f_uutien').value);
-      const ngaygui = isAdmin ? document.getElementById('f_ngaygui').value : (editId ? records.find(r => r.id === editId).ngaygui || '' : '');
-      
-      const data = {
-        loai, ten, phong, nguoigui, priority,
-        sl: parseInt(document.getElementById('f_sl').value) || 1,
-        doitac,
-        gionhan: isAdmin ? document.getElementById('f_gionhan').value : (editId ? records.find(r => r.id === editId).gionhan || '' : ''),
-        ngaygui, ngaydk: calcDeadline(ngaygui, priority),
-        ngaytra: isAdmin ? document.getElementById('f_ngaytra').value : (editId ? records.find(r => r.id === editId).ngaytra || '' : ''),
-        giortra: isAdmin ? document.getElementById('f_giortra').value : (editId ? records.find(r => r.id === editId).giortra || '' : ''),
-        nguoinhan: isAdmin ? document.getElementById('f_nguoinhan').value.trim() : (editId ? records.find(r => r.id === editId).nguoinhan || '' : ''),
-        ghichu: isAdmin ? document.getElementById('f_ghichu').value.trim() : (editId ? records.find(r => r.id === editId).ghichu || '' : ''),
-      };
-    if (editId) {
+async function saveRecord() {
+  const saveBtn = document.querySelector('#modal .btn-primary');
+  if (saveBtn) {
+    saveBtn.disabled = true;
+    saveBtn.innerHTML = '<i class="ti ti-loader-2 ti-spin"></i>Đang lưu...';
+  }
 
-        const prevStatus = records.find(r => r.id === editId)?.status;
+  const loai = document.getElementById('f_loai').value, ten = document.getElementById('f_ten').value.trim(),
+    phong = document.getElementById('f_phong').value;
+  const nguoigui = selectedEmployee?.fullname;
+  const email = selectedEmployee?.email;
+  const nguoigui_id = selectedEmployee?.id;
 
-        // Tính lại trạng thái
-        if (data.ngaytra) {
-          data.status = 'done';
-        }
-        else if (data.ngaygui && data.gionhan) {
-          data.status = 'processing';
-        }
-        else {
-          data.status = 'pending';
-          data.ngaydk = '';     // xóa luôn ngày dự kiến trả
-        }
+  if (!nguoigui) {
+    showToast("Vui lòng chọn người gửi từ danh sách gợi ý");
+    if (saveBtn) { saveBtn.disabled = false; saveBtn.innerHTML = '<i class="ti ti-check"></i>Lưu hồ sơ'; }
+    return;
+  }
 
-        const ok = await updateSupabase(editId, data);
+  doitac = document.getElementById('f_doitac').value.trim(), sl = document.getElementById('f_sl').value;
 
-        if (ok) {
-          await loadRecords();
-          showToast('✅ Cập nhật hồ sơ thành công');
+  if (!loai || !ten || !phong || !nguoigui || !doitac || !sl || parseInt(sl) < 1) {
+    showToast('Vui lòng điền đầy đủ tất cả các trường bắt buộc (*)');
+    if (saveBtn) { saveBtn.disabled = false; saveBtn.innerHTML = '<i class="ti ti-check"></i>Lưu hồ sơ'; }
+    return;
+  }
 
-          // 🔥 Gửi thông báo nếu vừa chuyển sang "Hoàn thành"
-          if (data.status === 'done' && prevStatus !== 'done') {
-            await sendDoneNotification(data);
-          }
-        }
+  const priority = parseInt(document.getElementById('f_uutien').value);
+  const ngaygui = isAdmin ? document.getElementById('f_ngaygui').value : (editId ? records.find(r => r.id === editId).ngaygui || '' : '');
 
-      } else {
-        data.status = calcStatus(data);
+  const data = {
+    loai, ten, phong, nguoigui, priority,
+    sl: parseInt(document.getElementById('f_sl').value) || 1,
+    doitac,
+    gionhan: isAdmin ? document.getElementById('f_gionhan').value : (editId ? records.find(r => r.id === editId).gionhan || '' : ''),
+    ngaygui, ngaydk: calcDeadline(ngaygui, priority),
+    ngaytra: isAdmin ? document.getElementById('f_ngaytra').value : (editId ? records.find(r => r.id === editId).ngaytra || '' : ''),
+    giortra: isAdmin ? document.getElementById('f_giortra').value : (editId ? records.find(r => r.id === editId).giortra || '' : ''),
+    nguoinhan: isAdmin ? document.getElementById('f_nguoinhan').value.trim() : (editId ? records.find(r => r.id === editId).nguoinhan || '' : ''),
+    ghichu: isAdmin ? document.getElementById('f_ghichu').value.trim() : (editId ? records.find(r => r.id === editId).ghichu || '' : ''),
+  };
 
-        await saveToSupabase(data);
+  // Đóng modal ngay, không chờ Supabase
+  closeModal();
 
-        await loadRecords();
-      }
-      closeModal();
-      showToast('Đã lưu hồ sơ');
+  if (editId) {
+    const prevStatus = records.find(r => r.id === editId)?.status;
+
+    if (data.ngaytra) {
+      data.status = 'done';
+    } else if (data.ngaygui && data.gionhan) {
+      data.status = 'processing';
+    } else {
+      data.status = 'pending';
+      data.ngaydk = '';
     }
+
+    const ok = await updateSupabase(editId, data);
+
+    if (ok) {
+      await loadRecords();
+      showToast('✅ Cập nhật hồ sơ thành công');
+      if (data.status === 'done' && prevStatus !== 'done') {
+        await sendDoneNotification(data);
+      }
+    }
+
+  } else {
+    data.status = calcStatus(data);
+    await saveToSupabase(data);
+    await loadRecords();
+    showToast('✅ Đã lưu hồ sơ thành công');
+  }
+}
 
     function closeModal() { document.getElementById('modal').style.display = 'none'; }
 
