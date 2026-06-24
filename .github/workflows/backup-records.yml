@@ -2,17 +2,36 @@ name: Daily Backup Records
 
 on:
   schedule:
-    - cron: '0 22 * * *'
+    - cron: '0 22 * * *'      # 5h sáng VN hằng ngày (daily)
+    - cron: '0 21 * * 0'      # 4h sáng VN mỗi Chủ nhật (snapshot tuần, chạy trước daily)
   workflow_dispatch:
+    inputs:
+      snapshot:
+        description: 'Chạy snapshot toàn bộ?'
+        required: false
+        default: 'false'
 
 jobs:
   trigger-backup:
     runs-on: ubuntu-latest
     steps:
+      - name: Xác định loại backup
+        id: check
+        run: |
+          DAY=$(date +%u)  # 7 = Chủ nhật
+          HOUR=$(date +%H)
+          if [ "$DAY" = "7" ] && [ "$HOUR" = "21" ]; then
+            echo "snapshot=true" >> $GITHUB_OUTPUT
+          elif [ "${{ github.event.inputs.snapshot }}" = "true" ]; then
+            echo "snapshot=true" >> $GITHUB_OUTPUT
+          else
+            echo "snapshot=false" >> $GITHUB_OUTPUT
+          fi
+
       - name: Call backup-records Edge Function
         run: |
           curl -X POST \
             "https://uujkzjoaxkndkpendiej.supabase.co/functions/v1/backup-records" \
             -H "Authorization: Bearer ${{ secrets.SUPABASE_ANON_KEY }}" \
             -H "Content-Type: application/json" \
-            -d '{}'
+            -d '{"snapshot": ${{ steps.check.outputs.snapshot }}}'
