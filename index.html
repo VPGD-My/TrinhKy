@@ -773,6 +773,11 @@
       document.getElementById('f_giortra').value = r.giortra || '';
       document.getElementById('f_nguoinhan').value = r.nguoinhan || '';
       document.getElementById('f_ghichu').value = r.ghichu || '';
+      // Restore người gửi khi edit
+      document.getElementById('employeeInput').value = r.nguoigui || '';
+      selectedEmployee = employees.find(e => 
+        e.fullname?.trim().toLowerCase() === r.nguoigui?.trim().toLowerCase()
+      ) || { fullname: r.nguoigui, email: '' };
       document.getElementById('adminSection').style.display = isAdmin ? 'block' : 'none';
       setAdminFields(isAdmin);
       document.getElementById('modal').style.display = 'flex';
