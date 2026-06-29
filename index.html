@@ -702,7 +702,7 @@
         const SUPABASE_FUNCTION_URL = "https://uujkzjoaxkndkpendiej.supabase.co/functions/v1/notify-teams";
         const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV1amt6am9heGtuZGtwZW5kaWVqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE1ODk4MzcsImV4cCI6MjA5NzE2NTgzN30.DdYnnQuZYQcF4E11Z1J7Im-aOFPD0G7KAVO3PrmDXSI"; // ← dán đầy đủ anon key của bạn vào đây
 
-        const email = getEmployeeEmailByName(record.nguoigui);
+        const email = record.email;
 
         if (!email) {
           console.log("Không tìm thấy email người gửi");
@@ -862,7 +862,7 @@
           doitac: data.doitac,
 
           uutien: data.priority,
-
+          email: data.email,
           ngaydukientra: data.ngaydk || null,
           ngaytra: data.ngaytra || null,
           giotra: data.giortra || null,
@@ -904,7 +904,7 @@
           doitac: data.doitac,
 
           uutien: data.priority,
-
+          email: data.email,
           ngaydukientra: data.ngaydk || null,
           ngaytra: data.ngaytra || null,
           giotra: data.giortra || null,
@@ -1009,7 +1009,7 @@
         phong: r.phongban,
         nguoigui: r.nguoigui,
         doitac: r.doitac,
-
+        email: r.email || '',
         priority: parseInt(r.uutien || 2),
 
         ngaydk: r.ngaydukientra || '',
@@ -1090,7 +1090,7 @@ async function saveRecord() {
   const ngaygui = isAdmin ? document.getElementById('f_ngaygui').value : (editId ? records.find(r => r.id === editId).ngaygui || '' : '');
 
   const data = {
-    loai, ten, phong, nguoigui, priority,
+    loai, ten, phong, nguoigui,email, priority,
     sl: parseInt(document.getElementById('f_sl').value) || 1,
     doitac,
     gionhan: isAdmin ? document.getElementById('f_gionhan').value : (editId ? records.find(r => r.id === editId).gionhan || '' : ''),
