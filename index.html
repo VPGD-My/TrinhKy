@@ -969,6 +969,7 @@
       }
 
       offDays = data.map(d => ({
+         id: d.id,           // ← thêm dòng này
         type: d.type,
         start: d.start_date,
         end: d.end_date,
@@ -1028,10 +1029,6 @@
       renderTable();
       updateStats();
     }
-
-    const t = document.createElement('div');
-
-    t.style.cssText = 'background:red;color:white';
 
       function openCopy(id) {
         const r = records.find(x => x.id === id);
@@ -1245,17 +1242,14 @@ async function saveRecord() {
       document.getElementById('newOffReason').value = '';
       showToast('Đã thêm ngày nghỉ');
     }
-
+    // removeOffDay - delete theo id
     async function removeOffDay(idx) {
       const item = offDays[idx];
-
+      
       const { error } = await sb
         .from('off_days')
         .delete()
-        .eq('type', item.type)
-        .eq('reason', item.reason)
-        .eq('start_date', item.start)
-        .eq('weekday', item.weekday);
+        .eq('id', item.id);  // ← chỉ dòng này
 
       if (error) {
         showToast('Lỗi xóa ngày nghỉ');
