@@ -526,6 +526,7 @@
     function dayVN(ds) { if (!ds) return '—'; return DAYS_VN[new Date(ds + 'T00:00:00').getDay()]; }
     function nowTime() { const n = new Date(); return n.getHours().toString().padStart(2, '0') + ':' + n.getMinutes().toString().padStart(2, '0'); }
     function todayStr() { return new Date().toISOString().split('T')[0]; }
+    function fmtTime(t) { if (!t) return '—'; return t.slice(0, 5); }
 
     function showTab(id, el) {
       document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
@@ -623,20 +624,20 @@
         }
         if (isAdmin) actions += `<button class="action-btn action-del" onclick="deleteRecord(${r.id})"><i class="ti ti-trash"></i></button>`;
         return `<tr>
-      <td style="color:#9b9895;font-size:12px">${i + 1}</td>
-      <td>${dayVN(r.ngaygui)}</td><td>${r.gionhan || '—'}</td><td>${fmtDate(r.ngaygui)}</td>
-      <td>${r.loai}</td>
-      <td style="max-width:280px;white-space:normal;word-break:break-word">${r.ten}</td>
-      <td style="text-align:center">${r.sl}</td>
-      <td>${r.phong}</td><td>${r.nguoigui}</td><td style="max-width:110px;white-space:normal;word-break:break-word">${r.doitac || '—'}</td>
-      <td><span class="badge ${utBadge}">${utLabel}</span></td>
-      <td>${deadlineCell}</td>
-      <td>${fmtDate(r.ngaytra)}</td><td>${r.giortra || '—'}</td>
-      <td>${r.nguoinhan || '—'}</td>
-      <td style="max-width:150px;white-space:normal;word-break:break-word;color:#6b6966;font-size:12px">${r.ghichu || '—'}</td>
-      <td><span class="badge ${stBadge}">${stLabel}</span></td>
-      <td style="display:flex;gap:4px;flex-wrap:wrap;align-items:center">${actions}</td>
-    </tr>`;
+              <td style="color:#9b9895;font-size:12px">${i + 1}</td>
+              <td>${dayVN(r.ngaygui)}</td><td style="text-align:center">${fmtTime(r.gionhan)}</td><td>${fmtDate(r.ngaygui)}</td>
+              <td>${r.loai}</td>
+              <td style="max-width:280px;white-space:normal;word-break:break-word">${r.ten}</td>
+              <td style="text-align:center">${r.sl}</td>
+              <td>${r.phong}</td><td>${r.nguoigui}</td><td style="max-width:110px;white-space:normal;word-break:break-word">${r.doitac || '—'}</td>
+              <td><span class="badge ${utBadge}">${utLabel}</span></td>
+              <td>${deadlineCell}</td>
+              <td>${fmtDate(r.ngaytra)}</td><td style="text-align:center">${fmtTime(r.giortra)}</td>
+              <td>${r.nguoinhan || '—'}</td>
+              <td style="max-width:150px;white-space:normal;word-break:break-word;color:#6b6966;font-size:12px">${r.ghichu || '—'}</td>
+              <td><span class="badge ${stBadge}">${stLabel}</span></td>
+              <td style="display:flex;gap:4px;flex-wrap:wrap;align-items:center">${actions}</td>
+            </tr>`;
       }).join('');
       if (firstLoad) {
         setTimeout(() => {
