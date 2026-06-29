@@ -20,13 +20,13 @@ jobs:
         run: |
           DAY=$(date +%u)  # 7 = Chủ nhật
           HOUR=$(date +%H)
-          if [ "$DAY" = "7" ] && [ "$HOUR" = "21" ]; then
+          if [ "${{ github.event.schedule }}" = "0 21 * * 0" ]; then
             echo "snapshot=true" >> $GITHUB_OUTPUT
           elif [ "${{ github.event.inputs.snapshot }}" = "true" ]; then
             echo "snapshot=true" >> $GITHUB_OUTPUT
           else
             echo "snapshot=false" >> $GITHUB_OUTPUT
-          fi
+                fi
 
       - name: Call backup-records Edge Function
         run: |
