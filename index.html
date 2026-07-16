@@ -89,14 +89,14 @@
               <th>Thứ</th>
               <th>Giờ nhận HS</th>
               <th>Ngày gửi HS</th>
-              <th>Loại hồ sơ</th>
-              <th>Tên hồ sơ</th>
-              <th>SL bản cứng</th>
-              <th>Phòng ban</th>
-              <th>Người gửi</th>
-              <th>Đối tác</th>
-              <th>Ưu tiên</th>
-              <th>Ngày DK trả HS</th>
+              <th style="min-width:110px;white-space:normal;word-break:break-word;overflow-wrap:break-word">Loại hồ sơ</th>
+              <th style="min-width:280px">Tên hồ sơ</th>
+              <th style="min-width:20px">SL bản cứng</th>
+              <th style="width:90px">Phòng ban</th>
+              <th style="min-width:90px">Người gửi</th>
+              <th style="min-width:90px">Đối tác</th>
+              <th style="width: 50px;">Ưu tiên</th>
+              <th style="min-width:90px;white-space:normal;word-break:break-word;overflow-wrap:break-word"> DK trả HS</th>
               <th>Ngày trả HS</th>
               <th>Giờ trả HS</th>
               <th>Người nhận HS</th>
@@ -586,10 +586,16 @@
         pr = records.filter(r => r.status === 'processing').length, d = records.filter(r => r.status === 'done').length;
       document.getElementById('statsBar').innerHTML = `
     <div class="stat"><div class="stat-label">Tổng hồ sơ</div><div class="stat-val">${t}</div></div>
-    <div class="stat"><div class="stat-label">Chờ xác nhận</div><div class="stat-val" style="color:#854F0B">${p}</div></div>
-    <div class="stat"><div class="stat-label">Đang xử lý</div><div class="stat-val" style="color:#185FA5">${pr}</div></div>
+    <div class="stat" style="cursor:pointer" onclick="filterByStatus('pending')"><div class="stat-label">Chờ xác nhận</div><div class="stat-val" style="color:#854F0B">${p}</div></div>
+    <div class="stat" style="cursor:pointer" onclick="filterByStatus('processing')"><div class="stat-label">Đang xử lý</div><div class="stat-val" style="color:#185FA5">${pr}</div></div>
     <div class="stat"><div class="stat-label">Hoàn thành</div><div class="stat-val" style="color:#3B6D11">${d}</div></div>
   `;
+    }
+
+    function filterByStatus(status) {
+      const sel = document.getElementById('filterStatus');
+      sel.value = sel.value === status ? '' : status; // bấm lại thì bỏ filter
+      renderTable();
     }
 
     function getFiltered() {
