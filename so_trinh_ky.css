@@ -315,7 +315,6 @@ select.filter {
 table {
   width: 100%;
   border-collapse: collapse;
-  min-width: 1500px;
 }
 
 thead th {
@@ -380,6 +379,7 @@ tbody td:nth-child(17) {
 .badge-pending    { background: var(--amber-bg); color: var(--amber-text); }
 .badge-done       { background: var(--green-bg); color: var(--green-text); }
 .badge-processing { background: var(--blue-bg);  color: var(--blue-text); }
+.badge-rejected   { background: var(--red-bg);   color: var(--red-text); }
 
 .off-type-badge {
   font-size: 10px;
@@ -466,6 +466,9 @@ tbody td:nth-child(17) {
 
 .action-done             { color: var(--green); border-color: #C0DD97; }
 .action-done:hover       { background: var(--green-bg); }
+
+.action-reject           { color: var(--red-text); border-color: #F0C4B0; }
+.action-reject:hover     { background: var(--red-bg); }
 
 .action-del              { color: #A32D2D; border-color: #F7C1C1; }
 .action-del:hover        { background: #FCEBEB; }
@@ -692,6 +695,31 @@ textarea.field { resize: vertical; min-height: 60px; }
   line-height: 1.6;
   grid-column: 1 / -1;
 }
+
+/* ── Banner thông báo hồ sơ bị từ chối ───────────────────── */
+.reject-banner {
+  background: var(--red-bg);
+  border: 1px solid #F0C4B0;
+  color: var(--red-text);
+  border-radius: var(--radius);
+  padding: 10px 14px;
+  font-size: 12.5px;
+  line-height: 1.6;
+  margin-bottom: 12px;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+.reject-banner b { font-weight: 600; }
+.reject-banner ul { margin: 4px 0 0 18px; }
+.reject-banner .close-banner {
+  margin-left: auto;
+  cursor: pointer;
+  color: var(--red-text);
+  opacity: .7;
+  flex-shrink: 0;
+}
+.reject-banner .close-banner:hover { opacity: 1; }
 
 /* ── Config Tab ──────────────────────────────────────────── */
 .config-wrap {

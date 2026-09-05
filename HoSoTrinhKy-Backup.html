@@ -6,7 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>ĐĂNG KÝ HỒ SƠ TRÌNH KÝ</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
-  <link rel="stylesheet" href="so_trinh_ky.css?v=3">
+  <link rel="stylesheet" href="so_trinh_ky.css">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 
@@ -53,15 +53,11 @@
               placeholder="Tìm hồ sơ..." id="searchInput" oninput="renderTable()"></div>
           <select class="filter" id="filterLoai" onchange="renderTable()">
             <option value="">Tất cả loại</option>
-            <option>Hợp đồng/Phụ lục</option>
-            <option>Duyệt giá/Đề xuất</option>
+            <option>Hợp đồng</option>
+            <option>Phụ lục</option>
+            <option>Công văn</option>
             <option>Biên bản</option>
-            <option>Đơn hàng/PO</option>
-            <option>Thanh toán/Quyết toán</option>
-            <option>VB ngân hàng/Tài chính</option>
-            <option>Báo cáo/Tài liệu</option>
-            <option>Quy trình/Quy định</option>
-            <option>Quyết định/Ủy quyền</option>
+            <option>Tờ trình</option>
             <option>Khác</option>
           </select>
           <select class="filter" id="filterStatus" onchange="renderTable()">
@@ -69,7 +65,6 @@
             <option value="pending">Chờ xác nhận</option>
             <option value="processing">Đang xử lý</option>
             <option value="done">Hoàn thành</option>
-            <option value="rejected">Từ chối</option>
           </select>
         </div>
         <div style="display:flex;gap:8px">
@@ -90,21 +85,20 @@
               <th>Thứ</th>
               <th>Giờ nhận HS</th>
               <th>Ngày gửi HS</th>
-              <th style="min-width:110px;white-space:normal;word-break:break-word;overflow-wrap:break-word">Loại hồ sơ</th>
-              <th style="min-width:280px">Tên hồ sơ</th>
-              <th style="min-width:20px">SL bản cứng</th>
-              <th style="width:90px">Phòng ban</th>
-              <th style="min-width:90px">Người gửi</th>
-              <th style="min-width:90px">Đối tác</th>
-              <th style="width: 50px;">Ưu tiên</th>
-              <th style="min-width:90px;white-space:normal;word-break:break-word;overflow-wrap:break-word"> DK trả HS</th>
+              <th>Loại hồ sơ</th>
+              <th>Tên hồ sơ</th>
+              <th>SL bản cứng</th>
+              <th>Phòng ban</th>
+              <th>Người gửi</th>
+              <th>Đối tác</th>
+              <th>Ưu tiên</th>
+              <th>Ngày DK trả HS</th>
               <th>Ngày trả HS</th>
               <th>Giờ trả HS</th>
               <th>Người nhận HS</th>
               <th>Ghi chú / Yêu cầu</th>
               <th>Trạng thái</th>
-              <th style="min-width:120px">Thao tác</th>
-              <th id="thLyDoTuChoi" style="min-width:110px;max-width:140px;display:none">Lý do từ chối</th>
+              <th style="min-width:130px">Thao tác</th>
             </tr>
           </thead>
           <tbody id="tbody"></tbody>
@@ -240,15 +234,11 @@
             <label>Loại hồ sơ<span class="required">*</span></label>
             <select class="field" id="f_loai" required>
               <option value="">-- Chọn --</option>
-              <option>Hợp đồng/Phụ lục</option>
-              <option>Duyệt giá/Đề xuất</option>
+              <option>Hợp đồng</option>
+              <option>Phụ lục</option>
+              <option>Công văn</option>
               <option>Biên bản</option>
-              <option>Đơn hàng/PO</option>
-              <option>Thanh toán/Quyết toán</option>
-              <option>VB ngân hàng/Tài chính</option>
-              <option>Báo cáo/Tài liệu</option>
-              <option>Quy trình/Quy định</option>
-              <option>Quyết định/Ủy quyền</option>
+              <option>Tờ trình</option>
               <option>Khác</option>
             </select>
           </div>
@@ -264,23 +254,13 @@
             <label>Phòng ban<span class="required">*</span></label>
             <select class="field" id="f_phong" required>
               <option value="">-- Chọn --</option>
-              <option>Ban Cải tiến</option>
-              <option>HSE</option>
-              <option>Cung ứng</option>
-              <option>Ban EPR</option>
-              <option>HCNS</option>
-              <option>Sản xuất</option>
-              <option>Kế toán</option>
               <option>Kinh doanh</option>
-              <option>KSNB</option>
+              <option>Pháp lý</option>
+              <option>Kế toán</option>
+              <option>Nhân sự</option>
               <option>Kỹ thuật</option>
-              <option>Marketing</option>
-              <option>Mua hàng &amp; XNK</option>
-              <option>QLCL</option>
-              <option>QTHT</option>
-              <option>R&amp;D</option>
-              <option>VPGĐ</option>
-              <option>XDCB</option>
+              <option>Ban Giám đốc</option>
+              <option>Khác</option>
             </select>
           </div>
           <div class="form-group">
@@ -358,30 +338,6 @@
     </div>
   </div>
 
-  <!-- Reject Reason Modal -->
-  <div class="modal-bg" id="rejectModal" style="display:none">
-    <div class="modal" style="max-width:440px">
-      <div class="modal-header">
-        <h2><i class="ti ti-circle-x" style="color:var(--red-text);margin-right:6px"></i>Từ chối hồ sơ</h2>
-        <button class="action-btn" onclick="closeRejectModal()" style="padding:4px 6px"><i class="ti ti-x"></i></button>
-      </div>
-      <div class="modal-body">
-        <div class="form-group">
-          <label>Lý do từ chối<span class="required">*</span></label>
-          <textarea class="field" id="f_lydotuchoi" rows="4" placeholder="Nhập lý do từ chối hồ sơ..."></textarea>
-        </div>
-        <div class="info-box" style="background:var(--red-bg);border-color:#F0C4B0;color:var(--red-text)">
-          <i class="ti ti-info-circle" style="font-size:14px;flex-shrink:0"></i>
-          <span>Lý do từ chối chỉ hiển thị với Trợ lý. Người trình ký sẽ nhận được thông báo hồ sơ bị từ chối.</span>
-        </div>
-      </div>
-      <div class="modal-footer">
-        <button class="btn" onclick="closeRejectModal()">Hủy</button>
-        <button class="btn btn-danger" id="rejectConfirmBtn" onclick="confirmRejectAction()"><i class="ti ti-ban"></i>Xác nhận từ chối</button>
-      </div>
-    </div>
-  </div>
-
   <div id="confirmModal" class="modal-bg" style="display:none">
     <div class="confirm-box">
       <h3>Thông báo</h3>
@@ -415,7 +371,7 @@
 
     const DAYS_VN = ['Chủ nhật', 'Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7'];
     const ADMIN_PASSWORD = 'admin123'; // mật khẩu demo - có thể thay đổi
-    let isAdmin = false, editId = null, nextId = 4, firstLoad = true;
+    let isAdmin = false, editId = null, nextId = 4;
 
     let priorityConfig = [
       { level: 1, label: 'Ưu tiên 1 – Cao', days: 1 },
@@ -453,9 +409,9 @@
       const email = selectedEmployee?.email || "";
       const nguoigui_id = selectedEmployee?.id || "";
       const payload = {
-        nguoigui: selectedEmployee.fullname,
-        email: selectedEmployee.email,
-        teams_sent: false
+        nguoigui: selected.fullname,
+        nguoigui_email: selected.email,
+        nguoigui_id: selected.id,
       };
 
       const emp = findEmployeeByName(senderName);
@@ -520,28 +476,27 @@
 }
 
     function addWorkingDays(startStr, n) {
-        if (!startStr) return '';
-        let d = new Date(startStr + 'T00:00:00');
-        let added = 0;
-        while (added < n) {
-          d.setDate(d.getDate() + 1);
-          // dùng local date thay vì toISOString() để tránh lệch timezone
-          const year = d.getFullYear();
-          const month = String(d.getMonth() + 1).padStart(2, '0');
-          const day = String(d.getDate()).padStart(2, '0');
-          const ds = `${year}-${month}-${day}`;
-          const dow = d.getDay();
-          const isWeekend = dow === 0 || dow === 6;
-          const isOff = isOffDay(ds);
-          if (!isWeekend && !isOff) {
-            added++;
-          }
+      if (!startStr) return '';
+
+      let d = new Date(startStr + 'T00:00:00');
+      let added = 0;
+
+      while (added < n) {
+        d.setDate(d.getDate() + 1);
+
+        const ds = d.toISOString().split('T')[0];
+        const dow = d.getDay();
+
+        const isWeekend = dow === 0 || dow === 6;
+        const isOff = isOffDay(ds);
+
+        if (!isWeekend && !isOff) {
+          added++;
         }
-        const year = d.getFullYear();
-        const month = String(d.getMonth() + 1).padStart(2, '0');
-        const day = String(d.getDate()).padStart(2, '0');
-        return `${year}-${month}-${day}`;
       }
+
+      return d.toISOString().split('T')[0];
+    }
 
     function calcDeadline(ngaygui, priority) {
       const cfg = priorityConfig.find(p => p.level === priority);
@@ -552,7 +507,6 @@
     function dayVN(ds) { if (!ds) return '—'; return DAYS_VN[new Date(ds + 'T00:00:00').getDay()]; }
     function nowTime() { const n = new Date(); return n.getHours().toString().padStart(2, '0') + ':' + n.getMinutes().toString().padStart(2, '0'); }
     function todayStr() { return new Date().toISOString().split('T')[0]; }
-    function fmtTime(t) { if (!t) return '—'; return t.slice(0, 5); }
 
     function showTab(id, el) {
       document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
@@ -601,7 +555,6 @@
       document.getElementById('exportBtn').style.display = isAdmin ? 'inline-flex' : 'none';
       document.getElementById('importBtn').style.display = isAdmin ? 'inline-flex' : 'none';
       document.getElementById('tab-config-nav').style.display = isAdmin ? 'flex' : 'none';
-      document.getElementById('thLyDoTuChoi').style.display = isAdmin ? '' : 'none';
       if (!isAdmin && document.getElementById('tab-config').classList.contains('active')) {
         showTab('tab-records', document.querySelector('.nav-tab'));
       }
@@ -610,21 +563,13 @@
 
     function updateStats() {
       const t = records.length, p = records.filter(r => r.status === 'pending').length,
-        pr = records.filter(r => r.status === 'processing').length, d = records.filter(r => r.status === 'done').length,
-        rj = records.filter(r => r.status === 'rejected').length;
+        pr = records.filter(r => r.status === 'processing').length, d = records.filter(r => r.status === 'done').length;
       document.getElementById('statsBar').innerHTML = `
     <div class="stat"><div class="stat-label">Tổng hồ sơ</div><div class="stat-val">${t}</div></div>
-    <div class="stat" style="cursor:pointer" onclick="filterByStatus('pending')"><div class="stat-label">Chờ xác nhận</div><div class="stat-val" style="color:#854F0B">${p}</div></div>
-    <div class="stat" style="cursor:pointer" onclick="filterByStatus('processing')"><div class="stat-label">Đang xử lý</div><div class="stat-val" style="color:#185FA5">${pr}</div></div>
+    <div class="stat"><div class="stat-label">Chờ xác nhận</div><div class="stat-val" style="color:#854F0B">${p}</div></div>
+    <div class="stat"><div class="stat-label">Đang xử lý</div><div class="stat-val" style="color:#185FA5">${pr}</div></div>
     <div class="stat"><div class="stat-label">Hoàn thành</div><div class="stat-val" style="color:#3B6D11">${d}</div></div>
-    <div class="stat" style="cursor:pointer" onclick="filterByStatus('rejected')"><div class="stat-label">Từ chối</div><div class="stat-val" style="color:#993C1D">${rj}</div></div>
   `;
-    }
-
-    function filterByStatus(status) {
-      const sel = document.getElementById('filterStatus');
-      sel.value = sel.value === status ? '' : status; // bấm lại thì bỏ filter
-      renderTable();
     }
 
     function getFiltered() {
@@ -639,52 +584,37 @@
 
     function renderTable() {
       const data = getFiltered(), tbody = document.getElementById('tbody'), today = todayStr();
-      if (!data.length) { tbody.innerHTML = `<tr><td colspan="19"><div class="empty"><i class="ti ti-inbox"></i>Chưa có hồ sơ nào</div></td></tr>`; return; }
+      if (!data.length) { tbody.innerHTML = `<tr><td colspan="18"><div class="empty"><i class="ti ti-inbox"></i>Chưa có hồ sơ nào</div></td></tr>`; return; }
       tbody.innerHTML = data.map((r, i) => {
         const utLabel = r.priority === 1 ? 'Cao' : r.priority === 3 ? 'Thấp' : 'Trung bình';
         const utBadge = r.priority === 1 ? 'badge-cao' : r.priority === 3 ? 'badge-thap' : 'badge-tb';
-        const stBadge = r.status === 'done' ? 'badge-done' : r.status === 'processing' ? 'badge-processing' : r.status === 'rejected' ? 'badge-rejected' : 'badge-pending';
-        const stLabel = r.status === 'done' ? 'Hoàn thành' : r.status === 'processing' ? 'Đang xử lý' : r.status === 'rejected' ? 'Từ chối' : 'Chờ xác nhận';
+        const stBadge = r.status === 'done' ? 'badge-done' : r.status === 'processing' ? 'badge-processing' : 'badge-pending';
+        const stLabel = r.status === 'done' ? 'Hoàn thành' : r.status === 'processing' ? 'Đang xử lý' : 'Chờ xác nhận';
         const isOverdue = r.ngaydk && r.ngaydk < today && r.status !== 'done';
         const deadlineCell = r.ngaydk ? `<span class="${isOverdue ? 'overdue' : ''}">${fmtDate(r.ngaydk)} (${dayVN(r.ngaydk)})${isOverdue ? ' ⚠' : ''}</span>` : '—';
-        const lydoCell = isAdmin ? `<td style="max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--red-text);font-size:12px" title="${r.status === 'rejected' ? (r.lydotuchoi || '') : ''}">${r.status === 'rejected' ? (r.lydotuchoi || '—') : '—'}</td>` : '';
         let actions = '';
         if (isAdmin && r.status === 'pending')
           actions += `<button class="action-btn action-confirm" onclick="quickConfirm(${r.id})"><i class="ti ti-inbox"></i>Nhận HS</button>`;
         if (isAdmin && r.status === 'processing')
           actions += `<button class="action-btn action-done" onclick="markDone(${r.id})"><i class="ti ti-circle-check"></i>Đã ký</button>`;
-        if (isAdmin && (r.status === 'pending' || r.status === 'processing'))
-          actions += `<button class="action-btn action-reject" onclick="openRejectModal(${r.id})"><i class="ti ti-ban"></i>Từ chối</button>`;
-        actions += `<button class="action-btn" onclick="openCopy(${r.id})" title="Copy hồ sơ"><i class="ti ti-copy"></i></button>`;
-        // Chỉ cho edit nếu là admin, hoặc là user và hồ sơ vẫn đang chờ xác nhận
-        if (isAdmin || r.status === 'pending') {
-          actions += `<button class="action-btn" onclick="openEdit(${r.id})"><i class="ti ti-edit"></i></button>`;
-        }
+        actions += `<button class="action-btn" onclick="openEdit(${r.id})"><i class="ti ti-edit"></i></button>`;
         if (isAdmin) actions += `<button class="action-btn action-del" onclick="deleteRecord(${r.id})"><i class="ti ti-trash"></i></button>`;
         return `<tr>
-              <td style="color:#9b9895;font-size:12px">${i + 1}</td>
-              <td>${dayVN(r.ngaygui)}</td><td style="text-align:center">${fmtTime(r.gionhan)}</td><td>${fmtDate(r.ngaygui)}</td>
-              <td>${r.loai}</td>
-              <td style="max-width:280px;white-space:normal;word-break:break-word">${r.ten}</td>
-              <td style="text-align:center">${r.sl}</td>
-              <td>${r.phong}</td><td>${r.nguoigui}</td><td style="max-width:110px;white-space:normal;word-break:break-word">${r.doitac || '—'}</td>
-              <td><span class="badge ${utBadge}">${utLabel}</span></td>
-              <td>${deadlineCell}</td>
-              <td>${fmtDate(r.ngaytra)}</td><td style="text-align:center">${fmtTime(r.giortra)}</td>
-              <td>${r.nguoinhan || '—'}</td>
-              <td style="max-width:150px;white-space:normal;word-break:break-word;color:#6b6966;font-size:12px">${r.ghichu || '—'}</td>
-              <td><span class="badge ${stBadge}">${stLabel}</span></td>
-              <td style="display:flex;gap:4px;flex-wrap:wrap;align-items:center">${actions}</td>
-              ${lydoCell}
-            </tr>`;
+      <td style="color:#9b9895;font-size:12px">${i + 1}</td>
+      <td>${dayVN(r.ngaygui)}</td><td>${r.gionhan || '—'}</td><td>${fmtDate(r.ngaygui)}</td>
+      <td>${r.loai}</td>
+      <td style="max-width:190px;white-space:normal;word-break:break-word">${r.ten}</td>
+      <td style="text-align:center">${r.sl}</td>
+      <td>${r.phong}</td><td>${r.nguoigui}</td><td>${r.doitac || '—'}</td>
+      <td><span class="badge ${utBadge}">${utLabel}</span></td>
+      <td>${deadlineCell}</td>
+      <td>${fmtDate(r.ngaytra)}</td><td>${r.giortra || '—'}</td>
+      <td>${r.nguoinhan || '—'}</td>
+      <td style="max-width:150px;white-space:normal;word-break:break-word;color:#6b6966;font-size:12px">${r.ghichu || '—'}</td>
+      <td><span class="badge ${stBadge}">${stLabel}</span></td>
+      <td style="display:flex;gap:4px;flex-wrap:wrap;align-items:center">${actions}</td>
+    </tr>`;
       }).join('');
-      if (firstLoad) {
-        setTimeout(() => {
-          const tableWrap = document.querySelector('.table-wrap');
-          if (tableWrap) tableWrap.scrollTop = tableWrap.scrollHeight;
-        }, 100);
-        firstLoad = false;
-      }
     }
 
     async function quickConfirm(id) {
@@ -706,152 +636,24 @@
       showToast('Đã nhận hồ sơ');
     }
 
-  async function markDone(id) {
-    const r = records.find(x => x.id === id);
-    if (!r) return;
-
-    const data = {
-      ...r,
-      ngaytra: todayStr(),
-      giortra: nowTime(),
-      status: "done"
-    };
-
-    const ok = await updateSupabase(id, data);
-
-    if (ok) {
-      await loadRecords();
-      updateStats();
-
-      // 🔥 gửi thông báo
-      await sendDoneNotification(r);
-
-      showToast('Đã ký hồ sơ');
-    }
-  }
-    let rejectTargetId = null;
-
-    function openRejectModal(id) {
-      rejectTargetId = id;
-      document.getElementById('f_lydotuchoi').value = '';
-      document.getElementById('rejectModal').style.display = 'flex';
-      setTimeout(() => document.getElementById('f_lydotuchoi').focus(), 50);
-    }
-
-    function closeRejectModal() {
-      document.getElementById('rejectModal').style.display = 'none';
-      rejectTargetId = null;
-    }
-
-    async function confirmRejectAction() {
-      const reason = document.getElementById('f_lydotuchoi').value.trim();
-      if (!reason) {
-        showToast('Vui lòng nhập lý do từ chối');
-        return;
-      }
-      const id = rejectTargetId;
+    async function markDone(id) {
       const r = records.find(x => x.id === id);
-      if (!r) { closeRejectModal(); return; }
+      if (!r) return;
 
-      const data = { ...r, status: 'rejected', lydotuchoi: reason };
+      const data = {
+        ...r,
+        ngaytra: todayStr(),
+        giortra: nowTime()
+      };
+
       const ok = await updateSupabase(id, data);
-
-      closeRejectModal();
 
       if (ok) {
         await loadRecords();
-        showToast('Đã từ chối hồ sơ');
-        await sendRejectNotification({ ...r, lydotuchoi: reason });
+        updateStats();
+        showToast('Đã ký hồ sơ');
       }
     }
-
-    // Gửi thông báo hồ sơ bị từ chối tới người trình ký
-    async function sendRejectNotification(record) {
-      const SUPABASE_FUNCTION_URL = "https://uujkzjoaxkndkpendiej.supabase.co/functions/v1/notify-teams";
-      const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV1amt6am9heGtuZGtwZW5kaWVqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE1ODk4MzcsImV4cCI6MjA5NzE2NTgzN30.DdYnnQuZYQcF4E11Z1J7Im-aOFPD0G7KAVO3PrmDXSI";
-
-      const email = record.email;
-      if (!email) {
-        console.log("Không tìm thấy email người gửi để gửi thông báo từ chối");
-        return;
-      }
-
-      try {
-        const response = await fetch(SUPABASE_FUNCTION_URL, {
-          method: "POST",
-          headers: {
-            "Authorization": `Bearer ${SUPABASE_ANON_KEY}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            email: email,
-            ten_ho_so: record.ten,
-            nguoi_nhan: record.nguoigui,
-            phong_ban: record.phong,
-            ngay_gui: record.ngaygui,
-            trang_thai: "rejected",
-            ly_do_tu_choi: record.lydotuchoi || "",
-          }),
-        });
-
-        const result = await response.json();
-        if (!result.success) {
-          console.error("Gửi thông báo từ chối thất bại:", result.error);
-        }
-      } catch (err) {
-        console.error("Lỗi gọi notify-teams (từ chối):", err);
-      }
-    }
-
-    document.getElementById('rejectModal').addEventListener('click', function (e) {
-      if (e.target === this) closeRejectModal();
-    });
-
-// Gửi tin nhắn thông báo hoàn thành
-    function getEmployeeEmailByName(name) {
-      const emp = employees.find(e =>
-        e.fullname?.trim().toLowerCase() === name?.trim().toLowerCase()
-      );
-      return emp?.email;
-    }
-
-    async function sendDoneNotification(record) {
-        const SUPABASE_FUNCTION_URL = "https://uujkzjoaxkndkpendiej.supabase.co/functions/v1/notify-teams";
-        const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV1amt6am9heGtuZGtwZW5kaWVqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE1ODk4MzcsImV4cCI6MjA5NzE2NTgzN30.DdYnnQuZYQcF4E11Z1J7Im-aOFPD0G7KAVO3PrmDXSI"; // ← dán đầy đủ anon key của bạn vào đây
-
-        const email = record.email;
-
-        if (!email) {
-          console.log("Không tìm thấy email người gửi");
-          return;
-        }
-
-        try {
-          const response = await fetch(SUPABASE_FUNCTION_URL, {
-            method: "POST",
-            headers: {
-              "Authorization": `Bearer ${SUPABASE_ANON_KEY}`,
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              email: email,
-              ten_ho_so: record.ten,
-              nguoi_nhan: record.nguoigui,
-              phong_ban: record.phong,      // mới thêm
-              ngay_gui: record.ngaygui,     // mới thêm
-              ghichu: record.ghichu || "",
-            }),
-          });
-
-          const result = await response.json();
-          if (!result.success) {
-            console.error("Gửi thông báo Teams thất bại:", result.error);
-          }
-        } catch (err) {
-          console.error("Lỗi gọi notify-teams:", err);
-        }
-      }
-
 
     function deleteRecord(id) {
       if (!confirm('Xác nhận xóa hồ sơ này?')) return;
@@ -870,12 +672,7 @@
     }
 
     function openEdit(id) {
-      const r = records.find(x => x.id === id);
-        if (!r) return;
-        if (!isAdmin && r.status !== 'pending') {
-          showToast(r.status === 'rejected' ? 'Hồ sơ đã bị từ chối. Vui lòng bấm "Copy" để trình ký lại hồ sơ mới.' : 'Hồ sơ đã được tiếp nhận, không thể chỉnh sửa');
-          return;
-        }
+      const r = records.find(x => x.id === id); if (!r) return;
       editId = id;
       document.getElementById('modalTitle').textContent = 'Chỉnh sửa hồ sơ #' + id;
       document.getElementById('f_loai').value = r.loai;
@@ -891,11 +688,6 @@
       document.getElementById('f_giortra').value = r.giortra || '';
       document.getElementById('f_nguoinhan').value = r.nguoinhan || '';
       document.getElementById('f_ghichu').value = r.ghichu || '';
-      // Restore người gửi khi edit
-      document.getElementById('employeeInput').value = r.nguoigui || '';
-      selectedEmployee = employees.find(e => 
-        e.fullname?.trim().toLowerCase() === r.nguoigui?.trim().toLowerCase()
-      ) || { fullname: r.nguoigui, email: '' };
       document.getElementById('adminSection').style.display = isAdmin ? 'block' : 'none';
       setAdminFields(isAdmin);
       document.getElementById('modal').style.display = 'flex';
@@ -979,7 +771,7 @@
           doitac: data.doitac,
 
           uutien: data.priority,
-          email: data.email,
+
           ngaydukientra: data.ngaydk || null,
           ngaytra: data.ngaytra || null,
           giotra: data.giortra || null,
@@ -988,7 +780,6 @@
           ghichu: data.ghichu || '',
 
           status: calcStatus(data),
-          lydotuchoi: data.lydotuchoi || null,
 
           created_by: 'Admin',
           updated_by: 'Admin'
@@ -1022,7 +813,7 @@
           doitac: data.doitac,
 
           uutien: data.priority,
-          email: data.email,
+
           ngaydukientra: data.ngaydk || null,
           ngaytra: data.ngaytra || null,
           giotra: data.giortra || null,
@@ -1030,8 +821,7 @@
           nguoinhan: data.nguoinhan || '',
           ghichu: data.ghichu || '',
 
-          status: data.status || calcStatus(data),
-          lydotuchoi: data.lydotuchoi !== undefined ? (data.lydotuchoi || null) : null,
+          status: calcStatus(data),
 
           updated_by: 'Admin',
           updated_at: new Date().toISOString()
@@ -1089,7 +879,6 @@
       }
 
       offDays = data.map(d => ({
-         id: d.id,           // ← thêm dòng này
         type: d.type,
         start: d.start_date,
         end: d.end_date,
@@ -1128,7 +917,7 @@
         phong: r.phongban,
         nguoigui: r.nguoigui,
         doitac: r.doitac,
-        email: r.email || '',
+
         priority: parseInt(r.uutien || 2),
 
         ngaydk: r.ngaydukientra || '',
@@ -1139,7 +928,6 @@
         ghichu: r.ghichu || '',
 
         status: r.status || 'pending',
-        lydotuchoi: r.lydotuchoi || '',
 
         created_by: r.created_by,
         created_at: r.created_at,
@@ -1151,123 +939,69 @@
       updateStats();
     }
 
-      function openCopy(id) {
-        const r = records.find(x => x.id === id);
-        if (!r) return;
+    const t = document.createElement('div');
 
-        editId = null;
-        document.getElementById('modalTitle').textContent = 'Đăng ký hồ sơ mới';
-        clearForm();
+    t.style.cssText = 'background:red;color:white';
 
-        // Điền sẵn các trường người trình ký được phép điền
-        document.getElementById('f_loai').value = r.loai;
-        document.getElementById('f_ten').value = r.ten;
-        document.getElementById('f_sl').value = r.sl;
-        document.getElementById('f_phong').value = r.phong;
-        document.getElementById('f_doitac').value = r.doitac || '';
-        document.getElementById('f_uutien').value = r.priority;
+    async function saveRecord() {
+      const loai = document.getElementById('f_loai').value, ten = document.getElementById('f_ten').value.trim(),
+        phong = document.getElementById('f_phong').value;
+        const nguoigui = selectedEmployee?.fullname;
+        const email = selectedEmployee?.email;
+        const nguoigui_id = selectedEmployee?.id;
+        if (!nguoigui) {
+          showToast("Vui lòng chọn người gửi từ danh sách gợi ý");
+          return;
+        }
+        doitac = document.getElementById('f_doitac').value.trim(), sl = document.getElementById('f_sl').value;
+      if (!loai || !ten || !phong || !nguoigui || !doitac || !sl || parseInt(sl) < 1) { showToast('Vui lòng điền đầy đủ tất cả các trường bắt buộc (*)'); return; }
+      const priority = parseInt(document.getElementById('f_uutien').value);
+      const ngaygui = isAdmin ? document.getElementById('f_ngaygui').value : (editId ? records.find(r => r.id === editId).ngaygui || '' : '');
+      
+      const data = {
+        loai, ten, phong, nguoigui, priority,
+        sl: parseInt(document.getElementById('f_sl').value) || 1,
+        doitac,
+        gionhan: isAdmin ? document.getElementById('f_gionhan').value : (editId ? records.find(r => r.id === editId).gionhan || '' : ''),
+        ngaygui, ngaydk: calcDeadline(ngaygui, priority),
+        ngaytra: isAdmin ? document.getElementById('f_ngaytra').value : (editId ? records.find(r => r.id === editId).ngaytra || '' : ''),
+        giortra: isAdmin ? document.getElementById('f_giortra').value : (editId ? records.find(r => r.id === editId).giortra || '' : ''),
+        nguoinhan: isAdmin ? document.getElementById('f_nguoinhan').value.trim() : (editId ? records.find(r => r.id === editId).nguoinhan || '' : ''),
+        ghichu: isAdmin ? document.getElementById('f_ghichu').value.trim() : (editId ? records.find(r => r.id === editId).ghichu || '' : ''),
+      };
+      if (editId) {
 
-        // Set người gửi
-        const emp = employees.find(e => e.fullname === r.nguoigui);
-        if (emp) {
-          selectedEmployee = emp;
-          document.getElementById('employeeInput').value = emp.fullname;
+        // Tính lại trạng thái
+        if (data.ngaytra) {
+          data.status = 'done';
+        }
+        else if (data.ngaygui && data.gionhan) {
+          data.status = 'processing';
+        }
+        else {
+          data.status = 'pending';
+          data.ngaydk = '';     // xóa luôn ngày dự kiến trả
         }
 
-        document.getElementById('adminSection').style.display = isAdmin ? 'block' : 'none';
-        setAdminFields(isAdmin);
-        document.getElementById('modal').style.display = 'flex';
+        const ok = await updateSupabase(editId, data);
+
+        if (ok) {
+          await loadRecords();
+          showToast('✅ Cập nhật hồ sơ thành công');
+        }
+
+      } else {
+        data.status = calcStatus(data);
+
+        await saveToSupabase(data);
+
+        await loadRecords();
       }
-
-async function saveRecord() {
-  const saveBtn = document.querySelector('#modal .btn-primary');
-  if (saveBtn) {
-    saveBtn.disabled = true;
-    saveBtn.innerHTML = '<i class="ti ti-loader-2 ti-spin"></i>Đang lưu...';
-  }
-
-  const loai = document.getElementById('f_loai').value, ten = document.getElementById('f_ten').value.trim(),
-    phong = document.getElementById('f_phong').value;
-  const nguoigui = selectedEmployee?.fullname;
-  const email = selectedEmployee?.email;
-  const nguoigui_id = selectedEmployee?.id;
-
-  if (!nguoigui) {
-    showToast("Vui lòng chọn người gửi từ danh sách gợi ý");
-    if (saveBtn) { saveBtn.disabled = false; saveBtn.innerHTML = '<i class="ti ti-check"></i>Lưu hồ sơ'; }
-    return;
-  }
-
-  doitac = document.getElementById('f_doitac').value.trim(), sl = document.getElementById('f_sl').value;
-
-  if (!loai || !ten || !phong || !nguoigui || !doitac || !sl || parseInt(sl) < 1) {
-    showToast('Vui lòng điền đầy đủ tất cả các trường bắt buộc (*)');
-    if (saveBtn) { saveBtn.disabled = false; saveBtn.innerHTML = '<i class="ti ti-check"></i>Lưu hồ sơ'; }
-    return;
-  }
-
-  const priority = parseInt(document.getElementById('f_uutien').value);
-  const ngaygui = isAdmin ? document.getElementById('f_ngaygui').value : (editId ? records.find(r => r.id === editId).ngaygui || '' : '');
-
-  const data = {
-    loai, ten, phong, nguoigui,email, priority,
-    sl: parseInt(document.getElementById('f_sl').value) || 1,
-    doitac,
-    gionhan: isAdmin ? document.getElementById('f_gionhan').value : (editId ? records.find(r => r.id === editId).gionhan || '' : ''),
-    ngaygui, ngaydk: calcDeadline(ngaygui, priority),
-    ngaytra: isAdmin ? document.getElementById('f_ngaytra').value : (editId ? records.find(r => r.id === editId).ngaytra || '' : ''),
-    giortra: isAdmin ? document.getElementById('f_giortra').value : (editId ? records.find(r => r.id === editId).giortra || '' : ''),
-    nguoinhan: isAdmin ? document.getElementById('f_nguoinhan').value.trim() : (editId ? records.find(r => r.id === editId).nguoinhan || '' : ''),
-    ghichu: isAdmin ? document.getElementById('f_ghichu').value.trim() : (editId ? records.find(r => r.id === editId).ghichu || '' : ''),
-  };
-
-  // Đóng modal ngay, không chờ Supabase
-  closeModal();
-
-  if (editId) {
-    const prevStatus = records.find(r => r.id === editId)?.status;
-
-    if (data.ngaytra) {
-      data.status = 'done';
-    } else if (data.ngaygui && data.gionhan) {
-      data.status = 'processing';
-    } else if (prevStatus === 'rejected' && isAdmin) {
-      // Trợ lý chỉ sửa thông tin, không đổi trạng thái từ chối
-      data.status = 'rejected';
-      data.lydotuchoi = records.find(r => r.id === editId)?.lydotuchoi || '';
-    } else {
-      // Người trình ký sửa lại hồ sơ bị từ chối => gửi lại, chờ xác nhận
-      data.status = 'pending';
-      data.ngaydk = '';
-      data.lydotuchoi = null;
+      closeModal();
+      showToast('Đã lưu hồ sơ');
     }
 
-    const ok = await updateSupabase(editId, data);
-
-    if (ok) {
-      await loadRecords();
-      showToast('✅ Cập nhật hồ sơ thành công');
-      if (data.status === 'done' && prevStatus !== 'done') {
-        await sendDoneNotification(data);
-      }
-    }
-
-  } else {
-    data.status = calcStatus(data);
-    await saveToSupabase(data);
-    await loadRecords();
-    showToast('✅ Đã lưu hồ sơ thành công');
-  }
-}
-
-    function closeModal() { 
-      document.getElementById('modal').style.display = 'none';
-      const saveBtn = document.querySelector('#modal .btn-primary');
-      if (saveBtn) {
-        saveBtn.disabled = false;
-        saveBtn.innerHTML = '<i class="ti ti-check"></i>Lưu hồ sơ';
-      }
-    }
+    function closeModal() { document.getElementById('modal').style.display = 'none'; }
 
     function renderConfigTab() {
       document.getElementById('priorityConfigBody').innerHTML = priorityConfig.map(p => `
@@ -1369,14 +1103,17 @@ async function saveRecord() {
       document.getElementById('newOffReason').value = '';
       showToast('Đã thêm ngày nghỉ');
     }
-    // removeOffDay - delete theo id
+
     async function removeOffDay(idx) {
       const item = offDays[idx];
-      
+
       const { error } = await sb
         .from('off_days')
         .delete()
-        .eq('id', item.id);  // ← chỉ dòng này
+        .eq('type', item.type)
+        .eq('reason', item.reason)
+        .eq('start_date', item.start)
+        .eq('weekday', item.weekday);
 
       if (error) {
         showToast('Lỗi xóa ngày nghỉ');
@@ -1391,10 +1128,10 @@ async function saveRecord() {
       if (!isAdmin) { showToast('Chỉ Trợ lý mới có quyền xuất Excel'); return; }
       if (typeof XLSX === 'undefined') { showToast('Thư viện xuất Excel chưa tải xong, vui lòng thử lại sau giây lát.'); return; }
       try {
-        const header = ['STT', 'Thứ', 'Giờ nhận HS', 'Ngày gửi hồ sơ', 'Loại hồ sơ', 'Tên hồ sơ', 'SL bản cứng', 'Phòng ban', 'Người gửi', 'Đối tác', 'Ưu tiên', 'Ngày DK trả HS', 'Ngày trả hồ sơ', 'Giờ trả hồ sơ', 'Người nhận HS', 'Ghi chú / Yêu cầu', 'Trạng thái', 'Lý do từ chối'];
+        const header = ['STT', 'Thứ', 'Giờ nhận HS', 'Ngày gửi hồ sơ', 'Loại hồ sơ', 'Tên hồ sơ', 'SL bản cứng', 'Phòng ban', 'Người gửi', 'Đối tác', 'Ưu tiên', 'Ngày DK trả HS', 'Ngày trả hồ sơ', 'Giờ trả hồ sơ', 'Người nhận HS', 'Ghi chú / Yêu cầu', 'Trạng thái'];
         const rows = records.map((r, i) => {
           const utLabel = r.priority === 1 ? 'Ưu tiên 1 - Cao' : r.priority === 3 ? 'Ưu tiên 3 - Thấp' : 'Ưu tiên 2 - Trung bình';
-          const stLabel = r.status === 'done' ? 'Hoàn thành' : r.status === 'processing' ? 'Đang xử lý' : r.status === 'rejected' ? 'Từ chối' : 'Chờ xác nhận';
+          const stLabel = r.status === 'done' ? 'Hoàn thành' : r.status === 'processing' ? 'Đang xử lý' : 'Chờ xác nhận';
           return [
             i + 1,
             dayVN(r.ngaygui),
@@ -1412,13 +1149,12 @@ async function saveRecord() {
             r.giortra || '',
             r.nguoinhan || '',
             r.ghichu || '',
-            stLabel,
-            r.status === 'rejected' ? (r.lydotuchoi || '') : ''
+            stLabel
           ];
         });
         const wsData = [header, ...rows];
         const ws = XLSX.utils.aoa_to_sheet(wsData);
-        ws['!cols'] = [6, 10, 12, 14, 14, 32, 12, 14, 18, 22, 22, 16, 14, 12, 18, 28, 14, 28].map(w => ({ wch: w }));
+        ws['!cols'] = [6, 10, 12, 14, 14, 32, 12, 14, 18, 22, 22, 16, 14, 12, 18, 28, 14].map(w => ({ wch: w }));
         const wb = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(wb, ws, 'So trinh ky');
         const today = new Date();
@@ -1467,7 +1203,6 @@ async function saveRecord() {
       const s = v.toString().toLowerCase();
       if (s.includes('hoàn') || s.includes('hoan') || s.includes('done')) return 'done';
       if (s.includes('đang') || s.includes('xử lý') || s.includes('processing')) return 'processing';
-      if (s.includes('từ chối') || s.includes('tu choi') || s.includes('rejected')) return 'rejected';
       return 'pending';
     }
 

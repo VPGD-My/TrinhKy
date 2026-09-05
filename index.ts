@@ -15,14 +15,22 @@ function buildAdaptiveCard(
   nguoi_nhan: string,
   phong_ban?: string,
   ngay_gui?: string,
-  ghichu?: string
+  ghichu?: string,
+  trang_thai?: string,
+  ly_do_tu_choi?: string
 ) {
+  const isRejected = trang_thai === "rejected";
+
   const facts = [
     { title: "📑 Tên hồ sơ", value: ten_ho_so },
     { title: "👤 Người gửi", value: nguoi_nhan },
     { title: "🏬 Phòng ban", value: phong_ban || "—" },
     { title: "🗓️ Ngày gửi", value: ngay_gui || "—" },
   ];
+
+  if (isRejected && ly_do_tu_choi) {
+    facts.push({ title: "❌ Lý do từ chối", value: ly_do_tu_choi });
+  }
 
   if (ghichu) {
     facts.push({ title: "📝 Ghi chú", value: ghichu });
@@ -35,12 +43,12 @@ function buildAdaptiveCard(
     body: [
       {
         type: "Container",
-        style: "good",
+        style: isRejected ? "attention" : "good",
         bleed: true,
         items: [
           {
             type: "TextBlock",
-            text: "✅ Hồ sơ hoàn thành",
+            text: isRejected ? "❌ Hồ sơ bị từ chối" : "✅ Hồ sơ hoàn thành",
             weight: "Bolder",
             size: "Medium",
             wrap: true,
@@ -61,8 +69,7 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { email, ten_ho_so, nguoi_nhan, phong_ban, ngay_gui, ghichu } = await req.json();
-
+        const { email, ten_ho_so, nguoi_nhan, phong_ban, ngay_gui, ghichu, trang_thai, ly_do_tu_choi } = await req.json();
     if (!email || !ten_ho_so) {
       return new Response(
         JSON.stringify({ error: "Thiếu email hoặc tên hồ sơ" }),
@@ -70,8 +77,8 @@ Deno.serve(async (req) => {
       );
     }
 
-    const card = buildAdaptiveCard(ten_ho_so, nguoi_nhan, phong_ban, ngay_gui, ghichu);
-
+        const card = buildAdaptiveCard(ten_ho_so, nguoi_nhan, phong_ban, ngay_gui, ghichu, trang_thai, ly_do_tu_choi);
+        
     const resendResponse = await fetch("https://api.resend.com/emails", {
       method: "POST",
       headers: {
