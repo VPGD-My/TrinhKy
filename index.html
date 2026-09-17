@@ -1327,7 +1327,7 @@ async function saveRecord() {
           const end = new Date(o.end + 'T00:00:00');
           const isRange = o.start !== o.end;
           while (d <= end) {
-            const dateStr = d.toISOString().slice(0, 10);
+            const dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
             rows.push({
               sortKey: dateStr,
               realIdx,
