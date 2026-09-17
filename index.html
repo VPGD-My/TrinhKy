@@ -320,7 +320,11 @@
           <div class="admin-zone" id="adminSection" style="display:none">
             <div class="admin-zone-title"><i class="ti ti-shield-lock" style="font-size:12px"></i>Thông tin Trợ lý xác
               nhận</div>
-            <div class="form-grid" style="gap:10px">
+            <div id="lydoTuChoiGroup" style="display:none;margin-bottom:10px">
+              <label style="font-size:12px;font-weight:600;color:var(--red-text);display:flex;align-items:center;gap:4px">
+                <i class="ti ti-ban" style="font-size:13px"></i>Lý do từ chối
+              </label>
+              <textarea id="f_lydotuchoi_view" class="field" rows="3" spellcheck="false" style="background:var(--red-bg);border:1px solid #F0C4B0;color:var(--red-text);margin-top:4px"></textarea>            <div class="form-grid" style="gap:10px">
               <div class="form-group">
                 <label>Giờ nhận hồ sơ</label>
                 <input type="time" class="field" id="f_gionhan">
@@ -368,8 +372,7 @@
       <div class="modal-body">
         <div class="form-group">
           <label>Lý do từ chối<span class="required">*</span></label>
-          <textarea class="field" id="f_lydotuchoi" rows="4" placeholder="Nhập lý do từ chối hồ sơ..."></textarea>
-        </div>
+          <textarea class="field" id="f_lydotuchoi" rows="4" spellcheck="false" placeholder="Nhập lý do từ chối hồ sơ..."></textarea>        </div>
         <div class="info-box" style="background:var(--red-bg);border-color:#F0C4B0;color:var(--red-text)">
           <i class="ti ti-info-circle" style="font-size:14px;flex-shrink:0"></i>
           <span>Lý do từ chối chỉ hiển thị với Trợ lý. Người trình ký sẽ nhận được thông báo hồ sơ bị từ chối.</span>
@@ -753,7 +756,7 @@
       const r = records.find(x => x.id === id);
       if (!r) { closeRejectModal(); return; }
 
-      const data = { ...r, status: 'rejected', lydotuchoi: reason };
+      const data = { ...r, status: 'rejected', lydotuchoi: reason, ngaytra: todayStr(), giortra: nowTime() };
       const ok = await updateSupabase(id, data);
 
       closeRejectModal();
@@ -865,6 +868,7 @@
       document.getElementById('modalTitle').textContent = 'Đăng ký hồ sơ mới';
       clearForm();
       document.getElementById('adminSection').style.display = isAdmin ? 'block' : 'none';
+      document.getElementById('lydoTuChoiGroup').style.display = 'none';
       setAdminFields(isAdmin);
       document.getElementById('modal').style.display = 'flex';
     }
@@ -897,6 +901,12 @@
         e.fullname?.trim().toLowerCase() === r.nguoigui?.trim().toLowerCase()
       ) || { fullname: r.nguoigui, email: '' };
       document.getElementById('adminSection').style.display = isAdmin ? 'block' : 'none';
+      const lydoGroup = document.getElementById('lydoTuChoiGroup');
+      if (isAdmin && r.status === 'rejected') {
+        lydoGroup.style.display = 'block';
+        document.getElementById('f_lydotuchoi_view').value = r.lydotuchoi || '';      } else {
+        lydoGroup.style.display = 'none';
+      }
       setAdminFields(isAdmin);
       document.getElementById('modal').style.display = 'flex';
     }
@@ -1227,14 +1237,14 @@ async function saveRecord() {
   if (editId) {
     const prevStatus = records.find(r => r.id === editId)?.status;
 
-    if (data.ngaytra) {
+    if (prevStatus === 'rejected' && isAdmin) {
+      // Trợ lý sửa thông tin / sửa lý do, vẫn giữ trạng thái từ chối
+      data.status = 'rejected';
+      data.lydotuchoi = document.getElementById('f_lydotuchoi_view').value.trim();
+    } else if (data.ngaytra) {
       data.status = 'done';
     } else if (data.ngaygui && data.gionhan) {
       data.status = 'processing';
-    } else if (prevStatus === 'rejected' && isAdmin) {
-      // Trợ lý chỉ sửa thông tin, không đổi trạng thái từ chối
-      data.status = 'rejected';
-      data.lydotuchoi = records.find(r => r.id === editId)?.lydotuchoi || '';
     } else {
       // Người trình ký sửa lại hồ sơ bị từ chối => gửi lại, chờ xác nhận
       data.status = 'pending';
@@ -1300,31 +1310,44 @@ async function saveRecord() {
       document.getElementById('offDayCount').textContent = offDays.length + ' mục';
       const list = document.getElementById('offDayList');
       if (!offDays.length) { list.innerHTML = '<div style="padding:12px 16px;font-size:13px;color:#9b9895;font-style:italic">Chưa có ngày nào được thêm</div>'; return; }
-      const sorted = [...offDays].sort((a, b) => {
-        const ka = a.type === 'recur' ? '9' + a.weekday : a.start;
-        const kb = b.type === 'recur' ? '9' + b.weekday : b.start;
-        return ka.localeCompare(kb);
-      });
-      list.innerHTML = `<div class="off-list">${sorted.map((o, idx) => {
-        const realIdx = offDays.indexOf(o);
-        let label, badge;
+
+      // Tách từng khoảng ngày thành các dòng riêng lẻ theo từng ngày
+      const rows = [];
+      offDays.forEach((o, realIdx) => {
         if (o.type === 'recur') {
-          label = DAYS_VN[o.weekday] + ' hằng tuần';
-          badge = '<span class="off-type-badge">Lặp lại</span>';
-        } else if (o.start === o.end) {
-          label = fmtDate(o.start);
-          badge = '<span class="off-type-badge">Ngày lẻ</span>';
+          rows.push({
+            sortKey: '9' + o.weekday,
+            realIdx,
+            label: DAYS_VN[o.weekday] + ' hằng tuần',
+            badge: 'Lặp lại',
+            reason: o.reason
+          });
         } else {
-          label = fmtDate(o.start) + ' – ' + fmtDate(o.end);
-          badge = '<span class="off-type-badge">Khoảng ngày</span>';
+          let d = new Date(o.start + 'T00:00:00');
+          const end = new Date(o.end + 'T00:00:00');
+          const isRange = o.start !== o.end;
+          while (d <= end) {
+            const dateStr = d.toISOString().slice(0, 10);
+            rows.push({
+              sortKey: dateStr,
+              realIdx,
+              label: fmtDate(dateStr) + ' (' + dayVN(dateStr) + ')',
+              badge: isRange ? 'Khoảng ngày' : 'Ngày lẻ',
+              reason: o.reason
+            });
+            d.setDate(d.getDate() + 1);
+          }
         }
-        return `<div class="chip">
+      });
+
+      rows.sort((a, b) => a.sortKey.localeCompare(b.sortKey));
+
+      list.innerHTML = `<div class="off-list">${rows.map(row => `<div class="chip">
       <i class="ti ti-calendar-x" style="font-size:13px;color:#854F0B"></i>
-      ${badge}
-      <span><strong>${label}</strong>${o.reason ? ' – ' + o.reason : ''}</span>
-      <button onclick="removeOffDay(${realIdx})" title="Xóa"><i class="ti ti-x" style="font-size:12px"></i></button>
-    </div>`;
-      }).join('')}</div>`;
+      <span class="off-type-badge">${row.badge}</span>
+      <span><strong>${row.label}</strong>${row.reason ? ' – ' + row.reason : ''}</span>
+      <button onclick="removeOffDay(${row.realIdx})" title="Xóa"><i class="ti ti-x" style="font-size:12px"></i></button>
+    </div>`).join('')}</div>`;
     }
 
     async function addOffDay() {
