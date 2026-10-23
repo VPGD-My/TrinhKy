@@ -5,8 +5,17 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>ĐĂNG KÝ HỒ SƠ TRÌNH KÝ</title>
+  <!-- v5: đặt theme trước khi trang hiện để không bị nháy trắng khi dùng theme tối -->
+  <script>
+    (function () {
+      var t = null;
+      try { t = localStorage.getItem('stk.theme'); } catch (e) { }
+      if (t !== 'dark' && t !== 'light') t = window.matchMedia && matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+      document.documentElement.setAttribute('data-theme', t);
+    })();
+  </script>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
-  <link rel="stylesheet" href="so_trinh_ky.css?v=3">
+  <link rel="stylesheet" href="so_trinh_ky.css?v=5">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 
@@ -34,6 +43,7 @@
       <span class="role-badge role-user" id="roleBadge">
         <i class="ti ti-user" style="font-size:12px"></i>Người trình ký
       </span>
+      <button class="btn theme-btn" id="themeBtn" onclick="toggleTheme()" title="Đổi giao diện sáng / tối"><i class="ti ti-moon"></i></button>
     </div>
   </div>
 
@@ -46,11 +56,13 @@
   <div class="main">
 
     <div id="tab-records" class="tab-content active">
+      <div class="info-box scope-note" id="scopeNote" style="display:none"></div>
       <div class="stats" id="statsBar"></div>
       <div class="toolbar">
         <div class="toolbar-left">
-          <div class="search-box"><i class="ti ti-search" style="font-size:14px;color:#9b9895"></i><input type="text"
+          <div class="search-box"><i class="ti ti-search" style="font-size:14px;color:var(--text3)"></i><input type="text"
               placeholder="Tìm hồ sơ..." id="searchInput" oninput="renderTable()"></div>
+          <span id="scopeCtl"></span>
           <select class="filter" id="filterLoai" onchange="renderTable()">
             <option value="">Tất cả loại</option>
             <option>Hợp đồng/Phụ lục</option>
@@ -71,6 +83,7 @@
             <option value="done">Hoàn thành</option>
             <option value="rejected">Từ chối</option>
           </select>
+          <span id="filterCount" style="font-size:12px;color:var(--text3)"></span>
         </div>
         <div style="display:flex;gap:8px">
           <button class="btn" id="importBtn" onclick="document.getElementById('fileImport').click()"
@@ -92,6 +105,7 @@
               <th>Ngày gửi HS</th>
               <th style="min-width:110px;white-space:normal;word-break:break-word;overflow-wrap:break-word">Loại hồ sơ</th>
               <th style="min-width:280px">Tên hồ sơ</th>
+              <th>Trình đến</th>
               <th style="min-width:20px">SL bản cứng</th>
               <th style="width:90px">Phòng ban</th>
               <th style="min-width:90px">Người gửi</th>
@@ -103,7 +117,7 @@
               <th>Người nhận HS</th>
               <th>Ghi chú / Yêu cầu</th>
               <th>Trạng thái</th>
-              <th style="min-width:120px">Thao tác</th>
+              <th style="min-width:150px">Thao tác</th>
               <th id="thLyDoTuChoi" style="min-width:110px;max-width:140px;display:none">Lý do từ chối</th>
             </tr>
           </thead>
@@ -113,10 +127,15 @@
     </div>
 
     <div id="tab-config" class="tab-content">
+      <div class="cfg-toolbar">
+        <span style="font-size:13px;color:var(--text2)">Lãnh đạo:</span>
+        <span id="cfgLdSeg"></span>
+        <span id="cfgLdNote" style="font-size:12px;color:var(--text3)"></span>
+      </div>
       <div class="config-wrap">
         <div class="card-box">
           <div class="card-box-header">
-            <h3><i class="ti ti-clock" style="font-size:15px;color:var(--blue)"></i>Quy tắc thời gian trả hồ sơ</h3>
+            <h3><i class="ti ti-clock" style="font-size:15px;color:var(--blue)"></i>Quy tắc thời gian trả hồ sơ – <span id="cfgLdName1"></span></h3>
           </div>
           <table class="cfg-table">
             <thead>
@@ -127,16 +146,20 @@
             </thead>
             <tbody id="priorityConfigBody"></tbody>
           </table>
+          <div class="cfg-actions" id="priorityActions">
+            <span>Lưu xong: tính lại hạn trả các hồ sơ Đang xử lý của lãnh đạo này.</span>
+            <button class="btn btn-primary btn-sm" onclick="savePriorityConfig()"><i class="ti ti-check"></i>Lưu</button>
+          </div>
           <div class="cfg-info"><i class="ti ti-info-circle"
               style="font-size:13px;flex-shrink:0;margin-top:1px"></i>Ngày làm việc: Thứ 2 – Thứ 6, trừ các ngày công
-            tác / lễ ở danh sách bên phải.</div>
+            tác / lễ ở danh sách bên phải (ngày riêng của lãnh đạo này và ngày chung).</div>
         </div>
         <div class="card-box">
           <div class="card-box-header">
-            <h3><i class="ti ti-calendar-off" style="font-size:15px;color:#854F0B"></i>Ngày công tác / Nghỉ lễ</h3>
+            <h3><i class="ti ti-calendar-off" style="font-size:15px;color:var(--amber-text)"></i>Ngày công tác / Nghỉ lễ – <span id="cfgLdName2"></span></h3>
             <span style="font-size:12px;color:var(--text3)" id="offDayCount">0 mục</span>
           </div>
-          <div
+          <div id="offAddBox"
             style="padding:12px 16px;border-bottom:1px solid var(--border);display:flex;flex-direction:column;gap:10px">
             <div class="radio-row">
               <label><input type="radio" name="offMode" value="range" checked onchange="toggleOffMode()"> Khoảng ngày cụ
@@ -162,10 +185,28 @@
             </div>
             <div class="recur-row">
               <input type="text" class="field" id="newOffReason" placeholder="Lý do (tùy chọn)" style="flex:1">
+              <select class="filter" id="offApply" style="display:none" title="Áp dụng cho"></select>
               <button class="btn btn-sm" onclick="addOffDay()"><i class="ti ti-plus"></i>Thêm</button>
             </div>
           </div>
           <div id="offDayList"></div>
+        </div>
+
+        <!-- v5: chỉ Trợ lý TGĐ – danh sách lãnh đạo, mật khẩu trợ lý -->
+        <div class="card-box wide" id="leaderCard" style="display:none">
+          <div class="card-box-header">
+            <h3><i class="ti ti-users" style="font-size:15px;color:var(--violet)"></i>Lãnh đạo &amp; mật khẩu trợ lý</h3>
+            <button class="btn btn-sm" onclick="openLeaderModal(null)"><i class="ti ti-plus"></i>Thêm lãnh đạo</button>
+          </div>
+          <table class="cfg-table ld-table">
+            <thead>
+              <tr><th>Mã</th><th>Tên</th><th>Nhãn</th><th>Mật khẩu trợ lý</th><th></th></tr>
+            </thead>
+            <tbody id="leaderBody"></tbody>
+          </table>
+          <div class="cfg-info"><i class="ti ti-info-circle" style="font-size:13px;flex-shrink:0;margin-top:1px"></i>
+            Mỗi lãnh đạo có một mật khẩu trợ lý riêng. Nhập mật khẩu nào thì vào giao diện trợ lý của lãnh đạo đó.
+            Trợ lý TGĐ quản lý danh sách này và các ngày nghỉ chung (lễ, Tết).</div>
         </div>
 
       </div>
@@ -179,8 +220,8 @@
       <div class="modal-body" style="text-align:center;padding:28px 24px 20px">
         <div class="pw-icon"><i class="ti ti-lock"></i></div>
         <h2 style="font-size:15px;font-weight:600;margin-bottom:4px">Chuyển sang quyền Trợ lý</h2>
-        <p style="font-size:12px;color:var(--text2);margin-bottom:16px">Vui lòng nhập mật khẩu để chuyển sang quyền Trợ
-          lý</p>
+        <p style="font-size:12px;color:var(--text2);margin-bottom:16px">Nhập mật khẩu trợ lý. Mỗi lãnh đạo (TGĐ, từng PTGĐ) có
+          mật khẩu riêng.</p>
         <input type="password" class="field" id="pwInput" placeholder="Nhập mật khẩu..." style="text-align:center"
           onkeydown="if(event.key==='Enter')confirmAdminLogin()">
         <div class="pw-error" id="pwError"><i class="ti ti-alert-circle"></i> Sai mật khẩu, vui lòng thử lại</div>
@@ -201,13 +242,10 @@
       </div>
       <div class="modal-body" style="padding:16px 20px">
         <div id="importSummary" style="margin-bottom:12px"></div>
-        <div id="importModeRow"
-          style="display:flex;align-items:center;gap:16px;margin-bottom:14px;padding:10px 14px;background:var(--bg2);border-radius:var(--radius);border:1px solid var(--border)">
-          <span style="font-size:13px;font-weight:500">Chế độ import:</span>
-          <label style="display:flex;align-items:center;gap:5px;font-size:13px;cursor:pointer"><input type="radio"
-              name="importMode" value="replace" checked> Thay thế toàn bộ dữ liệu hiện tại</label>
-          <label style="display:flex;align-items:center;gap:5px;font-size:13px;cursor:pointer"><input type="radio"
-              name="importMode" value="append"> Thêm vào cuối danh sách</label>
+        <div
+          style="margin-bottom:14px;padding:10px 14px;background:var(--bg2);border-radius:var(--radius);border:1px solid var(--border);font-size:13px">
+          <i class="ti ti-info-circle"></i> Các dòng được <strong>thêm vào cuối danh sách</strong>. Dữ liệu hiện có không bị
+          thay thế hay xóa. Thiếu cột "Trình đến" thì hồ sơ được gán trình TGĐ.
         </div>
         <div
           style="overflow-x:auto;border:1px solid var(--border);border-radius:var(--radius);max-height:340px;overflow-y:auto">
@@ -236,6 +274,13 @@
       </div>
       <div class="modal-body">
         <div class="form-grid">
+          <!-- v5: chọn lãnh đạo được trình -->
+          <div class="form-group full">
+            <label>Trình ký đến<span class="required">*</span></label>
+            <div class="ld-pick" id="ldPick"></div>
+            <small id="ldPickNote" style="font-size:11px;color:var(--text3);display:none">Trợ lý không đổi được lãnh đạo
+              được trình. Nếu trình nhầm, từ chối để người trình Copy và chọn lại.</small>
+          </div>
           <div class="form-group">
             <label>Loại hồ sơ<span class="required">*</span></label>
             <select class="field" id="f_loai" required>
@@ -285,13 +330,9 @@
           </div>
           <div class="form-group">
             <label>Người gửi<span class="required">*</span></label>
-            <div class="form-group">
-                        <div class="form-group">
-                <div class="form-group autocomplete">
-                <input type="text" id="employeeInput" class="field" placeholder="Nhập tên người gửi...">
-                <div id="employeeList" class="autocomplete-list"></div>
-              </div>
-              </div>
+            <div class="form-group autocomplete">
+              <input type="text" id="employeeInput" class="field" placeholder="Nhập tên người gửi..." autocomplete="off">
+              <div id="employeeList" class="autocomplete-list"></div>
             </div>
           </div>
           <div class="form-group">
@@ -300,11 +341,7 @@
           </div>
           <div class="form-group">
             <label>Mức ưu tiên<span class="required">*</span></label>
-            <select class="field" id="f_uutien" onchange="previewDeadline()" required>
-              <option value="2">Ưu tiên 2 – Trung bình (3 ngày LV)</option>
-              <option value="1">Ưu tiên 1 – Cao (1 ngày LV)</option>
-              <option value="3">Ưu tiên 3 – Thấp (7 ngày LV)</option>
-            </select>
+            <select class="field" id="f_uutien" onchange="previewDeadline()" required></select>
           </div>
           <div class="form-group">
             <label>Ngày dự kiến trả HS <span style="font-size:11px;color:var(--text3)">(tự động)</span></label>
@@ -314,7 +351,7 @@
           <div class="info-box">
             <i class="ti ti-info-circle" style="font-size:14px;flex-shrink:0"></i>
             <span>Ngày dự kiến trả sẽ tự động tính từ ngày Trợ lý xác nhận nhận hồ sơ, theo số ngày làm việc của mức ưu
-              tiên, trừ các ngày công tác / nghỉ lễ đã cấu hình.</span>
+              tiên và lịch công tác / nghỉ của <b>lãnh đạo được trình</b>.</span>
           </div>
 
           <div class="admin-zone" id="adminSection" style="display:none">
@@ -324,7 +361,7 @@
               <label style="font-size:12px;font-weight:600;color:var(--red-text);display:flex;align-items:center;gap:4px">
                 <i class="ti ti-ban" style="font-size:13px"></i>Lý do từ chối
               </label>
-              <textarea id="f_lydotuchoi_view" class="field" rows="3" spellcheck="false" style="background:var(--red-bg);border:1px solid #F0C4B0;color:var(--red-text);margin-top:4px"></textarea>
+              <textarea id="f_lydotuchoi_view" class="field" rows="3" spellcheck="false" style="background:var(--red-bg);border:1px solid var(--red-line);color:var(--red-text);margin-top:4px"></textarea>
             </div>
             <div class="form-grid" style="gap:10px">
               <div class="form-group">
@@ -359,7 +396,7 @@
       </div>
       <div class="modal-footer">
         <button class="btn" onclick="closeModal()">Hủy</button>
-        <button class="btn btn-primary" onclick="saveRecord()"><i class="ti ti-check"></i>Lưu hồ sơ</button>
+        <button class="btn btn-primary" id="saveRecordBtn" onclick="saveRecord()"><i class="ti ti-check"></i>Lưu hồ sơ</button>
       </div>
     </div>
   </div>
@@ -376,9 +413,10 @@
           <label>Lý do từ chối<span class="required">*</span></label>
           <textarea class="field" id="f_lydotuchoi" rows="4" spellcheck="false" placeholder="Nhập lý do từ chối hồ sơ..."></textarea>
         </div>
-        <div class="info-box" style="background:var(--red-bg);border-color:#F0C4B0;color:var(--red-text)">
+        <div class="info-box" style="background:var(--red-bg);border-color:var(--red-line);color:var(--red-text);margin-top:12px">
           <i class="ti ti-info-circle" style="font-size:14px;flex-shrink:0"></i>
-          <span>Lý do từ chối chỉ hiển thị với Trợ lý. Người trình ký sẽ nhận được thông báo hồ sơ bị từ chối.</span>
+          <span>Lý do từ chối chỉ hiển thị với Trợ lý. Người trình ký sẽ nhận được thông báo hồ sơ bị từ chối. Muốn trình
+            lại: dùng Copy.</span>
         </div>
       </div>
       <div class="modal-footer">
@@ -388,10 +426,98 @@
     </div>
   </div>
 
+  <!-- v5: Trình tiếp TGĐ -->
+  <div class="modal-bg" id="forwardModal" style="display:none">
+    <div class="modal" style="max-width:640px">
+      <div class="modal-header">
+        <h2><i class="ti ti-arrow-forward-up" style="color:var(--violet);margin-right:6px"></i><span id="fwTitle">Trình tiếp Tổng Giám đốc</span></h2>
+        <button class="action-btn" onclick="closeForwardModal()" style="padding:4px 6px"><i class="ti ti-x"></i></button>
+      </div>
+      <div class="modal-body">
+        <div class="flow" id="fwFlow"></div>
+        <div class="summary" id="fwSummary"></div>
+        <div class="form-grid" style="margin-top:12px">
+          <div class="form-group">
+            <label>Mức ưu tiên khi trình TGĐ</label>
+            <select class="field" id="fwUutien"></select>
+          </div>
+          <div class="form-group">
+            <label>Số lượng bản cứng</label>
+            <input type="number" class="field" id="fwSl" min="1" value="1">
+          </div>
+          <div class="form-group full" id="fwActorGroup">
+            <label>Người thực hiện<span class="required">*</span> <span style="font-size:11px;color:var(--text3)">(ghi vào nhật ký)</span></label>
+            <input type="text" class="field" id="fwActor" list="fwActorList" placeholder="Họ tên người bấm trình tiếp">
+            <datalist id="fwActorList"></datalist>
+          </div>
+        </div>
+        <div class="info-box scope-note violet" style="margin-top:12px;margin-bottom:0">
+          <i class="ti ti-info-circle" style="font-size:14px;flex-shrink:0"></i>
+          <span id="fwInfo"></span>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn" onclick="closeForwardModal()">Hủy</button>
+        <button class="btn btn-violet" id="fwConfirmBtn" onclick="confirmForward()"><i class="ti ti-arrow-forward-up"></i><span id="fwBtnText">Trình tiếp TGĐ</span></button>
+      </div>
+    </div>
+  </div>
+
+  <!-- v5: Lịch sử hồ sơ -->
+  <div class="modal-bg" id="historyModal" style="display:none">
+    <div class="modal" style="max-width:600px">
+      <div class="modal-header">
+        <h2><i class="ti ti-history" style="color:var(--blue);margin-right:6px"></i><span id="historyTitle">Lịch sử hồ sơ</span></h2>
+        <button class="action-btn" onclick="closeHistoryModal()" style="padding:4px 6px"><i class="ti ti-x"></i></button>
+      </div>
+      <div class="modal-body" id="historyBody"></div>
+    </div>
+  </div>
+
+  <!-- v5: Thêm / sửa lãnh đạo (Trợ lý TGĐ) -->
+  <div class="modal-bg" id="leaderModal" style="display:none">
+    <div class="modal" style="max-width:520px">
+      <div class="modal-header">
+        <h2 id="leaderTitle">Thêm lãnh đạo</h2>
+        <button class="action-btn" onclick="closeLeaderModal()" style="padding:4px 6px"><i class="ti ti-x"></i></button>
+      </div>
+      <div class="modal-body">
+        <div class="form-grid">
+          <div class="form-group">
+            <label>Mã<span class="required">*</span></label>
+            <input type="text" class="field" id="ld_ma" maxlength="20" placeholder="VD: PTGD-KD">
+          </div>
+          <div class="form-group">
+            <label>Nhãn ngắn<span class="required">*</span></label>
+            <input type="text" class="field" id="ld_ngan" maxlength="30" placeholder="VD: PTGĐ KD">
+          </div>
+          <div class="form-group full">
+            <label>Tên đầy đủ<span class="required">*</span></label>
+            <input type="text" class="field" id="ld_ten" maxlength="150" placeholder="VD: Phó Tổng Giám đốc Kinh doanh">
+          </div>
+          <div class="form-group">
+            <label id="ld_pw_label">Mật khẩu trợ lý<span class="required">*</span></label>
+            <input type="password" class="field" id="ld_pw" autocomplete="new-password">
+          </div>
+          <div class="form-group">
+            <label>Nhập lại mật khẩu</label>
+            <input type="password" class="field" id="ld_pw2" autocomplete="new-password">
+          </div>
+          <div class="info-box" id="ld_hint"></div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn" onclick="closeLeaderModal()">Hủy</button>
+        <button class="btn btn-primary" id="leaderSaveBtn" onclick="saveLeader()"><i class="ti ti-check"></i>Lưu</button>
+      </div>
+    </div>
+  </div>
+
   <div id="confirmModal" class="modal-bg" style="display:none">
     <div class="confirm-box">
       <h3>Thông báo</h3>
       <p id="confirmMessage">Bạn có chắc chắn muốn xóa hồ sơ này?</p>
+      <textarea class="field" id="confirmReason" rows="3" placeholder="Lý do xóa (bắt buộc)..." style="display:none"></textarea>
 
       <div class="confirm-actions">
         <button class="btn btn-secondary" onclick="closeConfirmModal()">
@@ -420,145 +546,177 @@
       );
 
     const DAYS_VN = ['Chủ nhật', 'Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7'];
-    const ADMIN_PASSWORD = 'admin123'; // mật khẩu demo - có thể thay đổi
-    let isAdmin = false, editId = null, nextId = 4, firstLoad = true;
+    const PRIORITY_LABEL = { 1: 'Ưu tiên 1 – Cao', 2: 'Ưu tiên 2 – Trung bình', 3: 'Ưu tiên 3 – Thấp' };
+    const PRIORITY_COL = { 1: 'so_ngay_cao', 2: 'so_ngay_tb', 3: 'so_ngay_thap' };
 
-    let priorityConfig = [
-      { level: 1, label: 'Ưu tiên 1 – Cao', days: 1 },
-      { level: 2, label: 'Ưu tiên 2 – Trung bình', days: 3 },
-      { level: 3, label: 'Ưu tiên 3 – Thấp', days: 7 },
-    ];
+    // v5: mật khẩu trợ lý không còn nằm trong code. Mỗi lãnh đạo có mật khẩu riêng,
+    // lưu dạng mã băm SHA-256 trong bảng lanh_dao (xem db/003_lanh_dao_trinh_tiep.sql).
+    let isAdmin = false, editId = null, firstLoad = true;
+    let session = { ld: null };       // lãnh đạo của trợ lý đang đăng nhập (null = Người trình ký)
+    let soView = null;                // Trợ lý TGĐ: sổ đang xem (id lãnh đạo hoặc 'ALL')
+    let cfgLdId = null;               // tab Cấu hình: lãnh đạo đang xem
 
-    // offDays: each item is either {type:'range', start, end, reason}
-    // or {type:'recur', weekday: 0-6, reason}
-    let offDays = []
-    let records = []
-
+    let leaders = [];                 // bảng lanh_dao
+    let offDays = [];                 // {id, type, start, end, weekday, reason, ld}
+    let records = [];
     let employees = [];
 
-    let currentSort = '';
+    // ════════════════════════════════════════════════════════
+    //  Lãnh đạo, vai trò, phạm vi
+    // ════════════════════════════════════════════════════════
+    const ldById = id => leaders.find(l => l.id === id);
+    const tgd = () => leaders.find(l => l.la_tgd);
+    const myLd = () => (isAdmin ? session.ld : null);
+    const isTgdAsst = () => isAdmin && !!ldById(session.ld)?.la_tgd;
+    const roleLabel = () => isAdmin ? 'Trợ lý ' + (ldById(session.ld)?.ten_ngan || '') : 'Người trình ký';
+    const inScope = r => isAdmin && r.ld === session.ld;     // trợ lý chỉ thao tác hồ sơ trong sổ của mình
+    const childOf = r => records.find(x => x.goc === r.id);
+    const ldDays = (ldId, level) => (ldById(ldId) || tgd() || {})[PRIORITY_COL[level]] || { 1: 1, 2: 3, 3: 7 }[level];
 
-    // async function testConnection() {
+    function canForward(r) {
+      const l = ldById(r.ld);
+      if (!l || l.la_tgd || !tgd() || r.status !== 'done' || childOf(r)) return false;
+      return !isAdmin || r.ld === session.ld;   // người trình ký, hoặc trợ lý của chính PTGĐ đó
+    }
 
-    //     const { data, error } = await sb
-    //   .from('records')
-    //   .select('*');
+    function capBadge(ldId) {
+      const l = ldById(ldId);
+      if (!l) return '<span class="cap cap-chung">?</span>';
+      return `<span class="cap ${l.la_tgd ? 'cap-tgd' : 'cap-ptgd'}" title="${esc(l.ten)}">${esc(l.ten_ngan)}</span>`;
+    }
 
-    //     console.log('DATA:', data);
-    //     console.log('ERROR:', error);
-    // }
+    function esc(s) {
+      return String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    }
+
+    async function sha256Hex(text) {
+      if (!window.crypto?.subtle) throw new Error('Trình duyệt không hỗ trợ mã hóa (cần mở trang qua https).');
+      const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text));
+      return [...new Uint8Array(buf)].map(b => b.toString(16).padStart(2, '0')).join('');
+    }
+    const pwHash = (ma, pw) => sha256Hex('stk|' + ma.trim().toLowerCase() + '|' + pw);
+
+    // ════════════════════════════════════════════════════════
+    //  Nhật ký (bảng audit_log, chỉ ghi thêm)
+    // ════════════════════════════════════════════════════════
+    const LOG_FIELDS = [
+      ['ld', 'Trình đến'], ['loai', 'Loại hồ sơ'], ['ten', 'Tên hồ sơ'], ['sl', 'SL bản cứng'], ['phong', 'Phòng ban'],
+      ['nguoigui', 'Người gửi'], ['doitac', 'Đối tác'], ['priority', 'Ưu tiên'], ['gionhan', 'Giờ nhận'],
+      ['ngaygui', 'Ngày gửi'], ['ngaydk', 'Ngày DK trả'], ['ngaytra', 'Ngày trả'], ['giortra', 'Giờ trả'],
+      ['nguoinhan', 'Người nhận'], ['ghichu', 'Ghi chú'], ['status', 'Trạng thái'], ['lydotuchoi', 'Lý do từ chối'],
+    ];
+    function showVal(f, v) {
+      if (v === null || v === undefined || v === '') return '';
+      if (f === 'ld') return ldById(v)?.ten_ngan || String(v);
+      if (f === 'priority') return PRIORITY_LABEL[v] || String(v);
+      if (f === 'status') return stLabel(v);
+      if (f === 'ngaygui' || f === 'ngaydk' || f === 'ngaytra') return fmtDate(v);
+      if (f === 'gionhan' || f === 'giortra') return fmtTime(v);
+      return String(v);
+    }
+    function diff(before, after) {
+      return LOG_FIELDS.map(([f, label]) => {
+        const o = before ? showVal(f, before[f]) : '';
+        const n = after ? showVal(f, after[f]) : '';
+        return o === n ? null : { field: f, label, old: o || null, new: n || null };
+      }).filter(Boolean);
+    }
+
+    // Lỗi ghi nhật ký không làm hỏng thao tác chính, chỉ báo ra console.
+    async function writeLog(entries) {
+      const rows = (Array.isArray(entries) ? entries : [entries]).map(e => ({
+        user_id: e.userId || (isAdmin ? 'tro-ly:' + (ldById(session.ld)?.ma || '') : 'nguoi-trinh-ky'),
+        user_name: e.userName || roleLabel(),
+        authenticated: false,
+        action: e.action,
+        entity: e.entity || 'records',
+        entity_id: e.entityId != null ? String(e.entityId) : null,
+        entity_label: e.label || null,
+        changes: e.changes || [],
+        source: e.source || 'Giao diện',
+        note: e.note || null,
+      }));
+      if (!rows.length) return;
+      const { error } = await sb.from('audit_log').insert(rows);
+      if (error) console.warn('Không ghi được nhật ký:', error.message);
+    }
+    const recLabel = r => `#${r.id} ${r.ten || ''}`;
 
     function findEmployeeByName(name) {
-        return employees.find(e =>
-          e.fullname?.trim().toLowerCase() === name?.trim().toLowerCase()
-        );
-      }
-
-    async function submitForm() {
-      const nguoigui = selectedEmployee?.fullname || "";
-      const email = selectedEmployee?.email || "";
-      const nguoigui_id = selectedEmployee?.id || "";
-      const payload = {
-        nguoigui: selectedEmployee.fullname,
-        email: selectedEmployee.email,
-        teams_sent: false
-      };
-
-      const emp = findEmployeeByName(senderName);
-
-      if (!emp) {
-        alert("Không tìm thấy nhân sự!");
-        return;
-      }
-
-      const { error } = await sb.from('records').insert([payload]);
-
-      if (error) {
-        console.error(error);
-        alert("Lỗi insert");
-        return;
-      }
-
-      await loadRecords(); 
-      alert("OK đã lưu Supabase");
+      return employees.find(e =>
+        e.fullname?.trim().toLowerCase() === name?.trim().toLowerCase()
+      );
     }
 
     function calcStatus(data) {
-
-      if (data.ngaytra) {
-        return 'done';
-      }
-
-      if (data.ngaygui && data.gionhan) {
-        return 'processing';
-      }
-
+      if (data.ngaytra) return 'done';
+      if (data.ngaygui && data.gionhan) return 'processing';
       return 'pending';
     }
 
-    function isOffDay(dateStr) {
+    // v5: ngày nghỉ theo lãnh đạo. Ngày chung (ld = null) áp dụng cho mọi lãnh đạo.
+    function isOffDay(dateStr, ldId) {
       const d = new Date(dateStr + 'T00:00:00');
       const dow = d.getDay();
-
       return offDays.some(o => {
-
-        // nghỉ lặp lại (ví dụ Chủ nhật)
-        if (o.type === 'recur') {
-          return o.weekday === dow;
-        }
-
-        // nghỉ theo khoảng
+        if (o.ld !== null && o.ld !== ldId) return false;
+        if (o.type === 'recur') return o.weekday === dow;
         const start = new Date(o.start + 'T00:00:00');
-        const end = new Date(o.end + 'T23:59:59');
-
+        const end = new Date((o.end || o.start) + 'T23:59:59');
         return d >= start && d <= end;
       });
     }
 
-      async function loadEmployees() {
-  const res = await sb
-    .from('employees')
-    .select('*');
+    async function loadEmployees() {
+      const res = await sb.from('employees').select('*');
+      if (res.error) console.error(res.error);
+      employees = res.data ?? [];
+    }
 
-  console.log("FULL RESPONSE:", res);
+    function ymd(d) {
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    }
 
-  employees = res.data ?? [];
-}
-
-    function addWorkingDays(startStr, n) {
-        if (!startStr) return '';
-        let d = new Date(startStr + 'T00:00:00');
-        let added = 0;
-        while (added < n) {
-          d.setDate(d.getDate() + 1);
-          // dùng local date thay vì toISOString() để tránh lệch timezone
-          const year = d.getFullYear();
-          const month = String(d.getMonth() + 1).padStart(2, '0');
-          const day = String(d.getDate()).padStart(2, '0');
-          const ds = `${year}-${month}-${day}`;
-          const dow = d.getDay();
-          const isWeekend = dow === 0 || dow === 6;
-          const isOff = isOffDay(ds);
-          if (!isWeekend && !isOff) {
-            added++;
-          }
-        }
-        const year = d.getFullYear();
-        const month = String(d.getMonth() + 1).padStart(2, '0');
-        const day = String(d.getDate()).padStart(2, '0');
-        return `${year}-${month}-${day}`;
+    function addWorkingDays(startStr, n, ldId) {
+      if (!startStr) return '';
+      const d = new Date(startStr + 'T00:00:00');
+      let added = 0, guard = 0;
+      while (added < n && guard++ < 400) {
+        d.setDate(d.getDate() + 1);
+        const dow = d.getDay();
+        if (dow !== 0 && dow !== 6 && !isOffDay(ymd(d), ldId)) added++;
       }
+      return ymd(d);
+    }
 
-    function calcDeadline(ngaygui, priority) {
-      const cfg = priorityConfig.find(p => p.level === priority);
-      return (cfg && ngaygui) ? addWorkingDays(ngaygui, cfg.days) : '';
+    function calcDeadline(ngaygui, priority, ldId) {
+      return ngaygui ? addWorkingDays(ngaygui, ldDays(ldId, priority), ldId) : '';
     }
 
     function fmtDate(d) { if (!d) return '—'; const p = d.split('-'); return p[2] + '/' + p[1] + '/' + p[0]; }
     function dayVN(ds) { if (!ds) return '—'; return DAYS_VN[new Date(ds + 'T00:00:00').getDay()]; }
     function nowTime() { const n = new Date(); return n.getHours().toString().padStart(2, '0') + ':' + n.getMinutes().toString().padStart(2, '0'); }
-    function todayStr() { return new Date().toISOString().split('T')[0]; }
+    // Ngày theo giờ máy (giờ Việt Nam). Bản cũ dùng toISOString() nên trước 7h sáng bị lùi 1 ngày.
+    function todayStr() { return ymd(new Date()); }
     function fmtTime(t) { if (!t) return '—'; return t.slice(0, 5); }
+    const stLabel = s => s === 'done' ? 'Hoàn thành' : s === 'processing' ? 'Đang xử lý' : s === 'rejected' ? 'Từ chối' : 'Chờ xác nhận';
+
+    // ════════════════════════════════════════════════════════
+    //  Theme sáng / tối
+    // ════════════════════════════════════════════════════════
+    function applyThemeIcon() {
+      const dark = document.documentElement.getAttribute('data-theme') === 'dark';
+      const b = document.getElementById('themeBtn');
+      b.innerHTML = dark ? '<i class="ti ti-sun"></i>' : '<i class="ti ti-moon"></i>';
+      b.title = dark ? 'Chuyển sang giao diện sáng' : 'Chuyển sang giao diện tối';
+    }
+    function toggleTheme() {
+      const t = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+      document.documentElement.setAttribute('data-theme', t);
+      try { localStorage.setItem('stk.theme', t); } catch (e) { /* trình duyệt chặn lưu: vẫn đổi được trong phiên */ }
+      applyThemeIcon();
+    }
+    applyThemeIcon();
 
     function showTab(id, el) {
       document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
@@ -568,11 +726,13 @@
       if (id === 'tab-config') renderConfigTab();
     }
 
+    // ════════════════════════════════════════════════════════
+    //  Đăng nhập trợ lý
+    // ════════════════════════════════════════════════════════
     function switchRole() {
       const toggle = document.getElementById('roleToggle');
       if (toggle.checked) {
-        // Trying to switch to Admin -> require password
-        toggle.checked = false; // revert until password confirmed
+        toggle.checked = false; // trả về cho tới khi nhập đúng mật khẩu
         document.getElementById('pwInput').value = '';
         document.getElementById('pwError').style.display = 'none';
         document.getElementById('pwModal').style.display = 'flex';
@@ -582,54 +742,134 @@
       applyRole(false);
     }
 
-    function confirmAdminLogin() {
+    async function confirmAdminLogin() {
       const val = document.getElementById('pwInput').value;
-      if (val === ADMIN_PASSWORD) {
-        document.getElementById('pwModal').style.display = 'none';
-        document.getElementById('roleToggle').checked = true;
-        applyRole(true);
-      } else {
-        document.getElementById('pwError').style.display = 'block';
+      const err = document.getElementById('pwError');
+      if (!val) { err.style.display = 'block'; return; }
+      if (!leaders.length) {
+        err.innerHTML = '<i class="ti ti-alert-circle"></i> Chưa có danh sách lãnh đạo (chưa chạy db/003?)';
+        err.style.display = 'block';
+        return;
       }
+      let found = null;
+      try {
+        for (const l of leaders) {
+          if (l.mat_khau_hash && (await pwHash(l.ma, val)) === l.mat_khau_hash) { found = l; break; }
+        }
+      } catch (e) {
+        err.innerHTML = '<i class="ti ti-alert-circle"></i> ' + esc(e.message);
+        err.style.display = 'block';
+        return;
+      }
+      if (!found) {
+        err.innerHTML = '<i class="ti ti-alert-circle"></i> Sai mật khẩu, vui lòng thử lại';
+        err.style.display = 'block';
+        return;
+      }
+      document.getElementById('pwModal').style.display = 'none';
+      document.getElementById('roleToggle').checked = true;
+      applyRole(true, found.id);
+      showToast('Đã chuyển sang quyền ' + roleLabel());
     }
 
     function cancelAdminLogin() {
       document.getElementById('pwModal').style.display = 'none';
-      document.getElementById('roleToggle').checked = false;
-      applyRole(false);
+      document.getElementById('roleToggle').checked = isAdmin;
     }
 
-    function applyRole(admin) {
+    function applyRole(admin, ldId) {
       isAdmin = admin;
+      session.ld = admin ? ldId : null;
+      soView = admin ? session.ld : null;
+      cfgLdId = admin ? session.ld : null;
+      document.getElementById('filterStatus').value = '';
       const b = document.getElementById('roleBadge');
-      b.className = 'role-badge ' + (isAdmin ? 'role-admin' : 'role-user');
-      b.innerHTML = isAdmin ? '<i class="ti ti-shield" style="font-size:12px"></i>Trợ lý' : '<i class="ti ti-user" style="font-size:12px"></i>Người trình ký';
+      const cls = !isAdmin ? 'role-user' : isTgdAsst() ? 'role-admin' : 'role-ptgd';
+      b.className = 'role-badge ' + cls;
+      b.innerHTML = isAdmin
+        ? `<i class="ti ti-shield" style="font-size:12px"></i>${esc(roleLabel())}`
+        : '<i class="ti ti-user" style="font-size:12px"></i>Người trình ký';
+      document.getElementById('roleToggle').checked = isAdmin;
       document.getElementById('exportBtn').style.display = isAdmin ? 'inline-flex' : 'none';
-      document.getElementById('importBtn').style.display = isAdmin ? 'inline-flex' : 'none';
+      document.getElementById('importBtn').style.display = isTgdAsst() ? 'inline-flex' : 'none';
       document.getElementById('tab-config-nav').style.display = isAdmin ? 'flex' : 'none';
       document.getElementById('thLyDoTuChoi').style.display = isAdmin ? '' : 'none';
       if (!isAdmin && document.getElementById('tab-config').classList.contains('active')) {
         showTab('tab-records', document.querySelector('.nav-tab'));
+      } else if (document.getElementById('tab-config').classList.contains('active')) {
+        renderConfigTab();
       }
+      renderScope();
       renderTable(); updateStats();
     }
 
-    function updateStats() {
-      const t = records.length, p = records.filter(r => r.status === 'pending').length,
-        pr = records.filter(r => r.status === 'processing').length, d = records.filter(r => r.status === 'done').length,
-        rj = records.filter(r => r.status === 'rejected').length;
-      document.getElementById('statsBar').innerHTML = `
-    <div class="stat"><div class="stat-label">Tổng hồ sơ</div><div class="stat-val">${t}</div></div>
-    <div class="stat" style="cursor:pointer" onclick="filterByStatus('pending')"><div class="stat-label">Chờ xác nhận</div><div class="stat-val" style="color:#854F0B">${p}</div></div>
-    <div class="stat" style="cursor:pointer" onclick="filterByStatus('processing')"><div class="stat-label">Đang xử lý</div><div class="stat-val" style="color:#185FA5">${pr}</div></div>
-    <div class="stat"><div class="stat-label">Hoàn thành</div><div class="stat-val" style="color:#3B6D11">${d}</div></div>
-    <div class="stat" style="cursor:pointer" onclick="filterByStatus('rejected')"><div class="stat-label">Từ chối</div><div class="stat-val" style="color:#993C1D">${rj}</div></div>
-  `;
+    // ════════════════════════════════════════════════════════
+    //  Sổ đang xem, thống kê, bảng
+    // ════════════════════════════════════════════════════════
+    // Hồ sơ trong "sổ đang xem" – thẻ thống kê tính trên tập này, KHÔNG phụ thuộc tìm kiếm / lọc trạng thái.
+    function scopeRecords() {
+      if (!isAdmin) {
+        const f = document.getElementById('filterLd')?.value;
+        return f ? records.filter(r => r.ld === +f) : records;
+      }
+      if (!isTgdAsst()) return records.filter(r => r.ld === session.ld);
+      return soView === 'ALL' ? records : records.filter(r => r.ld === soView);
     }
 
+    function renderScope() {
+      const ctl = document.getElementById('scopeCtl');
+      const note = document.getElementById('scopeNote');
+      note.className = 'info-box scope-note';
+      note.style.display = 'none';
+      if (!isAdmin) {
+        const cur = document.getElementById('filterLd')?.value || '';
+        ctl.innerHTML = `<select class="filter" id="filterLd" onchange="renderTable();updateStats()">
+          <option value="">Trình đến: tất cả</option>
+          ${leaders.map(l => `<option value="${l.id}" ${String(l.id) === cur ? 'selected' : ''}>Trình ${esc(l.ten_ngan)}</option>`).join('')}
+        </select>`;
+        return;
+      }
+      const me = ldById(session.ld);
+      if (!isTgdAsst()) {
+        ctl.innerHTML = `<span class="cap cap-ptgd">Sổ ${esc(me.ten_ngan)}</span>`;
+        note.classList.add('violet');
+        note.innerHTML = `<i class="ti ti-info-circle" style="font-size:14px;flex-shrink:0"></i><span>Giao diện <b>Trợ lý ${esc(me.ten)}</b>:
+          chỉ thấy và thao tác hồ sơ trình <b>${esc(me.ten_ngan)}</b>. Khi ${esc(me.ten_ngan)} đã ký, bạn bấm được <b>Trình tiếp TGĐ</b> hộ người gửi (có ghi nhật ký).</span>`;
+        note.style.display = 'flex';
+        return;
+      }
+      ctl.innerHTML = `<div class="seg" title="Sổ đang xem">
+        ${leaders.map(l => `<button type="button" class="${soView === l.id ? 'on' : ''}" onclick="setSoView(${l.id})">Sổ ${esc(l.ten_ngan)}${l.la_tgd ? '' : ' (xem)'}</button>`).join('')}
+        <button type="button" class="${soView === 'ALL' ? 'on' : ''}" onclick="setSoView('ALL')">Tất cả</button></div>`;
+      if (soView !== 'ALL' && soView !== session.ld) {
+        note.innerHTML = `<i class="ti ti-lock" style="font-size:14px;flex-shrink:0"></i><span>Đang xem <b>Sổ ${esc(ldById(soView)?.ten_ngan)}</b>: chỉ xem, không thao tác.</span>`;
+        note.style.display = 'flex';
+      }
+    }
+
+    function setSoView(v) {
+      soView = v;
+      renderScope(); renderTable(); updateStats();
+    }
+
+    function updateStats() {
+      const base = scopeRecords(), st = document.getElementById('filterStatus').value;
+      const c = s => base.filter(r => r.status === s).length;
+      const card = (s, label, val, color) => `
+        <div class="stat click ${st === s ? 'on' : ''}" onclick="filterByStatus('${s}')" title="${s ? 'Bấm để lọc, bấm lần nữa để bỏ lọc' : 'Hiện tất cả trạng thái'}">
+          <div class="stat-label">${label}</div><div class="stat-val" style="color:${color}">${val}</div></div>`;
+      document.getElementById('statsBar').innerHTML =
+        card('', 'Tổng hồ sơ', base.length, 'var(--text)') +
+        card('pending', 'Chờ xác nhận', c('pending'), 'var(--amber-text)') +
+        card('processing', 'Đang xử lý', c('processing'), 'var(--blue)') +
+        card('done', 'Hoàn thành', c('done'), 'var(--green)') +
+        card('rejected', 'Từ chối', c('rejected'), 'var(--red-text)');
+    }
+
+    // Bấm thẻ: chỉ lọc danh sách, số trên thẻ giữ nguyên.
     function filterByStatus(status) {
       const sel = document.getElementById('filterStatus');
-      sel.value = sel.value === status ? '' : status; // bấm lại thì bỏ filter
+      sel.value = (!status || sel.value === status) ? '' : status;
       renderTable();
     }
 
@@ -637,49 +877,67 @@
       const q = document.getElementById('searchInput').value.toLowerCase();
       const loai = document.getElementById('filterLoai').value;
       const st = document.getElementById('filterStatus').value;
-      return records.filter(r => {
-        const mq = !q || (r.ten + r.nguoigui + r.doitac + r.phong).toLowerCase().includes(q);
+      return scopeRecords().filter(r => {
+        const mq = !q || ((r.ten || '') + (r.nguoigui || '') + (r.doitac || '') + (r.phong || '')).toLowerCase().includes(q);
         return mq && (!loai || r.loai === loai) && (!st || r.status === st);
       });
     }
 
     function renderTable() {
+      const base = scopeRecords();
       const data = getFiltered(), tbody = document.getElementById('tbody'), today = todayStr();
-      if (!data.length) { tbody.innerHTML = `<tr><td colspan="19"><div class="empty"><i class="ti ti-inbox"></i>Chưa có hồ sơ nào</div></td></tr>`; return; }
+      document.getElementById('filterCount').textContent = data.length !== base.length ? `Đang hiện ${data.length}/${base.length}` : '';
+      // giữ viền thẻ đang lọc đúng với ô "Tất cả trạng thái"
+      const st = document.getElementById('filterStatus').value;
+      document.querySelectorAll('#statsBar .stat').forEach((el, i) =>
+        el.classList.toggle('on', ['', 'pending', 'processing', 'done', 'rejected'][i] === st));
+      if (!data.length) { tbody.innerHTML = `<tr><td colspan="20"><div class="empty"><i class="ti ti-inbox"></i>Chưa có hồ sơ nào</div></td></tr>`; return; }
       tbody.innerHTML = data.map((r, i) => {
         const utLabel = r.priority === 1 ? 'Cao' : r.priority === 3 ? 'Thấp' : 'Trung bình';
         const utBadge = r.priority === 1 ? 'badge-cao' : r.priority === 3 ? 'badge-thap' : 'badge-tb';
         const stBadge = r.status === 'done' ? 'badge-done' : r.status === 'processing' ? 'badge-processing' : r.status === 'rejected' ? 'badge-rejected' : 'badge-pending';
-        const stLabel = r.status === 'done' ? 'Hoàn thành' : r.status === 'processing' ? 'Đang xử lý' : r.status === 'rejected' ? 'Từ chối' : 'Chờ xác nhận';
-        const isOverdue = r.ngaydk && r.ngaydk < today && r.status !== 'done';
+        const isOverdue = r.ngaydk && r.ngaydk < today && (r.status === 'pending' || r.status === 'processing');
         const deadlineCell = r.ngaydk ? `<span class="${isOverdue ? 'overdue' : ''}">${fmtDate(r.ngaydk)} (${dayVN(r.ngaydk)})${isOverdue ? ' ⚠' : ''}</span>` : '—';
-        const lydoCell = isAdmin ? `<td style="max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--red-text);font-size:12px" title="${r.status === 'rejected' ? (r.lydotuchoi || '') : ''}">${r.status === 'rejected' ? (r.lydotuchoi || '—') : '—'}</td>` : '';
+        const lydoCell = isAdmin ? `<td style="max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--red-text);font-size:12px" title="${r.status === 'rejected' ? esc(r.lydotuchoi || '') : ''}">${r.status === 'rejected' ? (esc(r.lydotuchoi) || '—') : '—'}</td>` : '';
+
+        // liên kết trình tiếp
+        let links = '';
+        if (r.goc) links += `<div class="link-chip" onclick="jumpTo(${r.goc})" title="Hồ sơ gốc"><i class="ti ti-arrow-back-up"></i>Từ ${esc(ldById(records.find(x => x.id === r.goc)?.ld)?.ten_ngan || 'PTGĐ')} #${r.goc}</div>`;
+        const kid = childOf(r);
+        if (kid) links += `<div class="link-chip" onclick="jumpTo(${kid.id})" title="Đã trình tiếp"><i class="ti ti-arrow-forward-up"></i>Đã trình ${esc(ldById(kid.ld)?.ten_ngan || 'TGĐ')} #${kid.id}</div>`;
+
+        const can = inScope(r);
         let actions = '';
-        if (isAdmin && r.status === 'pending')
+        if (isAdmin && !can) actions += `<span class="view-only">Chỉ xem</span>`;
+        if (can && r.status === 'pending')
           actions += `<button class="action-btn action-confirm" onclick="quickConfirm(${r.id})"><i class="ti ti-inbox"></i>Nhận HS</button>`;
-        if (isAdmin && r.status === 'processing')
+        if (can && r.status === 'processing')
           actions += `<button class="action-btn action-done" onclick="markDone(${r.id})"><i class="ti ti-circle-check"></i>Đã ký</button>`;
-        if (isAdmin && (r.status === 'pending' || r.status === 'processing'))
+        if (can && (r.status === 'pending' || r.status === 'processing'))
           actions += `<button class="action-btn action-reject" onclick="openRejectModal(${r.id})"><i class="ti ti-ban"></i>Từ chối</button>`;
+        if (canForward(r))
+          actions += `<button class="action-btn action-forward" onclick="openForwardModal(${r.id})" title="${esc(ldById(r.ld)?.ten_ngan)} đã ký. Trình tiếp lên ${esc(tgd()?.ten_ngan)}"><i class="ti ti-arrow-forward-up"></i>Trình tiếp ${esc(tgd()?.ten_ngan)}</button>`;
         actions += `<button class="action-btn" onclick="openCopy(${r.id})" title="Copy hồ sơ"><i class="ti ti-copy"></i></button>`;
-        // Chỉ cho edit nếu là admin, hoặc là user và hồ sơ vẫn đang chờ xác nhận
-        if (isAdmin || r.status === 'pending') {
-          actions += `<button class="action-btn" onclick="openEdit(${r.id})"><i class="ti ti-edit"></i></button>`;
-        }
-        if (isAdmin) actions += `<button class="action-btn action-del" onclick="deleteRecord(${r.id})"><i class="ti ti-trash"></i></button>`;
-        return `<tr>
-              <td style="color:#9b9895;font-size:12px">${i + 1}</td>
+        // Sửa: trợ lý trong sổ của mình; người trình ký khi hồ sơ còn chờ xác nhận (như bản cũ)
+        if (can || (!isAdmin && r.status === 'pending'))
+          actions += `<button class="action-btn" onclick="openEdit(${r.id})" title="Sửa"><i class="ti ti-edit"></i></button>`;
+        actions += `<button class="action-btn" onclick="openHistory(${r.id})" title="Lịch sử"><i class="ti ti-history"></i></button>`;
+        if (can) actions += `<button class="action-btn action-del" onclick="deleteRecord(${r.id})" title="Xóa"><i class="ti ti-trash"></i></button>`;
+
+        return `<tr id="row-${r.id}">
+              <td style="color:var(--text3);font-size:12px">${i + 1}</td>
               <td>${dayVN(r.ngaygui)}</td><td style="text-align:center">${fmtTime(r.gionhan)}</td><td>${fmtDate(r.ngaygui)}</td>
-              <td>${r.loai}</td>
-              <td style="max-width:280px;white-space:normal;word-break:break-word">${r.ten}</td>
+              <td>${esc(r.loai)}</td>
+              <td style="max-width:280px;white-space:normal;word-break:break-word"><span class="row-id">#${r.id}</span> ${esc(r.ten)}${links}</td>
+              <td>${capBadge(r.ld)}</td>
               <td style="text-align:center">${r.sl}</td>
-              <td>${r.phong}</td><td>${r.nguoigui}</td><td style="max-width:110px;white-space:normal;word-break:break-word">${r.doitac || '—'}</td>
+              <td>${esc(r.phong)}</td><td>${esc(r.nguoigui)}</td><td style="max-width:110px;white-space:normal;word-break:break-word">${esc(r.doitac) || '—'}</td>
               <td><span class="badge ${utBadge}">${utLabel}</span></td>
               <td>${deadlineCell}</td>
               <td>${fmtDate(r.ngaytra)}</td><td style="text-align:center">${fmtTime(r.giortra)}</td>
-              <td>${r.nguoinhan || '—'}</td>
-              <td style="max-width:150px;white-space:normal;word-break:break-word;color:#6b6966;font-size:12px">${r.ghichu || '—'}</td>
-              <td><span class="badge ${stBadge}">${stLabel}</span></td>
+              <td>${esc(r.nguoinhan) || '—'}</td>
+              <td style="max-width:150px;white-space:normal;word-break:break-word;color:var(--text2);font-size:12px">${esc(r.ghichu) || '—'}</td>
+              <td><span class="badge ${stBadge}">${stLabel(r.status)}</span></td>
               <td style="display:flex;gap:4px;flex-wrap:wrap;align-items:center">${actions}</td>
               ${lydoCell}
             </tr>`;
@@ -693,51 +951,66 @@
       }
     }
 
+    // Bấm liên kết "Từ PTGĐ #…" / "Đã trình TGĐ #…"
+    function jumpTo(id) {
+      const r = records.find(x => x.id === id);
+      if (!r) { showToast('Không tìm thấy hồ sơ #' + id); return; }
+      if (isAdmin && !isTgdAsst() && r.ld !== session.ld) { showToast(`Hồ sơ #${id} thuộc sổ ${ldById(r.ld)?.ten_ngan || ''}, ngoài phạm vi của bạn`); return; }
+      if (isTgdAsst() && soView !== 'ALL' && r.ld !== soView) { soView = r.ld; renderScope(); updateStats(); }
+      if (!isAdmin && document.getElementById('filterLd')?.value) { document.getElementById('filterLd').value = ''; updateStats(); }
+      document.getElementById('searchInput').value = '';
+      document.getElementById('filterLoai').value = '';
+      document.getElementById('filterStatus').value = '';
+      renderTable();
+      highlightRow(id);
+    }
+    function highlightRow(id) {
+      const row = document.getElementById('row-' + id);
+      if (!row) return;
+      row.scrollIntoView({ block: 'center', behavior: 'smooth' });
+      row.style.transition = 'background 1.5s';
+      row.style.background = 'var(--violet-bg)';
+      setTimeout(() => { row.style.background = ''; }, 1600);
+    }
+
+    // ════════════════════════════════════════════════════════
+    //  Thao tác trợ lý
+    // ════════════════════════════════════════════════════════
+    function guardScope(r) {
+      if (!r) return false;
+      if (!inScope(r)) { showToast('Hồ sơ này không thuộc sổ của bạn'); return false; }
+      return true;
+    }
+
     async function quickConfirm(id) {
       const r = records.find(x => x.id === id);
-      if (!r) return;
-
-      const data = {
-        ...r,
-        gionhan: nowTime(),
-        ngaygui: todayStr(),
-        ngaydk: calcDeadline(todayStr(), r.priority)
-      };
-
+      if (!guardScope(r)) return;
+      const data = { ...r, gionhan: nowTime(), ngaygui: todayStr() };
+      data.ngaydk = calcDeadline(data.ngaygui, r.priority, r.ld);
       data.status = calcStatus(data);
-
-      await updateSupabase(id, data);
-
-      await loadRecords();
-      showToast('Đã nhận hồ sơ');
+      if (await updateSupabase(id, data, r.status)) {
+        await writeLog({ action: 'nhan', entityId: id, label: recLabel(r), changes: diff(r, data) });
+        await loadRecords();
+        showToast('Đã nhận hồ sơ');
+      }
     }
 
-  async function markDone(id) {
-    const r = records.find(x => x.id === id);
-    if (!r) return;
-
-    const data = {
-      ...r,
-      ngaytra: todayStr(),
-      giortra: nowTime(),
-      status: "done"
-    };
-
-    const ok = await updateSupabase(id, data);
-
-    if (ok) {
-      await loadRecords();
-      updateStats();
-
-      // 🔥 gửi thông báo
-      await sendDoneNotification(r);
-
-      showToast('Đã ký hồ sơ');
+    async function markDone(id) {
+      const r = records.find(x => x.id === id);
+      if (!guardScope(r)) return;
+      const data = { ...r, ngaytra: todayStr(), giortra: nowTime(), status: 'done' };
+      if (await updateSupabase(id, data, r.status)) {
+        await writeLog({ action: 'ky', entityId: id, label: recLabel(r), changes: diff(r, data) });
+        await loadRecords();
+        await sendDoneNotification(r);
+        showToast(ldById(r.ld)?.la_tgd ? 'Đã ký hồ sơ' : `Đã ký hồ sơ. Người gửi có thể bấm "Trình tiếp ${tgd()?.ten_ngan || 'TGĐ'}" nếu cần`);
+      }
     }
-  }
+
     let rejectTargetId = null;
 
     function openRejectModal(id) {
+      if (!guardScope(records.find(x => x.id === id))) return;
       rejectTargetId = id;
       document.getElementById('f_lydotuchoi').value = '';
       document.getElementById('rejectModal').style.display = 'flex';
@@ -751,27 +1024,23 @@
 
     async function confirmRejectAction() {
       const reason = document.getElementById('f_lydotuchoi').value.trim();
-      if (!reason) {
-        showToast('Vui lòng nhập lý do từ chối');
-        return;
-      }
+      if (!reason) { showToast('Vui lòng nhập lý do từ chối'); return; }
       const id = rejectTargetId;
       const r = records.find(x => x.id === id);
       if (!r) { closeRejectModal(); return; }
 
       const data = { ...r, status: 'rejected', lydotuchoi: reason, ngaytra: todayStr(), giortra: nowTime() };
-      const ok = await updateSupabase(id, data);
-
+      const ok = await updateSupabase(id, data, r.status);
       closeRejectModal();
-
       if (ok) {
+        await writeLog({ action: 'tu_choi', entityId: id, label: recLabel(r), changes: diff(r, data), note: reason });
         await loadRecords();
         showToast('Đã từ chối hồ sơ');
         await sendRejectNotification({ ...r, lydotuchoi: reason });
       }
     }
 
-    // Gửi thông báo hồ sơ bị từ chối tới người trình ký
+    // Gửi thông báo hồ sơ bị từ chối tới người trình ký (giữ nguyên bản cũ)
     async function sendRejectNotification(record) {
       const SUPABASE_FUNCTION_URL = "https://uujkzjoaxkndkpendiej.supabase.co/functions/v1/notify-teams";
       const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV1amt6am9heGtuZGtwZW5kaWVqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE1ODk4MzcsImV4cCI6MjA5NzE2NTgzN30.DdYnnQuZYQcF4E11Z1J7Im-aOFPD0G7KAVO3PrmDXSI";
@@ -813,55 +1082,201 @@
       if (e.target === this) closeRejectModal();
     });
 
-// Gửi tin nhắn thông báo hoàn thành
     function getEmployeeEmailByName(name) {
-      const emp = employees.find(e =>
-        e.fullname?.trim().toLowerCase() === name?.trim().toLowerCase()
-      );
-      return emp?.email;
+      return findEmployeeByName(name)?.email;
     }
 
+    // Gửi thông báo hoàn thành (giữ nguyên bản cũ)
     async function sendDoneNotification(record) {
-        const SUPABASE_FUNCTION_URL = "https://uujkzjoaxkndkpendiej.supabase.co/functions/v1/notify-teams";
-        const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV1amt6am9heGtuZGtwZW5kaWVqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE1ODk4MzcsImV4cCI6MjA5NzE2NTgzN30.DdYnnQuZYQcF4E11Z1J7Im-aOFPD0G7KAVO3PrmDXSI"; // ← dán đầy đủ anon key của bạn vào đây
+      const SUPABASE_FUNCTION_URL = "https://uujkzjoaxkndkpendiej.supabase.co/functions/v1/notify-teams";
+      const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV1amt6am9heGtuZGtwZW5kaWVqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE1ODk4MzcsImV4cCI6MjA5NzE2NTgzN30.DdYnnQuZYQcF4E11Z1J7Im-aOFPD0G7KAVO3PrmDXSI";
 
-        const email = record.email;
-
-        if (!email) {
-          console.log("Không tìm thấy email người gửi");
-          return;
-        }
-
-        try {
-          const response = await fetch(SUPABASE_FUNCTION_URL, {
-            method: "POST",
-            headers: {
-              "Authorization": `Bearer ${SUPABASE_ANON_KEY}`,
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              email: email,
-              ten_ho_so: record.ten,
-              nguoi_nhan: record.nguoigui,
-              phong_ban: record.phong,      // mới thêm
-              ngay_gui: record.ngaygui,     // mới thêm
-              ghichu: record.ghichu || "",
-            }),
-          });
-
-          const result = await response.json();
-          if (!result.success) {
-            console.error("Gửi thông báo Teams thất bại:", result.error);
-          }
-        } catch (err) {
-          console.error("Lỗi gọi notify-teams:", err);
-        }
+      const email = record.email;
+      if (!email) {
+        console.log("Không tìm thấy email người gửi");
+        return;
       }
 
+      try {
+        const response = await fetch(SUPABASE_FUNCTION_URL, {
+          method: "POST",
+          headers: {
+            "Authorization": `Bearer ${SUPABASE_ANON_KEY}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            email: email,
+            ten_ho_so: record.ten,
+            nguoi_nhan: record.nguoigui,
+            phong_ban: record.phong,
+            ngay_gui: record.ngaygui,
+            ghichu: record.ghichu || "",
+          }),
+        });
 
-    function deleteRecord(id) {
-      if (!confirm('Xác nhận xóa hồ sơ này?')) return;
-      records = records.filter(r => r.id !== id); renderTable(); updateStats();
+        const result = await response.json();
+        if (!result.success) {
+          console.error("Gửi thông báo Teams thất bại:", result.error);
+        }
+      } catch (err) {
+        console.error("Lỗi gọi notify-teams:", err);
+      }
+    }
+
+    // ════════════════════════════════════════════════════════
+    //  v5: Trình tiếp TGĐ
+    // ════════════════════════════════════════════════════════
+    let forwardTargetId = null;
+
+    function openForwardModal(id) {
+      const r = records.find(x => x.id === id);
+      if (!r || !canForward(r)) { showToast('Hồ sơ này không trình tiếp được'); return; }
+      const T = tgd(), from = ldById(r.ld);
+      forwardTargetId = id;
+      document.getElementById('fwTitle').textContent = 'Trình tiếp ' + T.ten;
+      document.getElementById('fwBtnText').textContent = 'Trình tiếp ' + T.ten_ngan;
+      document.getElementById('fwFlow').innerHTML =
+        `<span class="node">${capBadge(r.ld)} #${r.id} đã ký ${fmtDate(r.ngaytra)}</span><i class="ti ti-arrow-right"></i>
+         <span class="node">${capBadge(T.id)} hồ sơ mới, Chờ xác nhận</span><i class="ti ti-arrow-right"></i>
+         <span class="node">Trợ lý ${esc(T.ten_ngan)} nhận HS</span>`;
+      document.getElementById('fwSummary').innerHTML = `
+        <div><span>Loại / Tên hồ sơ</span><span>${esc(r.loai)} · ${esc(r.ten)}</span></div>
+        <div><span>Phòng ban · Người gửi</span><span>${esc(r.phong)} · ${esc(r.nguoigui)}</span></div>
+        <div><span>Đối tác</span><span>${esc(r.doitac) || '—'}</span></div>`;
+      document.getElementById('fwUutien').innerHTML = priorityOptions(T.id, r.priority);
+      document.getElementById('fwSl').value = r.sl || 1;
+      const actorGroup = document.getElementById('fwActorGroup');
+      if (isAdmin) {
+        actorGroup.style.display = 'none';
+      } else {
+        actorGroup.style.display = '';
+        document.getElementById('fwActorList').innerHTML = employees.map(e => `<option value="${esc(e.fullname)}">`).join('');
+        document.getElementById('fwActor').value = r.nguoigui || '';
+      }
+      document.getElementById('fwInfo').innerHTML =
+        `Hồ sơ #${r.id} của ${esc(from.ten_ngan)} <b>giữ nguyên</b>. App tạo <b>hồ sơ mới trình ${esc(T.ten_ngan)}</b>, người gửi vẫn là
+         ${esc(r.nguoigui)}. Nhật ký ghi ở cả hai hồ sơ: ai bấm, lúc nào${isAdmin ? ', kèm ghi chú "trình hộ"' : ''}. Mỗi hồ sơ chỉ trình tiếp được một lần.`;
+      const btn = document.getElementById('fwConfirmBtn');
+      btn.disabled = false;
+      document.getElementById('forwardModal').style.display = 'flex';
+    }
+
+    function closeForwardModal() {
+      document.getElementById('forwardModal').style.display = 'none';
+      forwardTargetId = null;
+    }
+
+    async function confirmForward() {
+      const r = records.find(x => x.id === forwardTargetId);
+      if (!r || !canForward(r)) { closeForwardModal(); return; }
+      const T = tgd(), from = ldById(r.ld);
+      const actorName = isAdmin ? roleLabel() : document.getElementById('fwActor').value.trim();
+      if (!actorName) { showToast('Vui lòng nhập họ tên người thực hiện'); return; }
+      const emp = !isAdmin ? findEmployeeByName(actorName) : null;
+      const userId = isAdmin ? 'tro-ly:' + from.ma : (emp?.id != null ? 'nv:' + emp.id : 'nguoi-trinh-ky');
+      const userName = isAdmin ? actorName : actorName + ' (Người trình ký)';
+      const priority = parseInt(document.getElementById('fwUutien').value) || r.priority;
+      const sl = parseInt(document.getElementById('fwSl').value) || r.sl || 1;
+
+      const btn = document.getElementById('fwConfirmBtn');
+      btn.disabled = true;
+      const { data: created, error } = await sb.from('records').insert([{
+        thu: '', gionhan: null, ngaygui: null,
+        loaihs: r.loai, tenhs: r.ten, sl,
+        phongban: r.phong, nguoigui: r.nguoigui, doitac: r.doitac, email: r.email,
+        uutien: priority, ngaydukientra: null, ngaytra: null, giotra: null,
+        nguoinhan: '', ghichu: '', status: 'pending', lydotuchoi: null,
+        lanh_dao_id: T.id, ho_so_goc_id: r.id,
+        created_by: userName, updated_by: userName,
+      }]).select('id').single();
+      btn.disabled = false;
+
+      if (error) {
+        showToast(error.code === '23505' ? 'Hồ sơ này đã được trình tiếp trước đó. Tải lại trang để xem.' : '❌ Lỗi trình tiếp: ' + error.message);
+        if (error.code === '23505') { closeForwardModal(); await loadRecords(); }
+        return;
+      }
+      const newId = created.id;
+      const hoNote = isAdmin ? 'Trình hộ người gửi. ' : '';
+      await writeLog([
+        { action: 'trinh_tiep', entityId: r.id, label: recLabel(r), userId, userName,
+          note: `${hoNote}${from.ten_ngan} đã ký → tạo hồ sơ #${newId} trình ${T.ten_ngan}` },
+        { action: 'trinh_tiep', entityId: newId, label: `#${newId} ${r.ten}`, userId, userName,
+          changes: diff(null, { ...r, ld: T.id, priority, sl, status: 'pending', gionhan: '', ngaygui: '', ngaydk: '', ngaytra: '', giortra: '', nguoinhan: '', ghichu: '', lydotuchoi: '' }),
+          note: `${hoNote}Tạo từ hồ sơ #${r.id} (${from.ten_ngan} đã ký ${fmtDate(r.ngaytra)})` },
+      ]);
+      closeForwardModal();
+      await loadRecords();
+      showToast(`Đã trình tiếp: tạo hồ sơ #${newId}, chuyển cho Trợ lý ${T.ten_ngan}`);
+      highlightRow(isAdmin && !isTgdAsst() ? r.id : newId);
+    }
+
+    // ════════════════════════════════════════════════════════
+    //  v5: Lịch sử hồ sơ (đọc audit_log)
+    // ════════════════════════════════════════════════════════
+    const ACT_LABEL = {
+      tao: 'Đăng ký', sua: 'Sửa', nhan: 'Nhận HS', ky: 'Đã ký', tu_choi: 'Từ chối', xoa: 'Xóa',
+      khoi_phuc: 'Khôi phục', trinh_tiep: 'Trình tiếp TGĐ', doi_han_tra: 'Đổi hạn trả',
+    };
+
+    async function openHistory(id) {
+      const r = records.find(x => x.id === id);
+      document.getElementById('historyTitle').textContent = `Lịch sử hồ sơ #${id}`;
+      const body = document.getElementById('historyBody');
+      body.innerHTML = '<div class="empty"><i class="ti ti-loader-2"></i>Đang tải...</div>';
+      document.getElementById('historyModal').style.display = 'flex';
+      const { data, error } = await sb.from('audit_log')
+        .select('at,user_name,action,changes,source,note')
+        .eq('entity', 'records').eq('entity_id', String(id))
+        .order('at', { ascending: true });
+      if (error) { body.innerHTML = `<div class="empty">Không đọc được nhật ký: ${esc(error.message)}</div>`; return; }
+      const head = r ? `<div style="font-size:12px;color:var(--text2);margin-bottom:12px">Tạo bởi ${esc(r.created_by || '—')}${r.created_at ? ' · ' + new Date(r.created_at).toLocaleString('vi-VN') : ''}</div>` : '';
+      if (!data.length) { body.innerHTML = head + '<div class="empty">Chưa có nhật ký (hồ sơ tạo trước bản v5).</div>'; return; }
+      body.innerHTML = head + `<ul class="tl">${data.map(l => `
+        <li><div class="tl-head"><span class="act act-${esc(l.action)}">${esc(ACT_LABEL[l.action] || l.action)}</span>
+          <b>${esc(l.user_name)}</b><span class="tl-time">${new Date(l.at).toLocaleString('vi-VN')}${l.source && l.source !== 'Giao diện' ? ' · ' + esc(l.source) : ''}</span></div>
+          ${l.note ? `<div class="tl-note">${esc(l.note)}</div>` : ''}
+          ${(l.changes || []).length ? `<ul class="diff">${l.changes.map(c => `<li>${esc(c.label)}: ${c.old ? `<del>${esc(c.old)}</del> → ` : ''}<ins>${esc(c.new ?? '(trống)')}</ins></li>`).join('')}</ul>` : ''}
+        </li>`).join('')}</ul>`;
+    }
+    function closeHistoryModal() { document.getElementById('historyModal').style.display = 'none'; }
+    document.getElementById('historyModal').addEventListener('click', function (e) { if (e.target === this) closeHistoryModal(); });
+    document.getElementById('forwardModal').addEventListener('click', function (e) { if (e.target === this) closeForwardModal(); });
+
+    // ════════════════════════════════════════════════════════
+    //  Form đăng ký / sửa
+    // ════════════════════════════════════════════════════════
+    let formLd = null, formLdLocked = false;
+
+    function priorityOptions(ldId, selected) {
+      return [2, 1, 3].map(p => `<option value="${p}" ${p === selected ? 'selected' : ''}>${PRIORITY_LABEL[p]} (${ldDays(ldId, p)} ngày LV)</option>`).join('');
+    }
+
+    function renderLdPick() {
+      document.getElementById('ldPick').innerHTML = leaders.map(l => `
+        <label class="ld-opt ${l.la_tgd ? 'tgd' : 'ptgd'} ${formLd === l.id ? 'on' : ''} ${formLdLocked ? 'locked' : ''}">
+          <input type="radio" name="f_ld" value="${l.id}" ${formLd === l.id ? 'checked' : ''} ${formLdLocked ? 'disabled' : ''} onchange="pickLd(${l.id})">
+          <span><b>${esc(l.ten)}</b><small>Ưu tiên: Cao ${l.so_ngay_cao} · TB ${l.so_ngay_tb} · Thấp ${l.so_ngay_thap} ngày LV</small></span>
+        </label>`).join('') || '<span style="font-size:12px;color:var(--danger)">Chưa có danh sách lãnh đạo (chưa chạy db/003).</span>';
+      document.getElementById('ldPickNote').style.display = formLdLocked ? 'block' : 'none';
+    }
+
+    function pickLd(id) {
+      formLd = id;
+      const sel = document.getElementById('f_uutien');
+      const cur = parseInt(sel.value) || 2;
+      sel.innerHTML = priorityOptions(formLd, cur);
+      renderLdPick();
+      previewDeadline();
+    }
+
+    function setFormLd(id, locked) {
+      formLd = id;
+      formLdLocked = locked;
+      renderLdPick();
+      const sel = document.getElementById('f_uutien');
+      const cur = parseInt(sel.value) || 2;
+      sel.innerHTML = priorityOptions(formLd, cur);
     }
 
     function openAddModal() {
@@ -870,6 +1285,7 @@
       editId = null;
       document.getElementById('modalTitle').textContent = 'Đăng ký hồ sơ mới';
       clearForm();
+      setFormLd(isAdmin ? session.ld : null, false);   // trợ lý đăng ký hộ: mặc định lãnh đạo của mình
       document.getElementById('adminSection').style.display = isAdmin ? 'block' : 'none';
       document.getElementById('lydoTuChoiGroup').style.display = 'none';
       setAdminFields(isAdmin);
@@ -878,31 +1294,31 @@
 
     function openEdit(id) {
       const r = records.find(x => x.id === id);
-        if (!r) return;
-        if (!isAdmin && r.status !== 'pending') {
-          showToast(r.status === 'rejected' ? 'Hồ sơ đã bị từ chối. Vui lòng bấm "Copy" để trình ký lại hồ sơ mới.' : 'Hồ sơ đã được tiếp nhận, không thể chỉnh sửa');
-          return;
-        }
+      if (!r) return;
+      if (isAdmin && !inScope(r)) { showToast('Hồ sơ này không thuộc sổ của bạn'); return; }
+      if (!isAdmin && r.status !== 'pending') {
+        showToast(r.status === 'rejected' ? 'Hồ sơ đã bị từ chối. Vui lòng bấm "Copy" để trình ký lại hồ sơ mới.' : 'Hồ sơ đã được tiếp nhận, không thể chỉnh sửa');
+        return;
+      }
       editId = id;
       document.getElementById('modalTitle').textContent = 'Chỉnh sửa hồ sơ #' + id;
+      document.getElementById('f_uutien').value = String(r.priority);
+      setFormLd(r.ld, isAdmin);   // người trình ký đổi được lãnh đạo khi hồ sơ còn chờ; trợ lý thì không
       document.getElementById('f_loai').value = r.loai;
       document.getElementById('f_ten').value = r.ten;
       document.getElementById('f_sl').value = r.sl;
       document.getElementById('f_phong').value = r.phong;
       document.getElementById('f_doitac').value = r.doitac || '';
-      document.getElementById('f_uutien').value = r.priority;
+      document.getElementById('f_uutien').value = String(r.priority);
       document.getElementById('f_ngaydk_preview').value = r.ngaydk ? fmtDate(r.ngaydk) + ' (' + dayVN(r.ngaydk) + ')' : '';
-      document.getElementById('f_gionhan').value = r.gionhan || '';
+      document.getElementById('f_gionhan').value = r.gionhan ? r.gionhan.slice(0, 5) : '';
       document.getElementById('f_ngaygui').value = r.ngaygui || '';
       document.getElementById('f_ngaytra').value = r.ngaytra || '';
-      document.getElementById('f_giortra').value = r.giortra || '';
+      document.getElementById('f_giortra').value = r.giortra ? r.giortra.slice(0, 5) : '';
       document.getElementById('f_nguoinhan').value = r.nguoinhan || '';
       document.getElementById('f_ghichu').value = r.ghichu || '';
-      // Restore người gửi khi edit
       document.getElementById('employeeInput').value = r.nguoigui || '';
-      selectedEmployee = employees.find(e => 
-        e.fullname?.trim().toLowerCase() === r.nguoigui?.trim().toLowerCase()
-      ) || { fullname: r.nguoigui, email: '' };
+      selectedEmployee = findEmployeeByName(r.nguoigui) || { fullname: r.nguoigui, email: r.email || '' };
       document.getElementById('adminSection').style.display = isAdmin ? 'block' : 'none';
       const lydoGroup = document.getElementById('lydoTuChoiGroup');
       if (isAdmin && r.status === 'rejected') {
@@ -915,16 +1331,18 @@
       document.getElementById('modal').style.display = 'flex';
     }
 
-    function openConfirmModal(message, onConfirm) {
-
+    function openConfirmModal(message, onConfirm, needReason) {
       document.getElementById('confirmMessage').textContent = message;
-
-      const modal = document.getElementById('confirmModal');
-      modal.style.display = 'flex';
-
+      const reason = document.getElementById('confirmReason');
+      reason.value = '';
+      reason.style.display = needReason ? 'block' : 'none';
+      document.getElementById('confirmModal').style.display = 'flex';
+      if (needReason) setTimeout(() => reason.focus(), 50);
       document.getElementById('confirmOkBtn').onclick = () => {
+        const why = reason.value.trim();
+        if (needReason && !why) { showToast('Vui lòng nhập lý do'); return; }
         closeConfirmModal();
-        onConfirm();
+        onConfirm(why);
       };
     }
 
@@ -934,9 +1352,7 @@
 
     document.getElementById('confirmModal')
       .addEventListener('click', function (e) {
-        if (e.target === this) {
-          closeConfirmModal();
-        }
+        if (e.target === this) closeConfirmModal();
       });
 
     function setAdminFields(on) {
@@ -945,156 +1361,146 @@
       });
     }
 
-        function clearForm() {
-      [
-        'f_loai',
-        'f_ten',
-        'f_phong',
-        'f_doitac',
-        'f_ngaydk_preview',
-        'f_gionhan',
-        'f_ngaygui',
-        'f_ngaytra',
-        'f_giortra',
-        'f_nguoinhan',
-        'f_ghichu'
-      ].forEach(id => {
-        const el = document.getElementById(id);
-        if (el) el.value = '';
-      });
-
+    function clearForm() {
+      ['f_loai', 'f_ten', 'f_phong', 'f_doitac', 'f_ngaydk_preview', 'f_gionhan', 'f_ngaygui', 'f_ngaytra',
+        'f_giortra', 'f_nguoinhan', 'f_ghichu'].forEach(id => {
+          const el = document.getElementById(id);
+          if (el) el.value = '';
+        });
       document.getElementById('f_sl').value = 1;
-      document.getElementById('f_uutien').value = '2';
+      document.getElementById('f_uutien').innerHTML = priorityOptions(null, 2);
     }
 
     function previewDeadline() {
       const ng = document.getElementById('f_ngaygui').value;
       const p = parseInt(document.getElementById('f_uutien').value);
-      if (ng && p) { const d = calcDeadline(ng, p); document.getElementById('f_ngaydk_preview').value = d ? fmtDate(d) + ' (' + dayVN(d) + ')' : ''; }
+      if (ng && p && formLd) {
+        const d = calcDeadline(ng, p, formLd);
+        document.getElementById('f_ngaydk_preview').value = d ? fmtDate(d) + ' (' + dayVN(d) + ')' : '';
+      }
     }
 
     function recalcDeadlineInModal() { previewDeadline(); }
 
-    async function saveToSupabase(data) {
+    function toRow(data) {
+      return {
+        thu: data.ngaygui ? dayVN(data.ngaygui) : '',
+        gionhan: data.gionhan || null,
+        ngaygui: data.ngaygui || null,
+        loaihs: data.loai,
+        tenhs: data.ten,
+        sl: data.sl,
+        phongban: data.phong,
+        nguoigui: data.nguoigui,
+        doitac: data.doitac,
+        uutien: data.priority,
+        email: data.email,
+        ngaydukientra: data.ngaydk || null,
+        ngaytra: data.ngaytra || null,
+        giotra: data.giortra || null,
+        nguoinhan: data.nguoinhan || '',
+        ghichu: data.ghichu || '',
+        lanh_dao_id: data.ld,
+      };
+    }
 
-      const { error } = await sb
+    // Trả về id hồ sơ mới, hoặc null nếu lỗi.
+    async function saveToSupabase(data) {
+      const { data: created, error } = await sb
         .from('records')
         .insert([{
-          thu: data.thu || '',
-          gionhan: data.gionhan || null,
-          ngaygui: data.ngaygui || null,
-
-          loaihs: data.loai,
-          tenhs: data.ten,
-          sl: data.sl,
-
-          phongban: data.phong,
-          nguoigui: data.nguoigui,
-          doitac: data.doitac,
-
-          uutien: data.priority,
-          email: data.email,
-          ngaydukientra: data.ngaydk || null,
-          ngaytra: data.ngaytra || null,
-          giotra: data.giortra || null,
-
-          nguoinhan: data.nguoinhan || '',
-          ghichu: data.ghichu || '',
-
+          ...toRow(data),
           status: calcStatus(data),
           lydotuchoi: data.lydotuchoi || null,
-
-          created_by: 'Admin',
-          updated_by: 'Admin'
-        }]);
+          created_by: roleLabel(),
+          updated_by: roleLabel()
+        }])
+        .select('id')
+        .single();
 
       if (error) {
         console.error(error);
         showToast("❌ Lỗi lưu dữ liệu: " + error.message);
-        return false;
+        return null;
       }
-
-      return true;
+      return created.id;
     }
 
-    async function updateSupabase(id, data) {
-
-      const { error } = await sb
+    // prevStatus: chỉ ghi khi trạng thái trên máy chủ vẫn như lúc đọc, tránh 2 người cùng bấm đè nhau.
+    async function updateSupabase(id, data, prevStatus) {
+      let q = sb
         .from('records')
         .update({
-
-          thu: data.thu || '',
-          gionhan: data.gionhan || null,
-          ngaygui: data.ngaygui || null,
-
-          loaihs: data.loai,
-          tenhs: data.ten,
-          sl: data.sl,
-
-          phongban: data.phong,
-          nguoigui: data.nguoigui,
-          doitac: data.doitac,
-
-          uutien: data.priority,
-          email: data.email,
-          ngaydukientra: data.ngaydk || null,
-          ngaytra: data.ngaytra || null,
-          giotra: data.giortra || null,
-
-          nguoinhan: data.nguoinhan || '',
-          ghichu: data.ghichu || '',
-
+          ...toRow(data),
           status: data.status || calcStatus(data),
           lydotuchoi: data.lydotuchoi !== undefined ? (data.lydotuchoi || null) : null,
-
-          updated_by: 'Admin',
+          updated_by: roleLabel(),
           updated_at: new Date().toISOString()
-
         })
-        .eq('id', id);
+        .eq('id', id)
+        .is('deleted_at', null);
+      if (prevStatus) q = q.eq('status', prevStatus);
+      const { data: rows, error } = await q.select('id');
 
       if (error) {
         console.error(error);
         showToast("❌ Lỗi cập nhật: " + error.message);
         return false;
       }
-
+      if (!rows || !rows.length) {
+        showToast('Hồ sơ vừa được người khác cập nhật. Đã tải lại, vui lòng thử lại.');
+        await loadRecords();
+        return false;
+      }
       return true;
     }
 
+    // v5: không xóa hẳn. Đánh dấu xóa (deleted_at) kèm lý do, hồ sơ ẩn khỏi sổ và khôi phục được trên Supabase.
     async function deleteRecord(id) {
-      if (!id) {
-        showToast('ID không hợp lệ');
+      const r = records.find(x => x.id === id);
+      if (!guardScope(r)) return;
+      openConfirmModal(`Xóa hồ sơ #${id} "${r.ten}"? Hồ sơ được ẩn khỏi sổ (đánh dấu xóa), không mất dữ liệu.`, async (reason) => {
+        try {
+          const { data: rows, error } = await sb
+            .from('records')
+            .update({ deleted_at: new Date().toISOString(), deleted_by: roleLabel(), delete_reason: reason })
+            .eq('id', id)
+            .is('deleted_at', null)
+            .select('id');
+          if (error) { showToast('Lỗi: ' + error.message); return; }
+          if (!rows?.length) { showToast('Hồ sơ đã được xóa trước đó'); await loadRecords(); return; }
+          await writeLog({ action: 'xoa', entityId: id, label: recLabel(r), note: reason });
+          await loadRecords();
+          showToast('Đã xóa hồ sơ');
+        } catch (err) {
+          showToast('Lỗi hệ thống: ' + err.message);
+        }
+      }, true);
+    }
+
+    // ════════════════════════════════════════════════════════
+    //  Tải dữ liệu
+    // ════════════════════════════════════════════════════════
+    async function loadLeaders() {
+      const { data, error } = await sb
+        .from('lanh_dao')
+        .select('id,ma,ten,ten_ngan,la_tgd,so_ngay_cao,so_ngay_tb,so_ngay_thap,mat_khau_hash,thu_tu')
+        .is('deleted_at', null)
+        .order('thu_tu')
+        .order('id');
+      if (error) {
+        console.error(error);
+        showToast('❌ Không đọc được danh sách lãnh đạo. Kiểm tra đã chạy db/003 trên Supabase chưa.');
         return;
       }
-
-      openConfirmModal(
-        'Bạn có chắc chắn muốn xóa hồ sơ này?',
-        async () => {
-          try {
-            const { error } = await sb
-              .from('records')
-              .delete()
-              .eq('id', id);
-
-            if (error) {
-              showToast('Lỗi: ' + error.message);
-              return;
-            }
-
-            await loadRecords();
-            showToast('Đã xóa hồ sơ');
-          } catch (err) {
-            showToast('Lỗi hệ thống: ' + err.message);
-          }
-        }
-      );
+      leaders = data;
     }
 
     async function loadOffDays() {
       const { data, error } = await sb
         .from('off_days')
-        .select('*')
+        .select('id,type,start_date,end_date,weekday,reason,lanh_dao_id')
+        .is('deleted_at', null)
         .order('id');
 
       if (error) {
@@ -1103,28 +1509,43 @@
       }
 
       offDays = data.map(d => ({
-         id: d.id,           // ← thêm dòng này
+        id: d.id,
         type: d.type,
         start: d.start_date,
         end: d.end_date,
         weekday: d.weekday,
-        reason: d.reason
+        reason: d.reason,
+        ld: d.lanh_dao_id ?? null
       }));
 
-      renderOffDays();
+      if (document.getElementById('tab-config').classList.contains('active')) renderOffDays();
+    }
+
+    // Supabase trả tối đa 1000 dòng mỗi lần: đọc theo trang để không mất hồ sơ mới nhất khi vượt 1000.
+    async function fetchAllRecords() {
+      const PAGE = 1000;
+      let all = [];
+      for (let from = 0; ; from += PAGE) {
+        const { data, error } = await sb
+          .from('records')
+          .select('*')
+          .is('deleted_at', null)
+          .order('id')
+          .range(from, from + PAGE - 1);
+        if (error) return { data: null, error };
+        all = all.concat(data);
+        if (data.length < PAGE) return { data: all, error: null };
+      }
     }
 
     async function loadRecords() {
 
       await loadOffDays();
 
-      const { data, error } = await sb
-        .from('records')
-        .select('*')
-        .order('id');
-      console.log('DB STATUS:', data.map(x => x.status));
+      const { data, error } = await fetchAllRecords();
       if (error) {
         console.error(error);
+        showToast('❌ Lỗi tải hồ sơ: ' + error.message);
         return;
       }
 
@@ -1155,6 +1576,9 @@
         status: r.status || 'pending',
         lydotuchoi: r.lydotuchoi || '',
 
+        ld: r.lanh_dao_id ?? tgd()?.id ?? null,
+        goc: r.ho_so_goc_id ?? null,
+
         created_by: r.created_by,
         created_at: r.created_at,
         updated_by: r.updated_by,
@@ -1165,143 +1589,222 @@
       updateStats();
     }
 
-      function openCopy(id) {
-        const r = records.find(x => x.id === id);
-        if (!r) return;
+    function openCopy(id) {
+      const r = records.find(x => x.id === id);
+      if (!r) return;
 
-        editId = null;
-        document.getElementById('modalTitle').textContent = 'Đăng ký hồ sơ mới';
-        clearForm();
+      editId = null;
+      document.getElementById('modalTitle').textContent = 'Đăng ký hồ sơ mới (copy từ #' + id + ')';
+      clearForm();
+      document.getElementById('f_uutien').value = String(r.priority);
+      setFormLd(isAdmin ? session.ld : r.ld, false);
 
-        // Điền sẵn các trường người trình ký được phép điền
-        document.getElementById('f_loai').value = r.loai;
-        document.getElementById('f_ten').value = r.ten;
-        document.getElementById('f_sl').value = r.sl;
-        document.getElementById('f_phong').value = r.phong;
-        document.getElementById('f_doitac').value = r.doitac || '';
-        document.getElementById('f_uutien').value = r.priority;
+      document.getElementById('f_loai').value = r.loai;
+      document.getElementById('f_ten').value = r.ten;
+      document.getElementById('f_sl').value = r.sl;
+      document.getElementById('f_phong').value = r.phong;
+      document.getElementById('f_doitac').value = r.doitac || '';
+      document.getElementById('f_uutien').value = String(r.priority);
 
-        // Set người gửi
-        const emp = employees.find(e => e.fullname === r.nguoigui);
-        if (emp) {
-          selectedEmployee = emp;
-          document.getElementById('employeeInput').value = emp.fullname;
+      const emp = findEmployeeByName(r.nguoigui);
+      selectedEmployee = emp || null;
+      document.getElementById('employeeInput').value = emp ? emp.fullname : '';
+
+      document.getElementById('adminSection').style.display = isAdmin ? 'block' : 'none';
+      document.getElementById('lydoTuChoiGroup').style.display = 'none';
+      setAdminFields(isAdmin);
+      document.getElementById('modal').style.display = 'flex';
+    }
+
+    function resetSaveBtn() {
+      const saveBtn = document.getElementById('saveRecordBtn');
+      saveBtn.disabled = false;
+      saveBtn.innerHTML = '<i class="ti ti-check"></i>Lưu hồ sơ';
+    }
+
+    async function saveRecord() {
+      const saveBtn = document.getElementById('saveRecordBtn');
+      saveBtn.disabled = true;
+      saveBtn.innerHTML = '<i class="ti ti-loader-2"></i>Đang lưu...';
+
+      const loai = document.getElementById('f_loai').value, ten = document.getElementById('f_ten').value.trim(),
+        phong = document.getElementById('f_phong').value;
+      const nguoigui = selectedEmployee?.fullname;
+      const email = selectedEmployee?.email;
+
+      if (!formLd) {
+        showToast('Vui lòng chọn lãnh đạo được trình ký (Trình ký đến)');
+        resetSaveBtn();
+        return;
+      }
+
+      if (!nguoigui) {
+        showToast("Vui lòng chọn người gửi từ danh sách gợi ý");
+        resetSaveBtn();
+        return;
+      }
+
+      const doitac = document.getElementById('f_doitac').value.trim(), sl = document.getElementById('f_sl').value;
+
+      if (!loai || !ten || !phong || !nguoigui || !doitac || !sl || parseInt(sl) < 1) {
+        showToast('Vui lòng điền đầy đủ tất cả các trường bắt buộc (*)');
+        resetSaveBtn();
+        return;
+      }
+
+      const prev = editId ? records.find(r => r.id === editId) : null;
+      const ld = (editId && isAdmin) ? prev.ld : formLd;
+      const priority = parseInt(document.getElementById('f_uutien').value);
+      const keep = f => (prev ? prev[f] || '' : '');
+      const ngaygui = isAdmin ? document.getElementById('f_ngaygui').value : keep('ngaygui');
+
+      const data = {
+        loai, ten, phong, nguoigui, email: email || (prev ? prev.email : ''), priority, ld,
+        sl: parseInt(document.getElementById('f_sl').value) || 1,
+        doitac,
+        gionhan: isAdmin ? document.getElementById('f_gionhan').value : keep('gionhan'),
+        ngaygui, ngaydk: calcDeadline(ngaygui, priority, ld),
+        ngaytra: isAdmin ? document.getElementById('f_ngaytra').value : keep('ngaytra'),
+        giortra: isAdmin ? document.getElementById('f_giortra').value : keep('giortra'),
+        nguoinhan: isAdmin ? document.getElementById('f_nguoinhan').value.trim() : keep('nguoinhan'),
+        ghichu: isAdmin ? document.getElementById('f_ghichu').value.trim() : keep('ghichu'),
+      };
+
+      closeModal();
+
+      if (editId) {
+        const prevStatus = prev?.status;
+
+        if (prevStatus === 'rejected' && isAdmin) {
+          // Trợ lý sửa thông tin / sửa lý do, vẫn giữ trạng thái từ chối
+          data.status = 'rejected';
+          data.lydotuchoi = document.getElementById('f_lydotuchoi_view').value.trim();
+        } else if (data.ngaytra) {
+          data.status = 'done';
+        } else if (data.ngaygui && data.gionhan) {
+          data.status = 'processing';
+        } else {
+          data.status = 'pending';
+          data.ngaydk = '';
+          data.lydotuchoi = null;
         }
 
-        document.getElementById('adminSection').style.display = isAdmin ? 'block' : 'none';
-        setAdminFields(isAdmin);
-        document.getElementById('modal').style.display = 'flex';
-      }
+        const id = editId;
+        const ok = await updateSupabase(id, data, prevStatus);
 
-async function saveRecord() {
-  const saveBtn = document.querySelector('#modal .btn-primary');
-  if (saveBtn) {
-    saveBtn.disabled = true;
-    saveBtn.innerHTML = '<i class="ti ti-loader-2 ti-spin"></i>Đang lưu...';
-  }
+        if (ok) {
+          await writeLog({ action: 'sua', entityId: id, label: recLabel(prev), changes: diff(prev, data) });
+          await loadRecords();
+          showToast('✅ Cập nhật hồ sơ thành công');
+          if (data.status === 'done' && prevStatus !== 'done') {
+            await sendDoneNotification(data);
+          }
+        }
 
-  const loai = document.getElementById('f_loai').value, ten = document.getElementById('f_ten').value.trim(),
-    phong = document.getElementById('f_phong').value;
-  const nguoigui = selectedEmployee?.fullname;
-  const email = selectedEmployee?.email;
-  const nguoigui_id = selectedEmployee?.id;
-
-  if (!nguoigui) {
-    showToast("Vui lòng chọn người gửi từ danh sách gợi ý");
-    if (saveBtn) { saveBtn.disabled = false; saveBtn.innerHTML = '<i class="ti ti-check"></i>Lưu hồ sơ'; }
-    return;
-  }
-
-  doitac = document.getElementById('f_doitac').value.trim(), sl = document.getElementById('f_sl').value;
-
-  if (!loai || !ten || !phong || !nguoigui || !doitac || !sl || parseInt(sl) < 1) {
-    showToast('Vui lòng điền đầy đủ tất cả các trường bắt buộc (*)');
-    if (saveBtn) { saveBtn.disabled = false; saveBtn.innerHTML = '<i class="ti ti-check"></i>Lưu hồ sơ'; }
-    return;
-  }
-
-  const priority = parseInt(document.getElementById('f_uutien').value);
-  const ngaygui = isAdmin ? document.getElementById('f_ngaygui').value : (editId ? records.find(r => r.id === editId).ngaygui || '' : '');
-
-  const data = {
-    loai, ten, phong, nguoigui,email, priority,
-    sl: parseInt(document.getElementById('f_sl').value) || 1,
-    doitac,
-    gionhan: isAdmin ? document.getElementById('f_gionhan').value : (editId ? records.find(r => r.id === editId).gionhan || '' : ''),
-    ngaygui, ngaydk: calcDeadline(ngaygui, priority),
-    ngaytra: isAdmin ? document.getElementById('f_ngaytra').value : (editId ? records.find(r => r.id === editId).ngaytra || '' : ''),
-    giortra: isAdmin ? document.getElementById('f_giortra').value : (editId ? records.find(r => r.id === editId).giortra || '' : ''),
-    nguoinhan: isAdmin ? document.getElementById('f_nguoinhan').value.trim() : (editId ? records.find(r => r.id === editId).nguoinhan || '' : ''),
-    ghichu: isAdmin ? document.getElementById('f_ghichu').value.trim() : (editId ? records.find(r => r.id === editId).ghichu || '' : ''),
-  };
-
-  // Đóng modal ngay, không chờ Supabase
-  closeModal();
-
-  if (editId) {
-    const prevStatus = records.find(r => r.id === editId)?.status;
-
-    if (prevStatus === 'rejected' && isAdmin) {
-      // Trợ lý sửa thông tin / sửa lý do, vẫn giữ trạng thái từ chối
-      data.status = 'rejected';
-      data.lydotuchoi = document.getElementById('f_lydotuchoi_view').value.trim();
-    } else if (data.ngaytra) {
-      data.status = 'done';
-    } else if (data.ngaygui && data.gionhan) {
-      data.status = 'processing';
-    } else {
-      // Người trình ký sửa lại hồ sơ bị từ chối => gửi lại, chờ xác nhận
-      data.status = 'pending';
-      data.ngaydk = '';
-      data.lydotuchoi = null;
-    }
-
-    const ok = await updateSupabase(editId, data);
-
-    if (ok) {
-      await loadRecords();
-      showToast('✅ Cập nhật hồ sơ thành công');
-      if (data.status === 'done' && prevStatus !== 'done') {
-        await sendDoneNotification(data);
+      } else {
+        data.status = calcStatus(data);
+        const newId = await saveToSupabase(data);
+        if (newId) {
+          await writeLog({ action: 'tao', entityId: newId, label: `#${newId} ${data.ten}`, changes: diff(null, data) });
+          await loadRecords();
+          showToast(`✅ Đã lưu hồ sơ #${newId}, chuyển cho Trợ lý ${ldById(ld)?.ten_ngan || ''}`);
+          highlightRow(newId);
+        }
       }
     }
 
-  } else {
-    data.status = calcStatus(data);
-    await saveToSupabase(data);
-    await loadRecords();
-    showToast('✅ Đã lưu hồ sơ thành công');
-  }
-}
-
-    function closeModal() { 
+    function closeModal() {
       document.getElementById('modal').style.display = 'none';
-      const saveBtn = document.querySelector('#modal .btn-primary');
-      if (saveBtn) {
-        saveBtn.disabled = false;
-        saveBtn.innerHTML = '<i class="ti ti-check"></i>Lưu hồ sơ';
-      }
+      resetSaveBtn();
     }
+
+    // ════════════════════════════════════════════════════════
+    //  Cấu hình theo lãnh đạo
+    // ════════════════════════════════════════════════════════
+    const canEditLd = ldId => isAdmin && session.ld === ldId;
 
     function renderConfigTab() {
-      document.getElementById('priorityConfigBody').innerHTML = priorityConfig.map(p => `
-    <tr>
-      <td><span class="badge ${p.level === 1 ? 'badge-cao' : p.level === 3 ? 'badge-thap' : 'badge-tb'}">${p.label}</span></td>
-      <td style="display:flex;align-items:center;gap:6px">
-        <input type="number" min="1" max="30" value="${p.days}" onchange="updatePriorityDays(${p.level},this.value)">
-        <span style="font-size:12px;color:#6b6966">ngày làm việc</span>
-      </td>
-    </tr>
-  `).join('');
+      if (!leaders.length) return;
+      if (!ldById(cfgLdId)) cfgLdId = session.ld || tgd()?.id;
+      const L = ldById(cfgLdId), edit = canEditLd(L.id);
+      document.getElementById('cfgLdSeg').innerHTML = `<div class="seg">${leaders.map(l =>
+        `<button type="button" class="${l.id === cfgLdId ? 'on' : ''}" onclick="setCfgLd(${l.id})">${esc(l.ten_ngan)}${l.id === session.ld ? ' (của bạn)' : ''}</button>`).join('')}</div>`;
+      document.getElementById('cfgLdNote').innerHTML = edit ? '' : `<i class="ti ti-lock"></i> Chỉ xem: chỉ trợ lý của ${esc(L.ten_ngan)} được sửa`;
+      document.getElementById('cfgLdName1').textContent = L.ten_ngan;
+      document.getElementById('cfgLdName2').textContent = L.ten_ngan;
+
+      document.getElementById('priorityConfigBody').innerHTML = [1, 2, 3].map(level => `
+        <tr>
+          <td><span class="badge ${level === 1 ? 'badge-cao' : level === 3 ? 'badge-thap' : 'badge-tb'}">${PRIORITY_LABEL[level]}</span></td>
+          <td style="display:flex;align-items:center;gap:6px">
+            <input type="number" min="1" max="30" value="${L[PRIORITY_COL[level]]}" data-level="${level}" ${edit ? '' : 'disabled'}>
+            <span style="font-size:12px;color:var(--text2)">ngày làm việc</span>
+          </td>
+        </tr>`).join('');
+      document.getElementById('priorityActions').style.display = edit ? 'flex' : 'none';
+
+      // ngày nghỉ: trợ lý của lãnh đạo này thêm ngày riêng; Trợ lý TGĐ thêm được cả ngày chung
+      const canAddOff = edit;
+      document.getElementById('offAddBox').style.display = canAddOff ? 'flex' : 'none';
+      const apply = document.getElementById('offApply');
+      if (isTgdAsst() && edit) {
+        apply.style.display = '';
+        apply.innerHTML = `<option value="${L.id}">Chỉ ${esc(L.ten_ngan)}</option><option value="">Chung (mọi lãnh đạo)</option>`;
+      } else {
+        apply.style.display = 'none';
+        apply.innerHTML = `<option value="${L.id}">Chỉ ${esc(L.ten_ngan)}</option>`;
+      }
       renderOffDays();
+
+      document.getElementById('leaderCard').style.display = isTgdAsst() ? '' : 'none';
+      if (isTgdAsst()) renderLeaders();
     }
 
-    function updatePriorityDays(level, val) {
-      const p = priorityConfig.find(x => x.level === level);
-      if (p) p.days = parseInt(val) || p.days;
-      // Recalculate all processing records' deadlines
-      records.forEach(r => { if (r.status === 'processing' && r.ngaygui && r.priority === level) r.ngaydk = calcDeadline(r.ngaygui, r.priority); });
-      renderTable();
+    function setCfgLd(id) { cfgLdId = id; renderConfigTab(); }
+
+    async function savePriorityConfig() {
+      const L = ldById(cfgLdId);
+      if (!canEditLd(L.id)) { showToast('Bạn không sửa được cấu hình của lãnh đạo này'); return; }
+      const patch = {}, changes = [];
+      for (const inp of document.querySelectorAll('#priorityConfigBody input')) {
+        const level = +inp.dataset.level, v = parseInt(inp.value);
+        if (!(v >= 1 && v <= 30)) { showToast('Số ngày phải từ 1 đến 30'); return; }
+        if (v !== L[PRIORITY_COL[level]]) {
+          patch[PRIORITY_COL[level]] = v;
+          changes.push({ field: PRIORITY_COL[level], label: PRIORITY_LABEL[level], old: String(L[PRIORITY_COL[level]]), new: String(v) });
+        }
+      }
+      if (!changes.length) { showToast('Không có thay đổi'); return; }
+      const { error } = await sb.from('lanh_dao')
+        .update({ ...patch, updated_at: new Date().toISOString(), updated_by: roleLabel() })
+        .eq('id', L.id);
+      if (error) { showToast('❌ Lỗi lưu cấu hình: ' + error.message); return; }
+      await writeLog({ action: 'cau_hinh', entity: 'lanh_dao', entityId: L.id, label: L.ten_ngan, changes, note: 'Số ngày làm việc theo mức ưu tiên' });
+      Object.assign(L, patch);
+
+      // Tính lại và LƯU hạn trả cho hồ sơ đang xử lý của lãnh đạo này (bản cũ chỉ tính lại trên màn hình)
+      const n = await recalcProcessingDeadlines(L.id, 'Đổi số ngày theo mức ưu tiên');
+      await loadRecords();
+      renderConfigTab();
+      showToast(`Đã lưu cấu hình ${L.ten_ngan}. Cập nhật hạn trả ${n} hồ sơ đang xử lý.`);
+    }
+
+    // ldId = null: ngày nghỉ chung → tính lại cho mọi lãnh đạo
+    async function recalcProcessingDeadlines(ldId, reason) {
+      const logs = [];
+      for (const r of records.filter(x => x.status === 'processing' && x.ngaygui && (ldId === null || x.ld === ldId))) {
+        const moi = calcDeadline(r.ngaygui, r.priority, r.ld);
+        if (!moi || moi === r.ngaydk) continue;
+        const { data: rows, error } = await sb.from('records')
+          .update({ ngaydukientra: moi, updated_by: roleLabel(), updated_at: new Date().toISOString() })
+          .eq('id', r.id).eq('status', 'processing').is('deleted_at', null).select('id');
+        if (!error && rows?.length) {
+          logs.push({ action: 'doi_han_tra', entityId: r.id, label: recLabel(r), source: 'Hệ thống', note: reason,
+            changes: [{ field: 'ngaydk', label: 'Ngày DK trả', old: fmtDate(r.ngaydk), new: fmtDate(moi) }] });
+        }
+      }
+      await writeLog(logs);
+      return logs.length;
     }
 
     function toggleOffMode() {
@@ -1311,104 +1814,209 @@ async function saveRecord() {
     }
 
     function renderOffDays() {
-      document.getElementById('offDayCount').textContent = offDays.length + ' mục';
+      const L = ldById(cfgLdId);
       const list = document.getElementById('offDayList');
-      if (!offDays.length) { list.innerHTML = '<div style="padding:12px 16px;font-size:13px;color:#9b9895;font-style:italic">Chưa có ngày nào được thêm</div>'; return; }
-      const sorted = [...offDays].sort((a, b) => {
+      const items = offDays.filter(o => o.ld === null || (L && o.ld === L.id));
+      document.getElementById('offDayCount').textContent = items.length + ' mục';
+      if (!items.length) { list.innerHTML = '<div style="padding:12px 16px;font-size:13px;color:var(--text3);font-style:italic">Chưa có ngày nào được thêm</div>'; return; }
+      const sorted = [...items].sort((a, b) => {
         const ka = a.type === 'recur' ? '9' + a.weekday : a.start;
         const kb = b.type === 'recur' ? '9' + b.weekday : b.start;
         return ka.localeCompare(kb);
       });
-      list.innerHTML = `<div class="off-list">${sorted.map((o, idx) => {
-        const realIdx = offDays.indexOf(o);
+      list.innerHTML = `<div class="off-list">${sorted.map(o => {
         let label, badge;
         if (o.type === 'recur') {
           label = DAYS_VN[o.weekday] + ' hằng tuần';
           badge = '<span class="off-type-badge">Lặp lại</span>';
-        } else if (o.start === o.end) {
+        } else if (o.start === o.end || !o.end) {
           label = fmtDate(o.start);
           badge = '<span class="off-type-badge">Ngày lẻ</span>';
         } else {
           label = fmtDate(o.start) + ' – ' + fmtDate(o.end);
           badge = '<span class="off-type-badge">Khoảng ngày</span>';
         }
+        const owner = o.ld === null ? '<span class="cap cap-chung">Chung</span>' : capBadge(o.ld);
+        const canDel = o.ld === null ? isTgdAsst() : canEditLd(o.ld);
         return `<div class="chip">
-      <i class="ti ti-calendar-x" style="font-size:13px;color:#854F0B"></i>
-      ${badge}
-      <span><strong>${label}</strong>${o.reason ? ' – ' + o.reason : ''}</span>
-      <button onclick="removeOffDay(${realIdx})" title="Xóa"><i class="ti ti-x" style="font-size:12px"></i></button>
-    </div>`;
+          <i class="ti ti-calendar-x" style="font-size:13px;color:var(--amber-text)"></i>
+          ${badge}${owner}
+          <span style="flex:1"><strong>${label}</strong>${o.reason ? ' – ' + esc(o.reason) : ''}</span>
+          ${canDel ? `<button onclick="removeOffDay(${o.id})" title="Xóa"><i class="ti ti-x" style="font-size:12px"></i></button>` : ''}
+        </div>`;
       }).join('')}</div>`;
     }
 
     async function addOffDay() {
+      const L = ldById(cfgLdId);
+      if (!canEditLd(L.id)) { showToast('Bạn không sửa được lịch của lãnh đạo này'); return; }
       const mode = document.querySelector('input[name="offMode"]:checked').value;
       const reason = document.getElementById('newOffReason').value.trim();
+      const applyVal = document.getElementById('offApply').value;
+      const ldId = applyVal === '' ? null : +applyVal;
 
       let entry;
-
       if (mode === 'range') {
         const start = document.getElementById('offStart').value;
         const end = document.getElementById('offEnd').value || start;
-
-        if (!start) {
-          showToast('Vui lòng chọn ngày bắt đầu');
-          return;
-        }
-
+        if (!start) { showToast('Vui lòng chọn ngày bắt đầu'); return; }
+        if (end < start) { showToast('Ngày kết thúc phải sau ngày bắt đầu'); return; }
         entry = { type: 'range', start, end, reason };
-
       } else {
         const weekday = parseInt(document.getElementById('offWeekday').value);
         entry = { type: 'recur', weekday, start: null, end: null, reason };
       }
 
-      // ✅ SAVE SUPABASE
-      const { error } = await sb.from('off_days').insert([{
+      const { data: created, error } = await sb.from('off_days').insert([{
         type: entry.type,
         start_date: entry.start,
         end_date: entry.end,
-        weekday: entry.weekday,
-        reason: entry.reason
-      }]);
+        weekday: entry.weekday ?? null,
+        reason: entry.reason,
+        lanh_dao_id: ldId,
+        created_by: roleLabel()
+      }]).select('id').single();
 
-      if (error) {
-        showToast('Lỗi lưu ngày nghỉ: ' + error.message);
-        return;
-      }
+      if (error) { showToast('Lỗi lưu ngày nghỉ: ' + error.message); return; }
 
-      // reload từ DB
+      const label = entry.type === 'recur' ? DAYS_VN[entry.weekday] + ' hằng tuần' : fmtDate(entry.start) + (entry.end !== entry.start ? ' – ' + fmtDate(entry.end) : '');
+      await writeLog({ action: 'them_ngay_nghi', entity: 'off_days', entityId: created.id,
+        label: `${label} (${ldId === null ? 'Chung' : ldById(ldId).ten_ngan})`, note: reason || null });
       await loadOffDays();
-
+      const n = await recalcProcessingDeadlines(ldId, 'Thêm ngày công tác / nghỉ');
+      await loadRecords();
       document.getElementById('newOffReason').value = '';
-      showToast('Đã thêm ngày nghỉ');
+      showToast('Đã thêm ngày nghỉ' + (n ? `. Cập nhật hạn trả ${n} hồ sơ đang xử lý.` : ''));
     }
-    // removeOffDay - delete theo id
-    async function removeOffDay(idx) {
-      const item = offDays[idx];
-      
+
+    // v5: không xóa hẳn ngày nghỉ, chỉ đánh dấu xóa
+    async function removeOffDay(id) {
+      const item = offDays.find(o => o.id === id);
+      if (!item) return;
+      if (!(item.ld === null ? isTgdAsst() : canEditLd(item.ld))) { showToast('Bạn không xóa được ngày này'); return; }
+
       const { error } = await sb
         .from('off_days')
-        .delete()
-        .eq('id', item.id);  // ← chỉ dòng này
+        .update({ deleted_at: new Date().toISOString(), deleted_by: roleLabel() })
+        .eq('id', id)
+        .is('deleted_at', null);
 
-      if (error) {
-        showToast('Lỗi xóa ngày nghỉ');
-        return;
-      }
+      if (error) { showToast('Lỗi xóa ngày nghỉ: ' + error.message); return; }
 
+      const label = item.type === 'recur' ? DAYS_VN[item.weekday] + ' hằng tuần' : fmtDate(item.start) + (item.end && item.end !== item.start ? ' – ' + fmtDate(item.end) : '');
+      await writeLog({ action: 'xoa_ngay_nghi', entity: 'off_days', entityId: id,
+        label: `${label} (${item.ld === null ? 'Chung' : ldById(item.ld)?.ten_ngan})`, note: item.reason || null });
       await loadOffDays();
-      showToast('Đã xóa ngày nghỉ');
+      const n = await recalcProcessingDeadlines(item.ld, 'Xóa ngày công tác / nghỉ');
+      await loadRecords();
+      showToast('Đã xóa ngày nghỉ' + (n ? `. Cập nhật hạn trả ${n} hồ sơ đang xử lý.` : ''));
     }
 
+    // ════════════════════════════════════════════════════════
+    //  v5: Lãnh đạo & mật khẩu trợ lý (chỉ Trợ lý TGĐ)
+    // ════════════════════════════════════════════════════════
+    let leaderEditId = null;
+
+    function renderLeaders() {
+      document.getElementById('leaderBody').innerHTML = leaders.map(l => `
+        <tr>
+          <td><code>${esc(l.ma)}</code></td>
+          <td>${esc(l.ten)}</td>
+          <td>${capBadge(l.id)}</td>
+          <td style="font-size:12px;color:${l.mat_khau_hash ? 'var(--green)' : 'var(--danger)'}">${l.mat_khau_hash ? 'Đã đặt' : 'Chưa đặt'}</td>
+          <td style="text-align:right"><button class="btn btn-sm" onclick="openLeaderModal(${l.id})"><i class="ti ti-edit"></i>Sửa / đổi mật khẩu</button></td>
+        </tr>`).join('');
+    }
+
+    function openLeaderModal(id) {
+      if (!isTgdAsst()) return;
+      leaderEditId = id;
+      const l = id ? ldById(id) : null;
+      document.getElementById('leaderTitle').textContent = l ? 'Sửa lãnh đạo ' + l.ten_ngan : 'Thêm lãnh đạo';
+      document.getElementById('ld_ma').value = l ? l.ma : '';
+      document.getElementById('ld_ma').disabled = !!l;   // mã dùng để băm mật khẩu: không đổi sau khi tạo
+      document.getElementById('ld_ten').value = l ? l.ten : '';
+      document.getElementById('ld_ngan').value = l ? l.ten_ngan : '';
+      document.getElementById('ld_pw').value = '';
+      document.getElementById('ld_pw2').value = '';
+      document.getElementById('ld_pw_label').innerHTML = l ? 'Mật khẩu trợ lý mới <span style="font-size:11px;color:var(--text3)">(để trống nếu không đổi)</span>' : 'Mật khẩu trợ lý<span class="required">*</span>';
+      document.getElementById('ld_hint').innerHTML = `<i class="ti ti-info-circle" style="font-size:14px;flex-shrink:0"></i><span>${l
+        ? 'Đổi mật khẩu thì trợ lý của lãnh đạo này phải dùng mật khẩu mới từ lần đăng nhập sau.'
+        : 'Lãnh đạo mới nhận số ngày ưu tiên mặc định 1 / 3 / 7. Trợ lý của lãnh đạo đó tự chỉnh trong tab Cấu hình.'} Mật khẩu không trùng với lãnh đạo khác.</span>`;
+      document.getElementById('leaderModal').style.display = 'flex';
+    }
+
+    function closeLeaderModal() { document.getElementById('leaderModal').style.display = 'none'; leaderEditId = null; }
+
+    async function saveLeader() {
+      if (!isTgdAsst()) return;
+      const l = leaderEditId ? ldById(leaderEditId) : null;
+      const ma = document.getElementById('ld_ma').value.trim();
+      const ten = document.getElementById('ld_ten').value.trim();
+      const ngan = document.getElementById('ld_ngan').value.trim();
+      const pw = document.getElementById('ld_pw').value, pw2 = document.getElementById('ld_pw2').value;
+      if (!ma || !ten || !ngan) { showToast('Nhập đủ mã, tên, nhãn ngắn'); return; }
+      if (!/^[A-Za-z0-9_-]{2,20}$/.test(ma)) { showToast('Mã chỉ gồm chữ không dấu, số, "-" hoặc "_" (2–20 ký tự)'); return; }
+      if (!l && leaders.some(x => x.ma.toLowerCase() === ma.toLowerCase())) { showToast('Mã đã tồn tại'); return; }
+      if (!l && !pw) { showToast('Nhập mật khẩu trợ lý'); return; }
+      if (pw && pw.length < 6) { showToast('Mật khẩu tối thiểu 6 ký tự'); return; }
+      if (pw !== pw2) { showToast('Hai lần nhập mật khẩu không khớp'); return; }
+
+      let hash = null;
+      if (pw) {
+        hash = await pwHash(ma, pw);
+        for (const other of leaders) {
+          if (other.id !== l?.id && other.mat_khau_hash && (await pwHash(other.ma, pw)) === other.mat_khau_hash) {
+            showToast('Mật khẩu này đang dùng cho ' + other.ten_ngan + '. Chọn mật khẩu khác.');
+            return;
+          }
+        }
+      }
+
+      const btn = document.getElementById('leaderSaveBtn');
+      btn.disabled = true;
+      let error, entityId, changes = [];
+      if (l) {
+        const patch = { ten, ten_ngan: ngan, updated_at: new Date().toISOString(), updated_by: roleLabel() };
+        if (hash) patch.mat_khau_hash = hash;
+        if (ten !== l.ten) changes.push({ field: 'ten', label: 'Tên', old: l.ten, new: ten });
+        if (ngan !== l.ten_ngan) changes.push({ field: 'ten_ngan', label: 'Nhãn', old: l.ten_ngan, new: ngan });
+        if (hash) changes.push({ field: 'mat_khau', label: 'Mật khẩu trợ lý', old: null, new: 'đã đổi' });
+        ({ error } = await sb.from('lanh_dao').update(patch).eq('id', l.id));
+        entityId = l.id;
+      } else {
+        const maxOrder = Math.max(0, ...leaders.map(x => x.thu_tu || 0));
+        let created;
+        ({ data: created, error } = await sb.from('lanh_dao').insert([{
+          ma, ten, ten_ngan: ngan, la_tgd: false, mat_khau_hash: hash, thu_tu: maxOrder + 1, created_by: roleLabel()
+        }]).select('id').single());
+        entityId = created?.id;
+        changes = [{ field: 'ten', label: 'Tên', old: null, new: ten }, { field: 'ten_ngan', label: 'Nhãn', old: null, new: ngan }];
+      }
+      btn.disabled = false;
+      if (error) { showToast('❌ Lỗi lưu lãnh đạo: ' + error.message); return; }
+
+      if (changes.length) await writeLog({ action: l ? 'sua_lanh_dao' : 'them_lanh_dao', entity: 'lanh_dao', entityId, label: ngan, changes });
+      closeLeaderModal();
+      await loadLeaders();
+      renderScope();
+      renderConfigTab();
+      renderTable(); updateStats();
+      showToast(l ? 'Đã lưu ' + ngan : 'Đã thêm ' + ngan);
+    }
+    document.getElementById('leaderModal').addEventListener('click', function (e) { if (e.target === this) closeLeaderModal(); });
+
+    // ════════════════════════════════════════════════════════
+    //  Excel
+    // ════════════════════════════════════════════════════════
     function exportExcel() {
       if (!isAdmin) { showToast('Chỉ Trợ lý mới có quyền xuất Excel'); return; }
       if (typeof XLSX === 'undefined') { showToast('Thư viện xuất Excel chưa tải xong, vui lòng thử lại sau giây lát.'); return; }
       try {
-        const header = ['STT', 'Thứ', 'Giờ nhận HS', 'Ngày gửi hồ sơ', 'Loại hồ sơ', 'Tên hồ sơ', 'SL bản cứng', 'Phòng ban', 'Người gửi', 'Đối tác', 'Ưu tiên', 'Ngày DK trả HS', 'Ngày trả hồ sơ', 'Giờ trả hồ sơ', 'Người nhận HS', 'Ghi chú / Yêu cầu', 'Trạng thái', 'Lý do từ chối'];
-        const rows = records.map((r, i) => {
+        // 18 cột cũ giữ nguyên, thêm 2 cột cuối: Trình đến, Trình tiếp từ
+        const header = ['STT', 'Thứ', 'Giờ nhận HS', 'Ngày gửi hồ sơ', 'Loại hồ sơ', 'Tên hồ sơ', 'SL bản cứng', 'Phòng ban', 'Người gửi', 'Đối tác', 'Ưu tiên', 'Ngày DK trả HS', 'Ngày trả hồ sơ', 'Giờ trả hồ sơ', 'Người nhận HS', 'Ghi chú / Yêu cầu', 'Trạng thái', 'Lý do từ chối', 'Trình đến', 'Trình tiếp từ'];
+        const rows = scopeRecords().map((r, i) => {
           const utLabel = r.priority === 1 ? 'Ưu tiên 1 - Cao' : r.priority === 3 ? 'Ưu tiên 3 - Thấp' : 'Ưu tiên 2 - Trung bình';
-          const stLabel = r.status === 'done' ? 'Hoàn thành' : r.status === 'processing' ? 'Đang xử lý' : r.status === 'rejected' ? 'Từ chối' : 'Chờ xác nhận';
           return [
             i + 1,
             dayVN(r.ngaygui),
@@ -1426,17 +2034,20 @@ async function saveRecord() {
             r.giortra || '',
             r.nguoinhan || '',
             r.ghichu || '',
-            stLabel,
-            r.status === 'rejected' ? (r.lydotuchoi || '') : ''
+            stLabel(r.status),
+            r.status === 'rejected' ? (r.lydotuchoi || '') : '',
+            ldById(r.ld)?.ten_ngan || '',
+            r.goc ? '#' + r.goc : ''
           ];
         });
         const wsData = [header, ...rows];
         const ws = XLSX.utils.aoa_to_sheet(wsData);
-        ws['!cols'] = [6, 10, 12, 14, 14, 32, 12, 14, 18, 22, 22, 16, 14, 12, 18, 28, 14, 28].map(w => ({ wch: w }));
+        ws['!cols'] = [6, 10, 12, 14, 14, 32, 12, 14, 18, 22, 22, 16, 14, 12, 18, 28, 14, 28, 14, 14].map(w => ({ wch: w }));
         const wb = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(wb, ws, 'So trinh ky');
         const today = new Date();
-        const fname = 'So_Trinh_Ky_Ho_So_' + today.getFullYear() + '-' + String(today.getMonth() + 1).padStart(2, '0') + '-' + String(today.getDate()).padStart(2, '0') + '.xlsx';
+        const so = isTgdAsst() && soView === 'ALL' ? '' : '_' + (ldById(isTgdAsst() ? soView : session.ld)?.ma || '');
+        const fname = 'So_Trinh_Ky_Ho_So' + so + '_' + today.getFullYear() + '-' + String(today.getMonth() + 1).padStart(2, '0') + '-' + String(today.getDate()).padStart(2, '0') + '.xlsx';
         XLSX.writeFile(wb, fname);
       } catch (err) {
         showToast('Có lỗi khi xuất Excel: ' + err.message);
@@ -1447,7 +2058,6 @@ async function saveRecord() {
     // ── IMPORT EXCEL ─────────────────────────────────────────────
     let importedRows = [];
 
-    // Column header aliases -> internal field mapping
     const COL_MAP = {
       'loại hồ sơ': 'loai', 'loai ho so': 'loai', 'loai': 'loai',
       'tên hồ sơ': 'ten', 'ten ho so': 'ten', 'ten': 'ten',
@@ -1461,9 +2071,10 @@ async function saveRecord() {
       'ngày dự kiến trả hs': 'ngaydk', 'ngay du kien tra': 'ngaydk', 'ngày dk trả hs': 'ngaydk',
       'ngày trả hồ sơ': 'ngaytra', 'ngay tra': 'ngaytra', 'ngày trả hs': 'ngaytra',
       'giờ trả hs': 'giortra', 'gio tra': 'giortra', 'giờ trả hồ sơ': 'giortra',
-      'người nhận hs': 'nguoinhan', 'nguoi nhan': 'nguoinhan', 'người nhận hs': 'nguoinhan',
+      'người nhận hs': 'nguoinhan', 'nguoi nhan': 'nguoinhan',
       'ghi chú / yêu cầu': 'ghichu', 'ghi chu': 'ghichu', 'ghi chú': 'ghichu', 'yêu cầu': 'ghichu',
       'trạng thái': 'status', 'trang thai': 'status',
+      'trình đến': 'ld', 'trinh den': 'ld', 'lãnh đạo': 'ld', 'lanh dao': 'ld',
     };
 
     function normKey(s) { return (s || '').toString().toLowerCase().trim().replace(/\s+/g, ' '); }
@@ -1485,9 +2096,16 @@ async function saveRecord() {
       return 'pending';
     }
 
+    // "Trình đến" trong file: khớp mã, nhãn ngắn hoặc tên lãnh đạo; không khớp → TGĐ
+    function parseLd(v) {
+      const s = normKey(v);
+      if (!s) return tgd()?.id;
+      const l = leaders.find(x => [x.ma, x.ten_ngan, x.ten].some(k => normKey(k) === s));
+      return (l || tgd())?.id;
+    }
+
     function parseExcelDate(v) {
       if (!v) return '';
-      // If already string like dd/mm/yyyy or yyyy-mm-dd
       if (typeof v === 'string') {
         const iso = /^\d{4}-\d{2}-\d{2}$/.test(v);
         if (iso) return v;
@@ -1496,7 +2114,6 @@ async function saveRecord() {
         return '';
       }
       if (typeof v === 'number') {
-        // Excel serial date
         const d = new Date(Math.round((v - 25569) * 86400 * 1000));
         return d.toISOString().split('T')[0];
       }
@@ -1505,8 +2122,9 @@ async function saveRecord() {
 
     function handleImportFile(e) {
       const file = e.target.files[0];
-      e.target.value = ''; // reset so same file can be re-selected
+      e.target.value = '';
       if (!file) return;
+      if (!isTgdAsst()) { showToast('Chỉ Trợ lý TGĐ mới nhập Excel'); return; }
       if (typeof XLSX === 'undefined') { showToast('Thư viện Excel chưa sẵn sàng, vui lòng thử lại.'); return; }
       const reader = new FileReader();
       reader.onload = function (ev) {
@@ -1516,7 +2134,6 @@ async function saveRecord() {
           const raw = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' });
           if (!raw || raw.length < 2) { showToast('File Excel không có dữ liệu hoặc thiếu tiêu đề cột.'); return; }
 
-          // Detect header row (first row)
           const headerRow = raw[0];
           const colIdx = {};
           headerRow.forEach((h, i) => {
@@ -1544,6 +2161,7 @@ async function saveRecord() {
               nguoinhan: (get('nguoinhan') || '').toString().trim(),
               ghichu: (get('ghichu') || '').toString().trim(),
               status: parseStatus(get('status')),
+              ld: parseLd(get('ld')),
             };
           });
 
@@ -1558,24 +2176,23 @@ async function saveRecord() {
     }
 
     function renderImportPreview(headerRow, colIdx, fname) {
-      const mappedFields = ['loai', 'ten', 'sl', 'phong', 'nguoigui', 'doitac', 'priority', 'gionhan', 'ngaygui', 'ngaydk', 'ngaytra', 'giortra', 'nguoinhan', 'ghichu', 'status'];
-      const fieldLabels = { loai: 'Loại HS', ten: 'Tên hồ sơ', sl: 'SL bản cứng', phong: 'Phòng ban', nguoigui: 'Người gửi', doitac: 'Đối tác', priority: 'Ưu tiên', gionhan: 'Giờ nhận', ngaygui: 'Ngày gửi', ngaydk: 'Ngày DK trả', ngaytra: 'Ngày trả', giortra: 'Giờ trả', nguoinhan: 'Người nhận', ghichu: 'Ghi chú', status: 'Trạng thái' };
+      const mappedFields = ['loai', 'ten', 'sl', 'phong', 'nguoigui', 'doitac', 'priority', 'gionhan', 'ngaygui', 'ngaydk', 'ngaytra', 'giortra', 'nguoinhan', 'ghichu', 'status', 'ld'];
+      const fieldLabels = { loai: 'Loại HS', ten: 'Tên hồ sơ', sl: 'SL bản cứng', phong: 'Phòng ban', nguoigui: 'Người gửi', doitac: 'Đối tác', priority: 'Ưu tiên', gionhan: 'Giờ nhận', ngaygui: 'Ngày gửi', ngaydk: 'Ngày DK trả', ngaytra: 'Ngày trả', giortra: 'Giờ trả', nguoinhan: 'Người nhận', ghichu: 'Ghi chú', status: 'Trạng thái', ld: 'Trình đến' };
       const detected = mappedFields.filter(f => colIdx[f] !== undefined);
-      const missing = mappedFields.filter(f => !['gionhan', 'ngaygui', 'ngaydk', 'ngaytra', 'giortra', 'nguoinhan', 'ghichu', 'status'].includes(f) && colIdx[f] === undefined);
+      const missing = mappedFields.filter(f => !['gionhan', 'ngaygui', 'ngaydk', 'ngaytra', 'giortra', 'nguoinhan', 'ghichu', 'status', 'ld'].includes(f) && colIdx[f] === undefined);
 
       document.getElementById('importSummary').innerHTML = `
     <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:8px">
       <div style="flex:1;min-width:180px;background:var(--green-bg);color:var(--green-text);border-radius:var(--radius);padding:8px 12px;font-size:12px">
-        <strong style="font-size:18px;display:block">${importedRows.length}</strong>dòng dữ liệu đọc được từ <em>${fname}</em>
+        <strong style="font-size:18px;display:block">${importedRows.length}</strong>dòng dữ liệu đọc được từ <em>${esc(fname)}</em>
       </div>
       <div style="flex:1;min-width:180px;background:var(--blue-bg);color:var(--blue-text);border-radius:var(--radius);padding:8px 12px;font-size:12px">
         <strong style="font-size:18px;display:block">${detected.length}/${mappedFields.length}</strong>cột khớp được map tự động
       </div>
     </div>
-    ${missing.length ? `<div style="background:#FAEEDA;color:#854F0B;border-radius:var(--radius);padding:8px 12px;font-size:12px;margin-bottom:4px"><i class="ti ti-alert-triangle"></i> Không tìm thấy cột: <strong>${missing.map(f => fieldLabels[f]).join(', ')}</strong> — các trường này sẽ để trống</div>` : ''}
+    ${missing.length ? `<div style="background:var(--amber-bg);color:var(--amber-text);border-radius:var(--radius);padding:8px 12px;font-size:12px;margin-bottom:4px"><i class="ti ti-alert-triangle"></i> Không tìm thấy cột: <strong>${missing.map(f => fieldLabels[f]).join(', ')}</strong> — các trường này sẽ để trống</div>` : ''}
   `;
 
-      // Preview table - show only mapped columns
       const showFields = detected;
       document.getElementById('importPreviewHead').innerHTML = `<tr style="background:var(--bg2)">${showFields.map(f => `<th style="padding:7px 10px;font-size:11px;color:var(--text2);border-bottom:1px solid var(--border);white-space:nowrap;font-weight:500">${fieldLabels[f]}</th>`).join('')}</tr>`;
 
@@ -1586,39 +2203,44 @@ async function saveRecord() {
         return `<tr style="${rowBg}">${showFields.map(f => {
           let val = r[f];
           if (f === 'priority') val = r.priority === 1 ? 'Cao' : r.priority === 3 ? 'Thấp' : 'Trung bình';
-          if (f === 'status') val = r.status === 'done' ? 'Hoàn thành' : r.status === 'processing' ? 'Đang xử lý' : 'Chờ xác nhận';
+          if (f === 'status') val = stLabel(r.status);
+          if (f === 'ld') val = ldById(r.ld)?.ten_ngan || '';
           if (f === 'ngaygui' || f === 'ngaydk' || f === 'ngaytra') val = val ? fmtDate(val) : '';
-          return `<td style="padding:6px 10px;font-size:12px;border-bottom:1px solid var(--border);max-width:180px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${val || '<span style="color:var(--text3)">—</span>'}</td>`;
+          return `<td style="padding:6px 10px;font-size:12px;border-bottom:1px solid var(--border);max-width:180px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${val ? esc(val) : '<span style="color:var(--text3)">—</span>'}</td>`;
         }).join('')}</tr>`;
       }).join('');
 
-      if (importedRows.length > MAX_PREVIEW) {
-        document.getElementById('importWarnings').innerHTML = `<div style="font-size:12px;color:var(--text2);text-align:center;padding:4px">Hiển thị ${MAX_PREVIEW}/${importedRows.length} dòng — tất cả sẽ được import khi xác nhận</div>`;
-      } else {
-        document.getElementById('importWarnings').innerHTML = '';
-      }
+      document.getElementById('importWarnings').innerHTML = importedRows.length > MAX_PREVIEW
+        ? `<div style="font-size:12px;color:var(--text2);text-align:center;padding:4px">Hiển thị ${MAX_PREVIEW}/${importedRows.length} dòng — tất cả sẽ được import khi xác nhận</div>`
+        : '';
     }
 
-    function confirmImport() {
+    // v5: bản cũ chỉ thay dữ liệu trên màn hình rồi tải lại nên KHÔNG lưu gì vào Supabase.
+    // Nay ghi thật vào Supabase, chỉ thêm mới (bỏ chế độ "Thay thế toàn bộ" để không mất dữ liệu cũ).
+    async function confirmImport() {
       if (!importedRows.length) { closeImportModal(); return; }
-      const mode = document.querySelector('input[name="importMode"]:checked').value;
-      const newRecs = importedRows.map(r => {
+      const btn = document.getElementById('importConfirmBtn');
+      btn.disabled = true;
+      const rows = importedRows.map(r => {
         const rec = { ...r };
         delete rec._rowNum;
-        rec.id = nextId++;
-        // Recalculate ngaydk if not in file but ngaygui is present
-        if (!rec.ngaydk && rec.ngaygui) rec.ngaydk = calcDeadline(rec.ngaygui, rec.priority);
-        return rec;
+        rec.email = findEmployeeByName(rec.nguoigui)?.email || '';
+        if (!rec.ngaydk && rec.ngaygui) rec.ngaydk = calcDeadline(rec.ngaygui, rec.priority, rec.ld);
+        return {
+          ...toRow(rec),
+          status: rec.status || calcStatus(rec),
+          lydotuchoi: null,
+          created_by: roleLabel() + ' (Nhập Excel)',
+          updated_by: roleLabel() + ' (Nhập Excel)'
+        };
       });
-      if (mode === 'replace') {
-        records = newRecs;
-      } else {
-        records = [...records, ...newRecs];
-      }
+      const { data: created, error } = await sb.from('records').insert(rows).select('id,tenhs');
+      btn.disabled = false;
+      if (error) { showToast('❌ Lỗi import: ' + error.message); return; }
+      await writeLog(created.map(c => ({ action: 'tao', entityId: c.id, label: `#${c.id} ${c.tenhs}`, source: 'Nhập Excel' })));
       closeImportModal();
-      loadRecords();
-      // Small toast
-      showToast(`Đã import thành công ${newRecs.length} hồ sơ!`);
+      await loadRecords();
+      showToast(`Đã import thành công ${created.length} hồ sơ!`);
     }
 
     function closeImportModal() {
@@ -1627,11 +2249,12 @@ async function saveRecord() {
     }
 
     function showToast(msg) {
+      document.querySelectorAll('.toast').forEach(x => x.remove());   // chỉ hiện 1 thông báo, không chồng chữ
       const t = document.createElement('div');
-      t.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1a1a1a;color:#fff;padding:10px 20px;border-radius:8px;font-size:13px;z-index:999;box-shadow:0 4px 12px rgba(0,0,0,0.25);transition:opacity 0.4s';
+      t.className = 'toast';
       t.textContent = msg;
       document.body.appendChild(t);
-      setTimeout(() => { t.style.opacity = '0'; setTimeout(() => t.remove(), 400); }, 2500);
+      setTimeout(() => { t.style.opacity = '0'; setTimeout(() => t.remove(), 400); }, 2800);
     }
 
     document.getElementById('importModal').addEventListener('click', function (e) {
@@ -1646,77 +2269,67 @@ async function saveRecord() {
 
     // Delete hoặc Backspace sẽ xóa toàn bộ ngày/giờ
     ['f_gionhan', 'f_ngaygui', 'f_ngaytra', 'f_giortra'].forEach(id => {
-
       document.getElementById(id).addEventListener('keydown', e => {
-
         if (e.key === 'Delete' || e.key === 'Backspace') {
-
           e.preventDefault();
-
           e.target.value = '';
-
           if (id === 'f_ngaygui') {
             document.getElementById('f_ngaydk_preview').value = '';
-          }
-
-          // cập nhật lại ngày dự kiến trả khi xóa ngày nhận
-          if (id === 'f_ngaygui') {
             recalcDeadlineInModal();
           }
-
         }
-
       });
-
     });
 
     window.addEventListener('load', async () => {
+      await loadLeaders();
+      renderScope();
       await loadEmployees();
-      await loadOffDays();
       await loadRecords();
     });
 
-const input = document.getElementById("employeeInput");
-const list = document.getElementById("employeeList");
+    const input = document.getElementById("employeeInput");
+    const list = document.getElementById("employeeList");
 
-let selectedEmployee = null;
+    let selectedEmployee = null;
 
-input.addEventListener("input", function () {
-  const q = this.value.toLowerCase().trim();
+    input.addEventListener("input", function () {
+      const q = this.value.toLowerCase().trim();
+      selectedEmployee = null;   // gõ lại tên thì phải chọn lại từ danh sách
 
-  if (!q) {
-    list.style.display = "none";
-    return;
-  }
+      if (!q) {
+        list.style.display = "none";
+        return;
+      }
 
-  const filtered = employees.filter(e =>
-    e.fullname?.toLowerCase().includes(q)
-  );
+      const filtered = employees.filter(e =>
+        e.fullname?.toLowerCase().includes(q)
+      );
 
-  list.innerHTML = filtered.map(e => `
-  <div class="autocomplete-item" data-id="${e.id}">
-    <div class="emp-name">${e.fullname}</div>
-    <div class="emp-email">${e.email}</div>
-  </div>
-`).join("");
+      list.innerHTML = filtered.map(e => `
+        <div class="autocomplete-item" data-id="${esc(e.id)}">
+          <div class="emp-name">${esc(e.fullname)}</div>
+          <div class="emp-email">${esc(e.email)}</div>
+        </div>
+      `).join("");
 
-  list.style.display = filtered.length ? "block" : "none";
-});
+      list.style.display = filtered.length ? "block" : "none";
+    });
 
-list.addEventListener("click", function (e) {
-  const item = e.target.closest(".autocomplete-item");
-  if (!item) return;
+    list.addEventListener("click", function (e) {
+      const item = e.target.closest(".autocomplete-item");
+      if (!item) return;
 
-  const emp = employees.find(x => x.id == item.dataset.id);
+      const emp = employees.find(x => String(x.id) === item.dataset.id);
+      if (!emp) return;
 
-  input.value = emp.fullname;
-  selectedEmployee = emp;
+      input.value = emp.fullname;
+      selectedEmployee = emp;
 
-  list.style.display = "none";
-});
+      list.style.display = "none";
+    });
 
   </script>
-  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 </body>
 
 </html>
