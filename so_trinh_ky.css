@@ -1085,16 +1085,84 @@ tbody td            { padding: 7px 6px; }
 #tbody td:nth-child(16) { white-space: normal; }          /* Người nhận HS: cho xuống dòng */
 th.c-stt            { width: 1%; }
 th.c-num            { width: 1%; }
-th.c-ten            { min-width: 170px; }
-th.c-loai           { min-width: 72px; }
-th.c-note           { min-width: 70px; }
-#tbody td:nth-child(6)  { min-width: 170px; }              /* Tên hồ sơ */
 #tbody td:nth-child(17) { font-size: 12px; color: var(--text2); }
 
 /* Lý do từ chối (trợ lý): cắt gọn 1 dòng, rê chuột xem đủ */
 th.c-lydo, td.c-lydo { width: 1%; }
-.lydo-cut           { max-width: 110px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--red-text); font-size: 12px; }
 
 /* Thao tác: nút xếp gọn, xuống dòng khi cần */
-td.col-act .acts    { min-width: 0; max-width: 170px; }
 td.col-act .action-btn { padding: 3px 6px; }
+.lydo-cut           { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--red-text); font-size: 12px; }
+
+/* ==================================================================================
+   v5.4 – ĐỘ RỘNG CỘT BẢNG HỒ SƠ: CHỈ CẦN SỬA SỐ Ở KHỐI NÀY
+   ----------------------------------------------------------------------------------
+   • min-width : cột không hẹp hơn số này (0 = để trình duyệt tự chia theo nội dung).
+   • max-width : chỉ dùng cho 2 cột cuối (Lý do từ chối, Thao tác).
+   • Đơn vị px tính TRƯỚC zoom 68% của app (170px hiển thị thực tế ≈ 116px).
+   • Tổng các min-width càng lớn thì bảng càng dễ hiện lại thanh cuộn ngang.
+     Nên tăng cột này thì giảm cột khác. Thử ngay bằng Live Server, lưu file là thấy.
+   • Ô nào có chữ dài (Tên hồ sơ, Ghi chú) tự xuống dòng khi cột hẹp.
+   ================================================================================== */
+#tbl-ho-so th:nth-child(1)  { min-width: 0; }      /* STT                */
+#tbl-ho-so th:nth-child(2)  { min-width: 0; }      /* Thứ                */
+#tbl-ho-so th:nth-child(3)  { min-width: 0; }      /* Giờ nhận HS        */
+#tbl-ho-so th:nth-child(4)  { min-width: 0; }      /* Ngày gửi HS        */
+#tbl-ho-so th:nth-child(5)  { min-width: 72px; }   /* Loại hồ sơ         */
+#tbl-ho-so th:nth-child(6)  { min-width: 170px; }  /* Tên hồ sơ          */
+#tbl-ho-so th:nth-child(7)  { min-width: 0; }      /* Trình đến          */
+#tbl-ho-so th:nth-child(8)  { min-width: 0; }      /* SL bản cứng        */
+#tbl-ho-so th:nth-child(9)  { min-width: 0; }      /* Phòng ban          */
+#tbl-ho-so th:nth-child(10) { min-width: 0; }      /* Người gửi          */
+#tbl-ho-so th:nth-child(11) { min-width: 15; }      /* Đối tác            */
+#tbl-ho-so th:nth-child(12) { max-width: 5; }      /* Ưu tiên            */
+#tbl-ho-so th:nth-child(13) { max-width: 4; }      /* DK trả HS          */
+#tbl-ho-so th:nth-child(14) { min-width: 0; }      /* Ngày trả HS        */
+#tbl-ho-so th:nth-child(15) { min-width: 0; }      /* Giờ trả HS         */
+#tbl-ho-so th:nth-child(16) { min-width: 0; }      /* Người nhận HS      */
+#tbl-ho-so th:nth-child(17) { min-width: 70px; }   /* Ghi chú / Yêu cầu  */
+#tbl-ho-so th:nth-child(18) { min-width: 0; }      /* Trạng thái         */
+.lydo-cut                   { max-width: 110px; }  /* Lý do từ chối (chỉ trợ lý thấy) */
+td.col-act .acts            { min-width: 1; max-width: 170px; }   /* Thao tác: rộng tối đa, nút tự xuống dòng */
+
+/* ==================================================================================
+   v5.4 – TIÊU ĐỀ BẢNG HỒ SƠ (dòng tên cột): CHỈ CẦN SỬA Ở KHỐI NÀY
+   ----------------------------------------------------------------------------------
+   • Màu dùng biến (var(--…)) để tự đổi theo theme sáng / tối. Muốn màu cố định thì
+     ghi mã màu, ví dụ: color: #0C447C;  (khi đó theme tối cũng dùng màu này).
+   • padding: "trên-dưới  trái-phải". Tăng padding trái-phải làm bảng rộng ra.
+   • white-space: normal  = tên cột được xuống dòng (bảng gọn, không kéo ngang)
+                  nowrap  = tên cột luôn 1 dòng (bảng rộng hơn, dễ hiện thanh ngang)
+   ================================================================================== */
+#tbl-ho-so thead th {
+  background: var(--bg2);          /* màu nền dòng tiêu đề              */
+  color: var(--text2);             /* màu chữ                           */
+  font-size: 12px;                 /* cỡ chữ                            */
+  font-weight: 500;                /* độ đậm: 400 thường, 600 đậm       */
+  text-align: center;              /* canh chữ: left | center | right   */
+  vertical-align: middle;          /* canh dọc: top | middle | bottom   */
+  padding: 8px 6px;                /* khoảng đệm: trên-dưới  trái-phải  */
+  line-height: 1.3;                /* giãn dòng khi tên cột 2 dòng      */
+  white-space: normal;             /* normal | nowrap (xem ghi chú)     */
+  border-bottom: 1px solid var(--border);   /* đường kẻ dưới tiêu đề    */
+  position: sticky;                /* tiêu đề đứng yên khi cuộn dọc     */
+  top: 0;
+  z-index: 2;
+}
+
+/* Canh riêng từng cột: sửa giá trị, hoặc chép thêm dòng theo mẫu. Số thứ tự cột giống khối độ rộng ở trên. */
+#tbl-ho-so thead th:nth-child(1)  { text-align: center; }  /* STT          */
+#tbl-ho-so thead th:nth-child(8)  { text-align: center; }  /* SL bản cứng  */
+#tbl-ho-so thead th:nth-child(12) { text-align: center; }  /* Ưu tiên      */
+
+/* Tiêu đề cột Thao tác (luôn dính mép phải) */
+#tbl-ho-so thead th.col-act {
+  background: var(--bg2);          /* nên giống màu nền tiêu đề ở trên  */
+  text-align: center;
+  z-index: 3;
+}
+
+/* v5.5 – DK trả HS: ngày dòng trên, thứ dòng dưới */
+.dk-tra             { display: inline-block; white-space: nowrap; line-height: 1.35; text-align: center; }
+.dk-tra small       { font-size: 11px; color: var(--text3); }
+.dk-tra.overdue small { color: inherit; }

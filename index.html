@@ -97,7 +97,7 @@
         </div>
       </div>
       <div class="table-wrap">
-        <table>
+        <table id="tbl-ho-so">
           <thead>
             <tr>
               <th class="c-stt">STT</th>
@@ -944,8 +944,8 @@
         const utBadge = r.priority === 1 ? 'badge-cao' : r.priority === 3 ? 'badge-thap' : 'badge-tb';
         const stBadge = r.status === 'done' ? 'badge-done' : r.status === 'processing' ? 'badge-processing' : r.status === 'rejected' ? 'badge-rejected' : 'badge-pending';
         const isOverdue = r.ngaydk && r.ngaydk < today && (r.status === 'pending' || r.status === 'processing');
-        const deadlineCell = r.ngaydk ? `<span class="${isOverdue ? 'overdue' : ''}">${fmtDate(r.ngaydk)} (${dayVN(r.ngaydk)})${isOverdue ? ' ⚠' : ''}</span>` : '—';
-        const lydoCell = isAdmin ? `<td class="c-lydo"><div class="lydo-cut" title="${r.status === 'rejected' ? esc(r.lydotuchoi || '') : ''}">${r.status === 'rejected' ? (esc(r.lydotuchoi) || '—') : '—'}</div></td>` : '';
+        // Ngày ở dòng trên, thứ ở dòng dưới (không bị cắt giữa "Thứ 2")
+        const deadlineCell = r.ngaydk ? `<span class="dk-tra ${isOverdue ? 'overdue' : ''}">${fmtDate(r.ngaydk)}${isOverdue ? ' ⚠' : ''}<br><small>${dayVN(r.ngaydk)}</small></span>` : '—';        const lydoCell = isAdmin ? `<td class="c-lydo"><div class="lydo-cut" title="${r.status === 'rejected' ? esc(r.lydotuchoi || '') : ''}">${r.status === 'rejected' ? (esc(r.lydotuchoi) || '—') : '—'}</div></td>` : '';
 
         // liên kết trình tiếp
         let links = '';
@@ -981,8 +981,7 @@
               <td>${esc(r.phong)}</td><td>${esc(r.nguoigui)}</td><td style="max-width:110px;white-space:normal;word-break:break-word">${esc(r.doitac) || '—'}</td>
               <td class="col-ut"><span class="badge ${utBadge}">${utLabel}</span></td>
               <td>${deadlineCell}</td>
-              <td>${fmtDate(r.ngaytra)}</td><td style="text-align:center">${fmtTime(r.giortra)}</td>
-              <td>${esc(r.nguoinhan) || '—'}</td>
+              <td>${r.ngaytra ? `<span class="dk-tra">${fmtDate(r.ngaytra)}<br><small>${dayVN(r.ngaytra)}</small></span>` : '—'}</td><td style="text-align:center">${fmtTime(r.giortra)}</td>              <td>${esc(r.nguoinhan) || '—'}</td>
               <td style="max-width:150px;white-space:normal;word-break:break-word;color:var(--text2);font-size:12px">${esc(r.ghichu) || '—'}</td>
               <td><span class="badge ${stBadge}">${stLabel(r.status)}</span></td>
               ${lydoCell}
