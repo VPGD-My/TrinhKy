@@ -1042,3 +1042,29 @@ html[data-theme="dark"] .btn-violet { color: #1a1430; }
          padding: 10px 20px; border-radius: 8px; font-size: 13px; z-index: 10000; box-shadow: var(--shadow); transition: opacity .4s; }
 
 @media (max-width: 900px) { .config-wrap { grid-template-columns: 1fr; } }
+
+/* ============================================================
+   v5.1 – cột Ưu tiên gọn, cột Thao tác luôn hiện bên phải, bấm dòng xem chi tiết
+   ============================================================ */
+th.col-ut, td.col-ut { width: 1%; white-space: nowrap; padding-left: 6px; padding-right: 6px; text-align: center; }
+td.col-ut .badge     { padding: 2px 6px; }
+
+/* Cột Thao tác dính mép phải khung bảng: không phải kéo ngang mới bấm được nút */
+th.col-act, td.col-act {
+  position: sticky;
+  right: 0;
+  background: var(--bg);
+  box-shadow: -6px 0 6px -6px rgba(0, 0, 0, .25), inset 1px 0 0 var(--border);
+  width: 1%;
+}
+thead th.col-act    { background: var(--bg2); z-index: 3; }
+td.col-act          { z-index: 1; }
+tbody tr:hover td.col-act { background: var(--bg2); }
+td.col-act .acts    { display: flex; gap: 4px; flex-wrap: wrap; align-items: center; min-width: 136px; max-width: 220px; }
+
+#tbody tr[data-id]  { cursor: pointer; }
+#detailBody .summary span:first-child { width: 140px; }
+
+/* v5.2 – thẻ chọn lãnh đạo chỉ còn tên: canh giữa theo chiều dọc */
+.ld-opt          { align-items: center; }
+.ld-opt input    { margin-top: 0; }

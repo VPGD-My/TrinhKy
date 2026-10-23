@@ -43,6 +43,7 @@
       <span class="role-badge role-user" id="roleBadge">
         <i class="ti ti-user" style="font-size:12px"></i>Người trình ký
       </span>
+      <button class="btn btn-sm" id="myPwBtn" onclick="openMyPwModal()" style="display:none" title="Đổi mật khẩu trợ lý của bạn"><i class="ti ti-key"></i>Đổi mật khẩu</button>
       <button class="btn theme-btn" id="themeBtn" onclick="toggleTheme()" title="Đổi giao diện sáng / tối"><i class="ti ti-moon"></i></button>
     </div>
   </div>
@@ -110,15 +111,15 @@
               <th style="width:90px">Phòng ban</th>
               <th style="min-width:90px">Người gửi</th>
               <th style="min-width:90px">Đối tác</th>
-              <th style="width: 50px;">Ưu tiên</th>
+              <th class="col-ut">Ưu tiên</th>
               <th style="min-width:90px;white-space:normal;word-break:break-word;overflow-wrap:break-word"> DK trả HS</th>
               <th>Ngày trả HS</th>
               <th>Giờ trả HS</th>
               <th>Người nhận HS</th>
               <th>Ghi chú / Yêu cầu</th>
               <th>Trạng thái</th>
-              <th style="min-width:150px">Thao tác</th>
               <th id="thLyDoTuChoi" style="min-width:110px;max-width:140px;display:none">Lý do từ chối</th>
+              <th class="col-act">Thao tác</th>
             </tr>
           </thead>
           <tbody id="tbody"></tbody>
@@ -513,6 +514,46 @@
     </div>
   </div>
 
+  <!-- v5.1: Trợ lý tự đổi mật khẩu của mình -->
+  <div class="modal-bg" id="myPwModal" style="display:none">
+    <div class="modal pw-modal">
+      <div class="modal-body" style="padding:24px 24px 16px">
+        <div class="pw-icon"><i class="ti ti-key"></i></div>
+        <h2 style="font-size:15px;font-weight:600;margin-bottom:4px;text-align:center" id="myPwTitle">Đổi mật khẩu trợ lý</h2>
+        <p style="font-size:12px;color:var(--text2);margin-bottom:14px;text-align:center">Lần đăng nhập sau dùng mật khẩu mới.</p>
+        <div class="form-group" style="margin-bottom:10px">
+          <label>Mật khẩu hiện tại<span class="required">*</span></label>
+          <input type="password" class="field" id="myPwOld" autocomplete="current-password">
+        </div>
+        <div class="form-group" style="margin-bottom:10px">
+          <label>Mật khẩu mới<span class="required">*</span> <span style="font-size:11px;color:var(--text3)">(tối thiểu 6 ký tự)</span></label>
+          <input type="password" class="field" id="myPwNew" autocomplete="new-password">
+        </div>
+        <div class="form-group">
+          <label>Nhập lại mật khẩu mới<span class="required">*</span></label>
+          <input type="password" class="field" id="myPwNew2" autocomplete="new-password" onkeydown="if(event.key==='Enter')saveMyPw()">
+        </div>
+        <div class="pw-error" id="myPwError"></div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn" onclick="closeMyPwModal()">Hủy</button>
+        <button class="btn btn-primary" id="myPwSaveBtn" onclick="saveMyPw()"><i class="ti ti-check"></i>Đổi mật khẩu</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- v5.1: Bấm vào dòng → thông tin hồ sơ -->
+  <div class="modal-bg" id="detailModal" style="display:none">
+    <div class="modal" style="max-width:640px">
+      <div class="modal-header">
+        <h2 id="detailTitle">Thông tin hồ sơ</h2>
+        <button class="action-btn" onclick="closeDetailModal()" style="padding:4px 6px"><i class="ti ti-x"></i></button>
+      </div>
+      <div class="modal-body" id="detailBody"></div>
+      <div class="modal-footer" id="detailFooter"></div>
+    </div>
+  </div>
+
   <div id="confirmModal" class="modal-bg" style="display:none">
     <div class="confirm-box">
       <h3>Thông báo</h3>
@@ -791,6 +832,7 @@
         : '<i class="ti ti-user" style="font-size:12px"></i>Người trình ký';
       document.getElementById('roleToggle').checked = isAdmin;
       document.getElementById('exportBtn').style.display = isAdmin ? 'inline-flex' : 'none';
+      document.getElementById('myPwBtn').style.display = isAdmin ? 'inline-flex' : 'none';
       document.getElementById('importBtn').style.display = isTgdAsst() ? 'inline-flex' : 'none';
       document.getElementById('tab-config-nav').style.display = isAdmin ? 'flex' : 'none';
       document.getElementById('thLyDoTuChoi').style.display = isAdmin ? '' : 'none';
@@ -812,7 +854,7 @@
         const f = document.getElementById('filterLd')?.value;
         return f ? records.filter(r => r.ld === +f) : records;
       }
-      if (!isTgdAsst()) return records.filter(r => r.ld === session.ld);
+      // Trợ lý (TGĐ và PTGĐ): xem theo chip sổ đang chọn; "Tất cả" gồm mọi sổ. Chỉ thao tác được sổ của mình.
       return soView === 'ALL' ? records : records.filter(r => r.ld === soView);
     }
 
@@ -830,24 +872,29 @@
         return;
       }
       const me = ldById(session.ld);
-      if (!isTgdAsst()) {
-        ctl.innerHTML = `<span class="cap cap-ptgd">Sổ ${esc(me.ten_ngan)}</span>`;
-        note.classList.add('violet');
-        note.innerHTML = `<i class="ti ti-info-circle" style="font-size:14px;flex-shrink:0"></i><span>Giao diện <b>Trợ lý ${esc(me.ten)}</b>:
-          chỉ thấy và thao tác hồ sơ trình <b>${esc(me.ten_ngan)}</b>. Khi ${esc(me.ten_ngan)} đã ký, bạn bấm được <b>Trình tiếp TGĐ</b> hộ người gửi (có ghi nhật ký).</span>`;
-        note.style.display = 'flex';
-        return;
-      }
+      // Trợ lý PTGĐ không có chip "Sổ TGĐ" riêng; hồ sơ TGĐ chỉ hiện trong "Tất cả" (chỉ xem).
+      // Trợ lý TGĐ: chip mọi sổ. Trợ lý PTGĐ: chỉ sổ của mình + "Tất cả" (không xem riêng sổ TGĐ / PTGĐ khác).
+      const chips = leaders.filter(l => isTgdAsst() || l.id === session.ld);
       ctl.innerHTML = `<div class="seg" title="Sổ đang xem">
-        ${leaders.map(l => `<button type="button" class="${soView === l.id ? 'on' : ''}" onclick="setSoView(${l.id})">Sổ ${esc(l.ten_ngan)}${l.la_tgd ? '' : ' (xem)'}</button>`).join('')}
+        ${chips.map(l => `<button type="button" class="${soView === l.id ? 'on' : ''}" onclick="setSoView(${l.id})">Sổ ${esc(l.ten_ngan)}${l.id === session.ld ? '' : ' (xem)'}</button>`).join('')}
         <button type="button" class="${soView === 'ALL' ? 'on' : ''}" onclick="setSoView('ALL')">Tất cả</button></div>`;
-      if (soView !== 'ALL' && soView !== session.ld) {
-        note.innerHTML = `<i class="ti ti-lock" style="font-size:14px;flex-shrink:0"></i><span>Đang xem <b>Sổ ${esc(ldById(soView)?.ten_ngan)}</b>: chỉ xem, không thao tác.</span>`;
+      if (soView === session.ld) {
+        if (!isTgdAsst()) {
+          note.classList.add('violet');
+          note.innerHTML = `<i class="ti ti-info-circle" style="font-size:14px;flex-shrink:0"></i><span>Giao diện <b>Trợ lý ${esc(me.ten)}</b>:
+            thao tác hồ sơ trình <b>${esc(me.ten_ngan)}</b>. Khi ${esc(me.ten_ngan)} đã ký, bạn bấm được <b>Trình tiếp ${esc(tgd()?.ten_ngan || 'TGĐ')}</b> hộ người gửi (có ghi nhật ký).
+            Chọn "Tất cả" hoặc sổ khác để xem (chỉ xem).</span>`;
+          note.style.display = 'flex';
+        }
+      } else {
+        const what = soView === 'ALL' ? 'tất cả các sổ' : 'Sổ ' + esc(ldById(soView)?.ten_ngan);
+        note.innerHTML = `<i class="ti ti-lock" style="font-size:14px;flex-shrink:0"></i><span>Đang xem <b>${what}</b>: chỉ thao tác được hồ sơ trình <b>${esc(me.ten_ngan)}</b>, các hồ sơ khác chỉ xem.</span>`;
         note.style.display = 'flex';
       }
     }
 
     function setSoView(v) {
+      if (v !== 'ALL' && !isTgdAsst() && v !== session.ld) return;   // trợ lý PTGĐ chỉ xem sổ của mình hoặc Tất cả
       soView = v;
       renderScope(); renderTable(); updateStats();
     }
@@ -893,7 +940,7 @@
         el.classList.toggle('on', ['', 'pending', 'processing', 'done', 'rejected'][i] === st));
       if (!data.length) { tbody.innerHTML = `<tr><td colspan="20"><div class="empty"><i class="ti ti-inbox"></i>Chưa có hồ sơ nào</div></td></tr>`; return; }
       tbody.innerHTML = data.map((r, i) => {
-        const utLabel = r.priority === 1 ? 'Cao' : r.priority === 3 ? 'Thấp' : 'Trung bình';
+        const utLabel = r.priority === 1 ? 'Cao' : r.priority === 3 ? 'Thấp' : 'Vừa';
         const utBadge = r.priority === 1 ? 'badge-cao' : r.priority === 3 ? 'badge-thap' : 'badge-tb';
         const stBadge = r.status === 'done' ? 'badge-done' : r.status === 'processing' ? 'badge-processing' : r.status === 'rejected' ? 'badge-rejected' : 'badge-pending';
         const isOverdue = r.ngaydk && r.ngaydk < today && (r.status === 'pending' || r.status === 'processing');
@@ -924,22 +971,22 @@
         actions += `<button class="action-btn" onclick="openHistory(${r.id})" title="Lịch sử"><i class="ti ti-history"></i></button>`;
         if (can) actions += `<button class="action-btn action-del" onclick="deleteRecord(${r.id})" title="Xóa"><i class="ti ti-trash"></i></button>`;
 
-        return `<tr id="row-${r.id}">
+        return `<tr id="row-${r.id}" data-id="${r.id}" title="Bấm để xem thông tin hồ sơ">
               <td style="color:var(--text3);font-size:12px">${i + 1}</td>
               <td>${dayVN(r.ngaygui)}</td><td style="text-align:center">${fmtTime(r.gionhan)}</td><td>${fmtDate(r.ngaygui)}</td>
               <td>${esc(r.loai)}</td>
-              <td style="max-width:280px;white-space:normal;word-break:break-word"><span class="row-id">#${r.id}</span> ${esc(r.ten)}${links}</td>
+              <td style="max-width:280px;white-space:normal;word-break:break-word">${esc(r.ten)}${links}</td>
               <td>${capBadge(r.ld)}</td>
               <td style="text-align:center">${r.sl}</td>
               <td>${esc(r.phong)}</td><td>${esc(r.nguoigui)}</td><td style="max-width:110px;white-space:normal;word-break:break-word">${esc(r.doitac) || '—'}</td>
-              <td><span class="badge ${utBadge}">${utLabel}</span></td>
+              <td class="col-ut"><span class="badge ${utBadge}">${utLabel}</span></td>
               <td>${deadlineCell}</td>
               <td>${fmtDate(r.ngaytra)}</td><td style="text-align:center">${fmtTime(r.giortra)}</td>
               <td>${esc(r.nguoinhan) || '—'}</td>
               <td style="max-width:150px;white-space:normal;word-break:break-word;color:var(--text2);font-size:12px">${esc(r.ghichu) || '—'}</td>
               <td><span class="badge ${stBadge}">${stLabel(r.status)}</span></td>
-              <td style="display:flex;gap:4px;flex-wrap:wrap;align-items:center">${actions}</td>
               ${lydoCell}
+              <td class="col-act"><div class="acts">${actions}</div></td>
             </tr>`;
       }).join('');
       if (firstLoad) {
@@ -955,8 +1002,10 @@
     function jumpTo(id) {
       const r = records.find(x => x.id === id);
       if (!r) { showToast('Không tìm thấy hồ sơ #' + id); return; }
-      if (isAdmin && !isTgdAsst() && r.ld !== session.ld) { showToast(`Hồ sơ #${id} thuộc sổ ${ldById(r.ld)?.ten_ngan || ''}, ngoài phạm vi của bạn`); return; }
-      if (isTgdAsst() && soView !== 'ALL' && r.ld !== soView) { soView = r.ld; renderScope(); updateStats(); }
+      if (isAdmin && soView !== 'ALL' && r.ld !== soView) {
+        soView = (!isTgdAsst() && r.ld !== session.ld) ? 'ALL' : r.ld;
+        renderScope(); updateStats();
+      }
       if (!isAdmin && document.getElementById('filterLd')?.value) { document.getElementById('filterLd').value = ''; updateStats(); }
       document.getElementById('searchInput').value = '';
       document.getElementById('filterLoai').value = '';
@@ -1216,7 +1265,7 @@
     // ════════════════════════════════════════════════════════
     const ACT_LABEL = {
       tao: 'Đăng ký', sua: 'Sửa', nhan: 'Nhận HS', ky: 'Đã ký', tu_choi: 'Từ chối', xoa: 'Xóa',
-      khoi_phuc: 'Khôi phục', trinh_tiep: 'Trình tiếp TGĐ', doi_han_tra: 'Đổi hạn trả',
+      khoi_phuc: 'Khôi phục', trinh_tiep: 'Trình tiếp TGĐ', doi_han_tra: 'Đổi hạn trả', doi_mat_khau: 'Đổi mật khẩu',
     };
 
     async function openHistory(id) {
@@ -1256,7 +1305,7 @@
       document.getElementById('ldPick').innerHTML = leaders.map(l => `
         <label class="ld-opt ${l.la_tgd ? 'tgd' : 'ptgd'} ${formLd === l.id ? 'on' : ''} ${formLdLocked ? 'locked' : ''}">
           <input type="radio" name="f_ld" value="${l.id}" ${formLd === l.id ? 'checked' : ''} ${formLdLocked ? 'disabled' : ''} onchange="pickLd(${l.id})">
-          <span><b>${esc(l.ten)}</b><small>Ưu tiên: Cao ${l.so_ngay_cao} · TB ${l.so_ngay_tb} · Thấp ${l.so_ngay_thap} ngày LV</small></span>
+          <span><b>${esc(l.ten)}</b></span>
         </label>`).join('') || '<span style="font-size:12px;color:var(--danger)">Chưa có danh sách lãnh đạo (chưa chạy db/003).</span>';
       document.getElementById('ldPickNote').style.display = formLdLocked ? 'block' : 'none';
     }
@@ -1725,9 +1774,9 @@
 
     function renderConfigTab() {
       if (!leaders.length) return;
-      if (!ldById(cfgLdId)) cfgLdId = session.ld || tgd()?.id;
+      if (!ldById(cfgLdId) || (!isTgdAsst() && cfgLdId !== session.ld)) cfgLdId = session.ld || tgd()?.id;
       const L = ldById(cfgLdId), edit = canEditLd(L.id);
-      document.getElementById('cfgLdSeg').innerHTML = `<div class="seg">${leaders.map(l =>
+      document.getElementById('cfgLdSeg').innerHTML = `<div class="seg">${leaders.filter(l => isTgdAsst() || l.id === session.ld).map(l =>
         `<button type="button" class="${l.id === cfgLdId ? 'on' : ''}" onclick="setCfgLd(${l.id})">${esc(l.ten_ngan)}${l.id === session.ld ? ' (của bạn)' : ''}</button>`).join('')}</div>`;
       document.getElementById('cfgLdNote').innerHTML = edit ? '' : `<i class="ti ti-lock"></i> Chỉ xem: chỉ trợ lý của ${esc(L.ten_ngan)} được sửa`;
       document.getElementById('cfgLdName1').textContent = L.ten_ngan;
@@ -1819,10 +1868,12 @@
       const items = offDays.filter(o => o.ld === null || (L && o.ld === L.id));
       document.getElementById('offDayCount').textContent = items.length + ' mục';
       if (!items.length) { list.innerHTML = '<div style="padding:12px 16px;font-size:13px;color:var(--text3);font-style:italic">Chưa có ngày nào được thêm</div>'; return; }
+      // Ngày cụ thể: mới thêm nằm trên cùng. Lặp lại hằng tuần: xuống dưới cùng, theo thứ trong tuần.
       const sorted = [...items].sort((a, b) => {
-        const ka = a.type === 'recur' ? '9' + a.weekday : a.start;
-        const kb = b.type === 'recur' ? '9' + b.weekday : b.start;
-        return ka.localeCompare(kb);
+        const ra = a.type === 'recur', rb = b.type === 'recur';
+        if (ra !== rb) return ra ? 1 : -1;
+        if (ra) return ((a.weekday + 6) % 7) - ((b.weekday + 6) % 7);
+        return b.id - a.id;
       });
       list.innerHTML = `<div class="off-list">${sorted.map(o => {
         let label, badge;
@@ -2007,6 +2058,119 @@
     document.getElementById('leaderModal').addEventListener('click', function (e) { if (e.target === this) closeLeaderModal(); });
 
     // ════════════════════════════════════════════════════════
+    //  v5.1: Trợ lý tự đổi mật khẩu của lãnh đạo mình
+    // ════════════════════════════════════════════════════════
+    function openMyPwModal() {
+      if (!isAdmin) return;
+      document.getElementById('myPwTitle').textContent = 'Đổi mật khẩu ' + roleLabel();
+      ['myPwOld', 'myPwNew', 'myPwNew2'].forEach(id => document.getElementById(id).value = '');
+      document.getElementById('myPwError').style.display = 'none';
+      document.getElementById('myPwModal').style.display = 'flex';
+      setTimeout(() => document.getElementById('myPwOld').focus(), 50);
+    }
+    function closeMyPwModal() { document.getElementById('myPwModal').style.display = 'none'; }
+    function myPwErr(msg) {
+      const e = document.getElementById('myPwError');
+      e.innerHTML = '<i class="ti ti-alert-circle"></i> ' + esc(msg);
+      e.style.display = 'block';
+    }
+
+    async function saveMyPw() {
+      const me = ldById(session.ld);
+      if (!isAdmin || !me) return;
+      const oldPw = document.getElementById('myPwOld').value;
+      const pw = document.getElementById('myPwNew').value, pw2 = document.getElementById('myPwNew2').value;
+      if (!oldPw || !pw) { myPwErr('Nhập đủ mật khẩu hiện tại và mật khẩu mới'); return; }
+      if (pw.length < 6) { myPwErr('Mật khẩu mới tối thiểu 6 ký tự'); return; }
+      if (pw !== pw2) { myPwErr('Hai lần nhập mật khẩu mới không khớp'); return; }
+      if (pw === oldPw) { myPwErr('Mật khẩu mới phải khác mật khẩu hiện tại'); return; }
+      try {
+        // đọc lại mã băm mới nhất, phòng trường hợp Trợ lý TGĐ vừa đặt lại
+        const { data: cur, error: e1 } = await sb.from('lanh_dao').select('mat_khau_hash').eq('id', me.id).single();
+        if (e1) { myPwErr('Không đọc được dữ liệu: ' + e1.message); return; }
+        if ((await pwHash(me.ma, oldPw)) !== cur.mat_khau_hash) { myPwErr('Mật khẩu hiện tại không đúng'); return; }
+        for (const other of leaders) {
+          if (other.id !== me.id && other.mat_khau_hash && (await pwHash(other.ma, pw)) === other.mat_khau_hash) {
+            myPwErr('Mật khẩu này trùng với lãnh đạo khác, chọn mật khẩu khác'); return;
+          }
+        }
+        const hash = await pwHash(me.ma, pw);
+        const btn = document.getElementById('myPwSaveBtn');
+        btn.disabled = true;
+        const { error } = await sb.from('lanh_dao')
+          .update({ mat_khau_hash: hash, updated_at: new Date().toISOString(), updated_by: roleLabel() })
+          .eq('id', me.id).eq('mat_khau_hash', cur.mat_khau_hash);
+        btn.disabled = false;
+        if (error) { myPwErr('Lỗi lưu: ' + error.message); return; }
+        me.mat_khau_hash = hash;
+        await writeLog({ action: 'doi_mat_khau', entity: 'lanh_dao', entityId: me.id, label: me.ten_ngan, note: 'Trợ lý tự đổi mật khẩu' });
+        closeMyPwModal();
+        showToast('Đã đổi mật khẩu. Lần đăng nhập sau dùng mật khẩu mới.');
+      } catch (e) {
+        myPwErr(e.message);
+      }
+    }
+    document.getElementById('myPwModal').addEventListener('click', function (e) { if (e.target === this) closeMyPwModal(); });
+
+    // ════════════════════════════════════════════════════════
+    //  v5.1: Bấm vào dòng → popup thông tin hồ sơ
+    // ════════════════════════════════════════════════════════
+    document.getElementById('tbody').addEventListener('click', function (e) {
+      if (e.target.closest('button, a, input, select, textarea, label, .link-chip')) return;   // bấm nút / liên kết thì làm việc của nút
+      if (window.getSelection && String(window.getSelection()).length) return;               // đang bôi đen để copy chữ
+      const tr = e.target.closest('tr[data-id]');
+      if (tr) openDetail(+tr.dataset.id);
+    });
+
+    function openDetail(id) {
+      const r = records.find(x => x.id === id);
+      if (!r) return;
+      const l = ldById(r.ld), kid = childOf(r), can = inScope(r);
+      const stBadge = r.status === 'done' ? 'badge-done' : r.status === 'processing' ? 'badge-processing' : r.status === 'rejected' ? 'badge-rejected' : 'badge-pending';
+      const utBadge = r.priority === 1 ? 'badge-cao' : r.priority === 3 ? 'badge-thap' : 'badge-tb';
+      const row = (k, v) => `<div><span>${k}</span><span>${v}</span></div>`;
+      const dt = (d, t) => d ? fmtDate(d) + (d ? ' (' + dayVN(d) + ')' : '') + (t ? ' · ' + fmtTime(t) : '') : '—';
+      const isOverdue = r.ngaydk && r.ngaydk < todayStr() && (r.status === 'pending' || r.status === 'processing');
+      let links = '';
+      if (r.goc) links += `<span class="link-chip" onclick="closeDetailModal();jumpTo(${r.goc})"><i class="ti ti-arrow-back-up"></i>Trình tiếp từ hồ sơ của ${esc(ldById(records.find(x => x.id === r.goc)?.ld)?.ten_ngan || 'PTGĐ')}</span>`;
+      if (kid) links += `<span class="link-chip" onclick="closeDetailModal();jumpTo(${kid.id})"><i class="ti ti-arrow-forward-up"></i>Đã trình tiếp ${esc(ldById(kid.ld)?.ten_ngan || 'TGĐ')}</span>`;
+
+      document.getElementById('detailTitle').innerHTML = `${esc(r.ten)}`;
+      document.getElementById('detailBody').innerHTML = `
+        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:12px">
+          ${capBadge(r.ld)}<span class="badge ${stBadge}">${stLabel(r.status)}</span><span class="badge ${utBadge}">Ưu tiên ${r.priority === 1 ? 'Cao' : r.priority === 3 ? 'Thấp' : 'Vừa'}</span>${links}
+        </div>
+        <div class="summary">
+          ${row('Trình đến', esc(l?.ten || '—'))}
+          ${row('Loại hồ sơ', esc(r.loai) || '—')}
+          ${row('Tên hồ sơ', esc(r.ten) || '—')}
+          ${row('SL bản cứng', r.sl ?? '—')}
+          ${row('Phòng ban', esc(r.phong) || '—')}
+          ${row('Người gửi', esc(r.nguoigui) + (r.email ? ` <span style="color:var(--text3)">· ${esc(r.email)}</span>` : ''))}
+          ${row('Đối tác', esc(r.doitac) || '—')}
+          ${row('Nhận hồ sơ', dt(r.ngaygui, r.gionhan))}
+          ${row('Dự kiến trả', r.ngaydk ? `<span class="${isOverdue ? 'overdue' : ''}">${dt(r.ngaydk)}${isOverdue ? ' ⚠ quá hạn' : ''}</span>` : '—')}
+          ${row('Trả hồ sơ', dt(r.ngaytra, r.giortra))}
+          ${row('Người nhận HS', esc(r.nguoinhan) || '—')}
+          ${row('Ghi chú / Yêu cầu', esc(r.ghichu) || '—')}
+          ${r.status === 'rejected' && isAdmin ? row('Lý do từ chối', `<span style="color:var(--red-text)">${esc(r.lydotuchoi) || '—'}</span>`) : ''}
+          ${row('Người tạo', esc(r.created_by || '—') + (r.created_at ? ' · ' + new Date(r.created_at).toLocaleString('vi-VN') : ''))}
+          ${row('Cập nhật lần cuối', esc(r.updated_by || '—') + (r.updated_at ? ' · ' + new Date(r.updated_at).toLocaleString('vi-VN') : ''))}
+        </div>
+        ${isAdmin && !can ? '<div style="font-size:12px;color:var(--text3);margin-top:10px"><i class="ti ti-lock"></i> Hồ sơ thuộc sổ khác: chỉ xem.</div>' : ''}`;
+
+      let f = `<button class="btn" onclick="closeDetailModal();openHistory(${r.id})"><i class="ti ti-history"></i>Lịch sử</button>`;
+      if (can || (!isAdmin && r.status === 'pending')) f += `<button class="btn" onclick="closeDetailModal();openEdit(${r.id})"><i class="ti ti-edit"></i>Sửa</button>`;
+      f += `<button class="btn" onclick="closeDetailModal();openCopy(${r.id})"><i class="ti ti-copy"></i>Copy</button>`;
+      if (canForward(r)) f += `<button class="btn btn-violet" onclick="closeDetailModal();openForwardModal(${r.id})"><i class="ti ti-arrow-forward-up"></i>Trình tiếp ${esc(tgd()?.ten_ngan)}</button>`;
+      f += `<button class="btn btn-primary" onclick="closeDetailModal()">Đóng</button>`;
+      document.getElementById('detailFooter').innerHTML = f;
+      document.getElementById('detailModal').style.display = 'flex';
+    }
+    function closeDetailModal() { document.getElementById('detailModal').style.display = 'none'; }
+    document.getElementById('detailModal').addEventListener('click', function (e) { if (e.target === this) closeDetailModal(); });
+
+    // ════════════════════════════════════════════════════════
     //  Excel
     // ════════════════════════════════════════════════════════
     function exportExcel() {
@@ -2046,7 +2210,7 @@
         const wb = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(wb, ws, 'So trinh ky');
         const today = new Date();
-        const so = isTgdAsst() && soView === 'ALL' ? '' : '_' + (ldById(isTgdAsst() ? soView : session.ld)?.ma || '');
+        const so = soView === 'ALL' ? '' : '_' + (ldById(soView)?.ma || '');
         const fname = 'So_Trinh_Ky_Ho_So' + so + '_' + today.getFullYear() + '-' + String(today.getMonth() + 1).padStart(2, '0') + '-' + String(today.getDate()).padStart(2, '0') + '.xlsx';
         XLSX.writeFile(wb, fname);
       } catch (err) {
