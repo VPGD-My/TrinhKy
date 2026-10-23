@@ -1068,3 +1068,33 @@ td.col-act .acts    { display: flex; gap: 4px; flex-wrap: wrap; align-items: cen
 /* v5.2 – thẻ chọn lãnh đạo chỉ còn tên: canh giữa theo chiều dọc */
 .ld-opt          { align-items: center; }
 .ld-opt input    { margin-top: 0; }
+
+/* ============================================================
+   v5.3 – Bảng vừa khung màn hình, không phải kéo thanh cuộn ngang
+   Cách làm: tiêu đề cột được xuống dòng, bỏ độ rộng tối thiểu lớn,
+   chữ dài trong ô được xuống dòng, khoảng đệm ô gọn hơn.
+   ============================================================ */
+.table-wrap table   { width: 100%; }
+thead th            { white-space: normal; vertical-align: bottom; padding: 8px 6px; line-height: 1.3; }
+tbody td            { padding: 7px 6px; }
+#tbody td           { word-break: normal; overflow-wrap: normal; }      /* không cắt giữa chữ / giữa ngày */
+#tbody td:nth-child(6),
+#tbody td:nth-child(17) { overflow-wrap: anywhere; }                     /* tên hồ sơ, ghi chú dài: được ngắt */
+
+/* chỉ giữ 1 dòng cho các ô ngắn: STT, giờ, ngày, nhãn */
+#tbody td:nth-child(16) { white-space: normal; }          /* Người nhận HS: cho xuống dòng */
+th.c-stt            { width: 1%; }
+th.c-num            { width: 1%; }
+th.c-ten            { min-width: 170px; }
+th.c-loai           { min-width: 72px; }
+th.c-note           { min-width: 70px; }
+#tbody td:nth-child(6)  { min-width: 170px; }              /* Tên hồ sơ */
+#tbody td:nth-child(17) { font-size: 12px; color: var(--text2); }
+
+/* Lý do từ chối (trợ lý): cắt gọn 1 dòng, rê chuột xem đủ */
+th.c-lydo, td.c-lydo { width: 1%; }
+.lydo-cut           { max-width: 110px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--red-text); font-size: 12px; }
+
+/* Thao tác: nút xếp gọn, xuống dòng khi cần */
+td.col-act .acts    { min-width: 0; max-width: 170px; }
+td.col-act .action-btn { padding: 3px 6px; }

@@ -100,25 +100,25 @@
         <table>
           <thead>
             <tr>
-              <th>STT</th>
+              <th class="c-stt">STT</th>
               <th>Thứ</th>
               <th>Giờ nhận HS</th>
               <th>Ngày gửi HS</th>
-              <th style="min-width:110px;white-space:normal;word-break:break-word;overflow-wrap:break-word">Loại hồ sơ</th>
-              <th style="min-width:280px">Tên hồ sơ</th>
+              <th class="c-loai">Loại hồ sơ</th>
+              <th class="c-ten">Tên hồ sơ</th>
               <th>Trình đến</th>
-              <th style="min-width:20px">SL bản cứng</th>
-              <th style="width:90px">Phòng ban</th>
-              <th style="min-width:90px">Người gửi</th>
-              <th style="min-width:90px">Đối tác</th>
+              <th class="c-num">SL bản cứng</th>
+              <th>Phòng ban</th>
+              <th>Người gửi</th>
+              <th>Đối tác</th>
               <th class="col-ut">Ưu tiên</th>
-              <th style="min-width:90px;white-space:normal;word-break:break-word;overflow-wrap:break-word"> DK trả HS</th>
+              <th>DK trả HS</th>
               <th>Ngày trả HS</th>
               <th>Giờ trả HS</th>
               <th>Người nhận HS</th>
-              <th>Ghi chú / Yêu cầu</th>
+              <th class="c-note">Ghi chú / Yêu cầu</th>
               <th>Trạng thái</th>
-              <th id="thLyDoTuChoi" style="min-width:110px;max-width:140px;display:none">Lý do từ chối</th>
+              <th id="thLyDoTuChoi" class="c-lydo" style="display:none">Lý do từ chối</th>
               <th class="col-act">Thao tác</th>
             </tr>
           </thead>
@@ -945,7 +945,7 @@
         const stBadge = r.status === 'done' ? 'badge-done' : r.status === 'processing' ? 'badge-processing' : r.status === 'rejected' ? 'badge-rejected' : 'badge-pending';
         const isOverdue = r.ngaydk && r.ngaydk < today && (r.status === 'pending' || r.status === 'processing');
         const deadlineCell = r.ngaydk ? `<span class="${isOverdue ? 'overdue' : ''}">${fmtDate(r.ngaydk)} (${dayVN(r.ngaydk)})${isOverdue ? ' ⚠' : ''}</span>` : '—';
-        const lydoCell = isAdmin ? `<td style="max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--red-text);font-size:12px" title="${r.status === 'rejected' ? esc(r.lydotuchoi || '') : ''}">${r.status === 'rejected' ? (esc(r.lydotuchoi) || '—') : '—'}</td>` : '';
+        const lydoCell = isAdmin ? `<td class="c-lydo"><div class="lydo-cut" title="${r.status === 'rejected' ? esc(r.lydotuchoi || '') : ''}">${r.status === 'rejected' ? (esc(r.lydotuchoi) || '—') : '—'}</div></td>` : '';
 
         // liên kết trình tiếp
         let links = '';
