@@ -1,15 +1,14 @@
-name: Daily Backup Records
+name: Weekly Snapshot Records
 
 on:
   schedule:
-    - cron: '0 22 * * *'      # 5h sáng VN hằng ngày (daily)
-    - cron: '0 21 * * 0'      # 4h sáng VN mỗi Chủ nhật (snapshot tuần, chạy trước daily)
+    - cron: '0 21 * * 0'      # 21:00 UTC Chủ nhật = 4h sáng thứ 2 giờ VN (snapshot tuần)
   workflow_dispatch:
     inputs:
       snapshot:
         description: 'Chạy snapshot toàn bộ?'
         required: false
-        default: 'false'
+        default: 'true'
 
 jobs:
   trigger-backup:
@@ -18,15 +17,13 @@ jobs:
       - name: Xác định loại backup
         id: check
         run: |
-          DAY=$(date +%u)  # 7 = Chủ nhật
-          HOUR=$(date +%H)
-          if [ "${{ github.event.schedule }}" = "0 21 * * 0" ]; then
+          if [ "${{ github.event_name }}" = "schedule" ]; then
             echo "snapshot=true" >> $GITHUB_OUTPUT
           elif [ "${{ github.event.inputs.snapshot }}" = "true" ]; then
             echo "snapshot=true" >> $GITHUB_OUTPUT
           else
             echo "snapshot=false" >> $GITHUB_OUTPUT
-                fi
+          fi
 
       - name: Call backup-records Edge Function
         run: |
