@@ -246,7 +246,7 @@
         <div
           style="margin-bottom:14px;padding:10px 14px;background:var(--bg2);border-radius:var(--radius);border:1px solid var(--border);font-size:13px">
           <i class="ti ti-info-circle"></i> Các dòng được <strong>thêm vào cuối danh sách</strong>. Dữ liệu hiện có không bị
-          thay thế hay xóa. Thiếu cột "Trình đến" thì hồ sơ được gán trình TGĐ.
+          thay thế hay xóa. Thiếu cột "Trình đến" thì hồ sơ được gán trình TGĐ. Sheet Lãnh đạo / Ngày nghỉ (nếu có) được nhập trước.
         </div>
         <div
           style="overflow-x:auto;border:1px solid var(--border);border-radius:var(--radius);max-height:340px;overflow-y:auto">
@@ -945,7 +945,8 @@
         const stBadge = r.status === 'done' ? 'badge-done' : r.status === 'processing' ? 'badge-processing' : r.status === 'rejected' ? 'badge-rejected' : 'badge-pending';
         const isOverdue = r.ngaydk && r.ngaydk < today && (r.status === 'pending' || r.status === 'processing');
         // Ngày ở dòng trên, thứ ở dòng dưới (không bị cắt giữa "Thứ 2")
-        const deadlineCell = r.ngaydk ? `<span class="dk-tra ${isOverdue ? 'overdue' : ''}">${fmtDate(r.ngaydk)}${isOverdue ? ' ⚠' : ''}<br><small>${dayVN(r.ngaydk)}</small></span>` : '—';        const lydoCell = isAdmin ? `<td class="c-lydo"><div class="lydo-cut" title="${r.status === 'rejected' ? esc(r.lydotuchoi || '') : ''}">${r.status === 'rejected' ? (esc(r.lydotuchoi) || '—') : '—'}</div></td>` : '';
+        const deadlineCell = r.ngaydk ? `<span class="dk-tra ${isOverdue ? 'overdue' : ''}">${fmtDate(r.ngaydk)}${isOverdue ? ' ⚠' : ''}<br><small>${dayVN(r.ngaydk)}</small></span>` : '—';
+        const lydoCell = isAdmin ? `<td class="c-lydo"><div class="lydo-cut" title="${r.status === 'rejected' ? esc(r.lydotuchoi || '') : ''}">${r.status === 'rejected' ? (esc(r.lydotuchoi) || '—') : '—'}</div></td>` : '';
 
         // liên kết trình tiếp
         let links = '';
@@ -981,7 +982,8 @@
               <td>${esc(r.phong)}</td><td>${esc(r.nguoigui)}</td><td style="max-width:110px;white-space:normal;word-break:break-word">${esc(r.doitac) || '—'}</td>
               <td class="col-ut"><span class="badge ${utBadge}">${utLabel}</span></td>
               <td>${deadlineCell}</td>
-              <td>${r.ngaytra ? `<span class="dk-tra">${fmtDate(r.ngaytra)}<br><small>${dayVN(r.ngaytra)}</small></span>` : '—'}</td><td style="text-align:center">${fmtTime(r.giortra)}</td>              <td>${esc(r.nguoinhan) || '—'}</td>
+              <td>${r.ngaytra ? `<span class="dk-tra">${fmtDate(r.ngaytra)}<br><small>${dayVN(r.ngaytra)}</small></span>` : '—'}</td><td style="text-align:center">${fmtTime(r.giortra)}</td>
+              <td>${esc(r.nguoinhan) || '—'}</td>
               <td style="max-width:150px;white-space:normal;word-break:break-word;color:var(--text2);font-size:12px">${esc(r.ghichu) || '—'}</td>
               <td><span class="badge ${stBadge}">${stLabel(r.status)}</span></td>
               ${lydoCell}
@@ -2224,7 +2226,15 @@
     }
 
     // ── IMPORT EXCEL ─────────────────────────────────────────────
+    // v5.8: một file có thể chứa 3 sheet (nhận theo tiêu đề cột, không theo tên sheet):
+    //   • Sổ hồ sơ   – có cột "Tên hồ sơ"                      → thêm hồ sơ
+    //   • Lãnh đạo   – có cột "Mã" và "Nhãn ngắn"              → thêm / cập nhật lãnh đạo, số ngày ưu tiên
+    //   • Ngày nghỉ  – có cột "Loại ngày nghỉ"                  → thêm ngày công tác / nghỉ (bỏ qua dòng trùng)
+    // Thứ tự ghi: lãnh đạo → ngày nghỉ → hồ sơ (để "Trình đến" và hạn trả tính đúng). Chỉ THÊM / SỬA, không xóa.
     let importedRows = [];
+    let importedLeaders = [];
+    let importedOffs = [];
+    let importNotes = [];
 
     const COL_MAP = {
       'loại hồ sơ': 'loai', 'loai ho so': 'loai', 'loai': 'loai',
@@ -2242,10 +2252,34 @@
       'người nhận hs': 'nguoinhan', 'nguoi nhan': 'nguoinhan',
       'ghi chú / yêu cầu': 'ghichu', 'ghi chu': 'ghichu', 'ghi chú': 'ghichu', 'yêu cầu': 'ghichu',
       'trạng thái': 'status', 'trang thai': 'status',
+      'lý do từ chối': 'lydo', 'ly do tu choi': 'lydo',
       'trình đến': 'ld', 'trinh den': 'ld', 'lãnh đạo': 'ld', 'lanh dao': 'ld',
+      'email người gửi': 'email', 'email nguoi gui': 'email', 'email': 'email',
+    };
+    const LD_MAP = {
+      'mã': 'ma', 'ma': 'ma', 'tên đầy đủ': 'ten', 'ten day du': 'ten', 'nhãn ngắn': 'ngan', 'nhan ngan': 'ngan',
+      'là tgđ': 'tgd', 'la tgd': 'tgd', 'thứ tự': 'thutu', 'thu tu': 'thutu',
+      'ưu tiên 1 - cao (ngày lv)': 'd1', 'ưu tiên 2 - trung bình (ngày lv)': 'd2', 'ưu tiên 3 - thấp (ngày lv)': 'd3',
+    };
+    const OFF_MAP = {
+      'loại ngày nghỉ': 'type', 'loai ngay nghi': 'type', 'từ ngày': 'start', 'tu ngay': 'start', 'đến ngày': 'end', 'den ngay': 'end',
+      'thứ (lặp lại hằng tuần)': 'weekday', 'thứ lặp lại': 'weekday', 'lý do': 'reason', 'ly do': 'reason', 'áp dụng cho': 'apply', 'ap dung cho': 'apply',
     };
 
-    function normKey(s) { return (s || '').toString().toLowerCase().trim().replace(/\s+/g, ' '); }
+    // v5.7: "Ghi chú/Yêu cầu" và "Ghi chú / Yêu cầu" coi như nhau
+    function normKey(s) { return (s || '').toString().toLowerCase().trim().replace(/\s+/g, ' ').replace(/\s*\/\s*/g, ' / '); }
+    const txt = v => (v === null || v === undefined ? '' : v.toString().trim());
+
+    // v5.7: giờ trong Excel là số (phần của ngày, VD 0.385 = 09:14) hoặc chữ "9:30" → "HH:MM"
+    function parseExcelTime(v) {
+      if (v === null || v === undefined || v === '') return '';
+      if (typeof v === 'number') {
+        const mins = Math.round((v % 1) * 24 * 60) % (24 * 60);
+        return String(Math.floor(mins / 60)).padStart(2, '0') + ':' + String(mins % 60).padStart(2, '0');
+      }
+      const m = v.toString().trim().match(/^(\d{1,2})[:hH.](\d{2})/);
+      return m && +m[1] < 24 && +m[2] < 60 ? m[1].padStart(2, '0') + ':' + m[2] : '';
+    }
 
     function parsePriority(v) {
       if (!v) return 2;
@@ -2264,12 +2298,21 @@
       return 'pending';
     }
 
-    // "Trình đến" trong file: khớp mã, nhãn ngắn hoặc tên lãnh đạo; không khớp → TGĐ
-    function parseLd(v) {
+    // Khớp lãnh đạo theo mã, nhãn ngắn hoặc tên đầy đủ; trống → TGĐ; không khớp → undefined
+    function findLd(v) {
       const s = normKey(v);
-      if (!s) return tgd()?.id;
-      const l = leaders.find(x => [x.ma, x.ten_ngan, x.ten].some(k => normKey(k) === s));
-      return (l || tgd())?.id;
+      if (!s) return tgd();
+      return leaders.find(x => [x.ma, x.ten_ngan, x.ten].some(k => normKey(k) === s));
+    }
+    function parseLd(v) { return (findLd(v) || tgd())?.id; }
+
+    function parseWeekday(v) {
+      if (typeof v === 'number' && v >= 0 && v <= 6) return v;
+      const s = normKey(v);
+      if (!s) return null;
+      if (s.includes('chủ nhật') || s.includes('chu nhat') || s === 'cn') return 0;
+      const m = s.match(/(\d)/);
+      return m && +m[1] >= 2 && +m[1] <= 7 ? +m[1] - 1 : null;
     }
 
     function parseExcelDate(v) {
@@ -2288,6 +2331,19 @@
       return '';
     }
 
+    // Đọc 1 sheet: trả về { idx: {trường: cột}, rows: [dòng dữ liệu] } nếu tiêu đề khớp điều kiện
+    function readSheet(ws, map, need) {
+      const raw = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' });
+      if (!raw || !raw.length) return null;
+      const idx = {};
+      raw[0].forEach((h, i) => { const k = map[normKey(h)]; if (k && idx[k] === undefined) idx[k] = i; });
+      if (!need.every(k => idx[k] !== undefined)) return null;
+      const rows = raw.slice(1).filter(r => r.some(c => c !== null && c !== undefined && c !== ''));
+      return { idx, rows, header: raw[0] };
+    }
+
+    let importColIdx = {};
+
     function handleImportFile(e) {
       const file = e.target.files[0];
       e.target.value = '';
@@ -2298,42 +2354,94 @@
       reader.onload = function (ev) {
         try {
           const wb = XLSX.read(ev.target.result, { type: 'array', cellDates: false });
-          const ws = wb.Sheets[wb.SheetNames[0]];
-          const raw = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' });
-          if (!raw || raw.length < 2) { showToast('File Excel không có dữ liệu hoặc thiếu tiêu đề cột.'); return; }
+          let recSheet = null, ldSheet = null, offSheet = null;
+          for (const n of wb.SheetNames) {
+            const ws = wb.Sheets[n];
+            recSheet = recSheet || readSheet(ws, COL_MAP, ['ten']);
+            ldSheet = ldSheet || readSheet(ws, LD_MAP, ['ma', 'ngan']);
+            offSheet = offSheet || readSheet(ws, OFF_MAP, ['type']);
+          }
+          importNotes = [];
 
-          const headerRow = raw[0];
-          const colIdx = {};
-          headerRow.forEach((h, i) => {
-            const norm = normKey(h);
-            if (COL_MAP[norm]) colIdx[COL_MAP[norm]] = i;
-          });
-
-          const dataRows = raw.slice(1).filter(r => r.some(c => c !== null && c !== undefined && c !== ''));
-          importedRows = dataRows.map((row, i) => {
-            const get = f => colIdx[f] !== undefined ? row[colIdx[f]] : '';
-            return {
+          // ── Hồ sơ
+          importColIdx = recSheet ? recSheet.idx : {};
+          importedRows = (recSheet ? recSheet.rows : []).map((row, i) => {
+            const get = f => importColIdx[f] !== undefined ? row[importColIdx[f]] : '';
+            const r = {
               _rowNum: i + 2,
-              loai: (get('loai') || '').toString().trim(),
-              ten: (get('ten') || '').toString().trim(),
+              loai: txt(get('loai')),
+              ten: txt(get('ten')),
               sl: parseInt(get('sl')) || 1,
-              phong: (get('phong') || '').toString().trim(),
-              nguoigui: (get('nguoigui') || '').toString().trim(),
-              doitac: (get('doitac') || '').toString().trim(),
+              phong: txt(get('phong')),
+              nguoigui: txt(get('nguoigui')),
+              doitac: txt(get('doitac')),
               priority: parsePriority(get('priority')),
-              gionhan: (get('gionhan') || '').toString().trim(),
+              gionhan: parseExcelTime(get('gionhan')),
               ngaygui: parseExcelDate(get('ngaygui')),
               ngaydk: parseExcelDate(get('ngaydk')),
               ngaytra: parseExcelDate(get('ngaytra')),
-              giortra: (get('giortra') || '').toString().trim(),
-              nguoinhan: (get('nguoinhan') || '').toString().trim(),
-              ghichu: (get('ghichu') || '').toString().trim(),
-              status: parseStatus(get('status')),
-              ld: parseLd(get('ld')),
+              giortra: parseExcelTime(get('giortra')),
+              nguoinhan: txt(get('nguoinhan')),
+              ghichu: txt(get('ghichu')),
+              lydo: txt(get('lydo')),
+              ldText: txt(get('ld')),          // khớp lãnh đạo lúc xác nhận (sau khi nhập sheet Lãnh đạo)
+              emailIn: txt(get('email')),
             };
+            // Ô Trạng thái trống (hoặc không có cột) → suy ra từ ngày giờ như app
+            const st = txt(get('status'));
+            r.status = st ? parseStatus(st) : calcStatus(r);
+            if (r.status !== 'rejected') r.lydo = '';
+            return r;
+          }).filter(r => r.ten);
+
+          // ── Lãnh đạo
+          importedLeaders = [];
+          if (ldSheet) ldSheet.rows.forEach((row, i) => {
+            const get = f => ldSheet.idx[f] !== undefined ? row[ldSheet.idx[f]] : '';
+            const ma = txt(get('ma')), ten = txt(get('ten')), ngan = txt(get('ngan'));
+            if (!ma && !ten && !ngan) return;
+            const day = (f, def) => { const n = parseInt(get(f)); return n >= 1 && n <= 30 ? n : def; };
+            const cur = leaders.find(l => l.ma.toLowerCase() === ma.toLowerCase());
+            const item = {
+              _rowNum: i + 2, ma, ten: ten || cur?.ten || '', ngan: ngan || cur?.ten_ngan || '',
+              d1: day('d1', cur?.so_ngay_cao ?? 1), d2: day('d2', cur?.so_ngay_tb ?? 3), d3: day('d3', cur?.so_ngay_thap ?? 7),
+              thutu: parseInt(get('thutu')) || cur?.thu_tu || 0, cur,
+            };
+            if (!/^[A-Za-z0-9_-]{2,20}$/.test(ma) || !item.ten || !item.ngan) {
+              importNotes.push(`Lãnh đạo dòng ${item._rowNum}: thiếu hoặc sai Mã / Tên / Nhãn ngắn → bỏ qua.`); return;
+            }
+            const yes = normKey(get('tgd'));
+            if (!cur && (yes === 'có' || yes === 'co' || yes === 'x')) importNotes.push(`Lãnh đạo ${ma}: chỉ có 1 TGĐ (đã có sẵn) → nhập như PTGĐ.`);
+            item.action = !cur ? 'them'
+              : (cur.ten !== item.ten || cur.ten_ngan !== item.ngan || cur.so_ngay_cao !== item.d1 || cur.so_ngay_tb !== item.d2 ||
+                 cur.so_ngay_thap !== item.d3 || (cur.thu_tu || 0) !== item.thutu) ? 'sua' : 'giu';
+            importedLeaders.push(item);
           });
 
-          renderImportPreview(headerRow, colIdx, file.name);
+          // ── Ngày nghỉ
+          importedOffs = [];
+          if (offSheet) offSheet.rows.forEach((row, i) => {
+            const get = f => offSheet.idx[f] !== undefined ? row[offSheet.idx[f]] : '';
+            const t = normKey(get('type'));
+            const recur = t.includes('lặp') || t.includes('lap') || t.includes('tuần');
+            const o = { _rowNum: i + 2, type: recur ? 'recur' : 'range', reason: txt(get('reason')), applyText: txt(get('apply')) };
+            if (recur) {
+              o.weekday = parseWeekday(get('weekday'));
+              if (o.weekday === null) { importNotes.push(`Ngày nghỉ dòng ${o._rowNum}: thiếu "Thứ (lặp lại hằng tuần)" → bỏ qua.`); return; }
+              o.start = null; o.end = null;
+            } else {
+              o.start = parseExcelDate(get('start')); o.end = parseExcelDate(get('end')) || o.start; o.weekday = null;
+              if (!o.start) { importNotes.push(`Ngày nghỉ dòng ${o._rowNum}: thiếu "Từ ngày" → bỏ qua.`); return; }
+              if (o.end < o.start) { importNotes.push(`Ngày nghỉ dòng ${o._rowNum}: "Đến ngày" trước "Từ ngày" → bỏ qua.`); return; }
+            }
+            importedOffs.push(o);
+          });
+
+          if (!importedRows.length && !importedLeaders.length && !importedOffs.length) {
+            showToast('File không có dữ liệu: cần sheet có cột "Tên hồ sơ", hoặc sheet Lãnh đạo / Ngày nghỉ theo file mẫu.');
+            return;
+          }
+          renderImportPreview(recSheet ? recSheet.header : [], importColIdx, file.name);
           document.getElementById('importModal').style.display = 'flex';
         } catch (err) {
           showToast('Lỗi đọc file: ' + err.message);
@@ -2343,22 +2451,28 @@
       reader.readAsArrayBuffer(file);
     }
 
+    const isChung = s => { const k = normKey(s); return !k || k.startsWith('chung') || k.includes('mọi lãnh đạo'); };
+
     function renderImportPreview(headerRow, colIdx, fname) {
-      const mappedFields = ['loai', 'ten', 'sl', 'phong', 'nguoigui', 'doitac', 'priority', 'gionhan', 'ngaygui', 'ngaydk', 'ngaytra', 'giortra', 'nguoinhan', 'ghichu', 'status', 'ld'];
-      const fieldLabels = { loai: 'Loại HS', ten: 'Tên hồ sơ', sl: 'SL bản cứng', phong: 'Phòng ban', nguoigui: 'Người gửi', doitac: 'Đối tác', priority: 'Ưu tiên', gionhan: 'Giờ nhận', ngaygui: 'Ngày gửi', ngaydk: 'Ngày DK trả', ngaytra: 'Ngày trả', giortra: 'Giờ trả', nguoinhan: 'Người nhận', ghichu: 'Ghi chú', status: 'Trạng thái', ld: 'Trình đến' };
+      const mappedFields = ['loai', 'ten', 'sl', 'phong', 'nguoigui', 'doitac', 'priority', 'gionhan', 'ngaygui', 'ngaydk', 'ngaytra', 'giortra', 'nguoinhan', 'ghichu', 'status', 'lydo', 'ld', 'email'];
+      const fieldLabels = { loai: 'Loại HS', ten: 'Tên hồ sơ', sl: 'SL bản cứng', phong: 'Phòng ban', nguoigui: 'Người gửi', doitac: 'Đối tác', priority: 'Ưu tiên', gionhan: 'Giờ nhận', ngaygui: 'Ngày gửi', ngaydk: 'Ngày DK trả', ngaytra: 'Ngày trả', giortra: 'Giờ trả', nguoinhan: 'Người nhận', ghichu: 'Ghi chú', status: 'Trạng thái', lydo: 'Lý do từ chối', ld: 'Trình đến', email: 'Email người gửi' };
+      const optional = ['gionhan', 'ngaygui', 'ngaydk', 'ngaytra', 'giortra', 'nguoinhan', 'ghichu', 'status', 'lydo', 'ld', 'email'];
       const detected = mappedFields.filter(f => colIdx[f] !== undefined);
-      const missing = mappedFields.filter(f => !['gionhan', 'ngaygui', 'ngaydk', 'ngaytra', 'giortra', 'nguoinhan', 'ghichu', 'status', 'ld'].includes(f) && colIdx[f] === undefined);
+      const missing = importedRows.length ? mappedFields.filter(f => !optional.includes(f) && colIdx[f] === undefined) : [];
+      const ldNew = importedLeaders.filter(l => l.action === 'them').length, ldEdit = importedLeaders.filter(l => l.action === 'sua').length;
+      const box = (bg, fg, n, label) => `<div style="flex:1;min-width:160px;background:var(${bg});color:var(${fg});border-radius:var(--radius);padding:8px 12px;font-size:12px"><strong style="font-size:18px;display:block">${n}</strong>${label}</div>`;
 
       document.getElementById('importSummary').innerHTML = `
+    <div style="font-size:12px;color:var(--text2);margin-bottom:6px">File <em>${esc(fname)}</em></div>
     <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:8px">
-      <div style="flex:1;min-width:180px;background:var(--green-bg);color:var(--green-text);border-radius:var(--radius);padding:8px 12px;font-size:12px">
-        <strong style="font-size:18px;display:block">${importedRows.length}</strong>dòng dữ liệu đọc được từ <em>${esc(fname)}</em>
-      </div>
-      <div style="flex:1;min-width:180px;background:var(--blue-bg);color:var(--blue-text);border-radius:var(--radius);padding:8px 12px;font-size:12px">
-        <strong style="font-size:18px;display:block">${detected.length}/${mappedFields.length}</strong>cột khớp được map tự động
-      </div>
+      ${box('--green-bg', '--green-text', importedRows.length, `hồ sơ (${detected.length}/${mappedFields.length} cột nhận diện)`)}
+      ${box('--violet-bg', '--violet-text', importedLeaders.length, `lãnh đạo: ${ldNew} thêm mới, ${ldEdit} cập nhật`)}
+      ${box('--amber-bg', '--amber-text', importedOffs.length, 'ngày công tác / nghỉ (dòng trùng sẽ bỏ qua)')}
     </div>
     ${missing.length ? `<div style="background:var(--amber-bg);color:var(--amber-text);border-radius:var(--radius);padding:8px 12px;font-size:12px;margin-bottom:4px"><i class="ti ti-alert-triangle"></i> Không tìm thấy cột: <strong>${missing.map(f => fieldLabels[f]).join(', ')}</strong> — các trường này sẽ để trống</div>` : ''}
+    ${importedLeaders.length ? `<div style="font-size:12px;margin:6px 0"><b>Lãnh đạo:</b> ${importedLeaders.map(l => `${esc(l.ngan)} (${l.action === 'them' ? 'thêm' : l.action === 'sua' ? 'cập nhật' : 'không đổi'}; ưu tiên ${l.d1}/${l.d2}/${l.d3} ngày)`).join(' · ')}
+      ${ldNew ? '<br><span style="color:var(--text3)">Lãnh đạo mới chưa có mật khẩu trợ lý: đặt trong tab Cấu hình sau khi nhập.</span>' : ''}</div>` : ''}
+    ${importNotes.length ? `<div style="background:var(--red-bg);color:var(--red-text);border-radius:var(--radius);padding:8px 12px;font-size:12px;margin:6px 0">${importNotes.map(esc).join('<br>')}</div>` : ''}
   `;
 
       const showFields = detected;
@@ -2372,7 +2486,8 @@
           let val = r[f];
           if (f === 'priority') val = r.priority === 1 ? 'Cao' : r.priority === 3 ? 'Thấp' : 'Trung bình';
           if (f === 'status') val = stLabel(r.status);
-          if (f === 'ld') val = ldById(r.ld)?.ten_ngan || '';
+          if (f === 'ld') val = r.ldText || (tgd()?.ten_ngan + ' (mặc định)');
+          if (f === 'email') val = r.emailIn;
           if (f === 'ngaygui' || f === 'ngaydk' || f === 'ngaytra') val = val ? fmtDate(val) : '';
           return `<td style="padding:6px 10px;font-size:12px;border-bottom:1px solid var(--border);max-width:180px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${val ? esc(val) : '<span style="color:var(--text3)">—</span>'}</td>`;
         }).join('')}</tr>`;
@@ -2386,34 +2501,99 @@
     // v5: bản cũ chỉ thay dữ liệu trên màn hình rồi tải lại nên KHÔNG lưu gì vào Supabase.
     // Nay ghi thật vào Supabase, chỉ thêm mới (bỏ chế độ "Thay thế toàn bộ" để không mất dữ liệu cũ).
     async function confirmImport() {
-      if (!importedRows.length) { closeImportModal(); return; }
+      if (!importedRows.length && !importedLeaders.length && !importedOffs.length) { closeImportModal(); return; }
       const btn = document.getElementById('importConfirmBtn');
       btn.disabled = true;
-      const rows = importedRows.map(r => {
-        const rec = { ...r };
-        delete rec._rowNum;
-        rec.email = findEmployeeByName(rec.nguoigui)?.email || '';
-        if (!rec.ngaydk && rec.ngaygui) rec.ngaydk = calcDeadline(rec.ngaygui, rec.priority, rec.ld);
-        return {
-          ...toRow(rec),
-          status: rec.status || calcStatus(rec),
-          lydotuchoi: null,
-          created_by: roleLabel() + ' (Nhập Excel)',
-          updated_by: roleLabel() + ' (Nhập Excel)'
-        };
-      });
-      const { data: created, error } = await sb.from('records').insert(rows).select('id,tenhs');
-      btn.disabled = false;
-      if (error) { showToast('❌ Lỗi import: ' + error.message); return; }
-      await writeLog(created.map(c => ({ action: 'tao', entityId: c.id, label: `#${c.id} ${c.tenhs}`, source: 'Nhập Excel' })));
+      const notes = [];
+      let nLd = 0, nOff = 0, nRec = 0;
+      try {
+        // 1) Lãnh đạo
+        for (const l of importedLeaders.filter(x => x.action !== 'giu')) {
+          const patch = { ten: l.ten, ten_ngan: l.ngan, so_ngay_cao: l.d1, so_ngay_tb: l.d2, so_ngay_thap: l.d3, thu_tu: l.thutu };
+          if (l.action === 'them') {
+            const { data, error } = await sb.from('lanh_dao').insert([{ ma: l.ma, la_tgd: false, created_by: roleLabel() + ' (Nhập Excel)', ...patch }]).select('id').single();
+            if (error) { notes.push(`Lãnh đạo ${l.ma}: ${error.message}`); continue; }
+            await writeLog({ action: 'them_lanh_dao', entity: 'lanh_dao', entityId: data.id, label: l.ngan, source: 'Nhập Excel',
+              changes: [{ field: 'ten', label: 'Tên', old: null, new: l.ten }, { field: 'ten_ngan', label: 'Nhãn', old: null, new: l.ngan }] });
+          } else {
+            const c = l.cur, changes = [];
+            const add = (f, label, o, n) => { if (String(o ?? '') !== String(n ?? '')) changes.push({ field: f, label, old: String(o ?? ''), new: String(n ?? '') }); };
+            add('ten', 'Tên', c.ten, l.ten); add('ten_ngan', 'Nhãn', c.ten_ngan, l.ngan);
+            add('so_ngay_cao', PRIORITY_LABEL[1], c.so_ngay_cao, l.d1); add('so_ngay_tb', PRIORITY_LABEL[2], c.so_ngay_tb, l.d2);
+            add('so_ngay_thap', PRIORITY_LABEL[3], c.so_ngay_thap, l.d3); add('thu_tu', 'Thứ tự', c.thu_tu || 0, l.thutu);
+            const { error } = await sb.from('lanh_dao').update({ ...patch, updated_at: new Date().toISOString(), updated_by: roleLabel() + ' (Nhập Excel)' }).eq('id', c.id);
+            if (error) { notes.push(`Lãnh đạo ${l.ma}: ${error.message}`); continue; }
+            await writeLog({ action: 'sua_lanh_dao', entity: 'lanh_dao', entityId: c.id, label: l.ngan, source: 'Nhập Excel', changes });
+          }
+          nLd++;
+        }
+        if (importedLeaders.length) { await loadLeaders(); renderScope(); }
+
+        // 2) Ngày nghỉ (bỏ qua dòng trùng với ngày đang có)
+        await loadOffDays();
+        const offRows = [];
+        for (const o of importedOffs) {
+          let ld = null;
+          if (!isChung(o.applyText)) {
+            const l = findLd(o.applyText);
+            if (!l) { notes.push(`Ngày nghỉ dòng ${o._rowNum}: không tìm thấy lãnh đạo "${o.applyText}" → bỏ qua.`); continue; }
+            ld = l.id;
+          }
+          const dup = offDays.some(x => x.type === o.type && (x.start || null) === o.start && (x.end || null) === o.end &&
+            (x.weekday ?? null) === o.weekday && x.ld === ld) ||
+            offRows.some(x => x.type === o.type && x.start_date === o.start && x.end_date === o.end && x.weekday === o.weekday && x.lanh_dao_id === ld);
+          if (dup) continue;
+          offRows.push({ type: o.type, start_date: o.start, end_date: o.end, weekday: o.weekday, reason: o.reason || null, lanh_dao_id: ld, created_by: roleLabel() + ' (Nhập Excel)' });
+        }
+        if (offRows.length) {
+          const { data, error } = await sb.from('off_days').insert(offRows).select('id,type,start_date,end_date,weekday,lanh_dao_id');
+          if (error) notes.push('Ngày nghỉ: ' + error.message);
+          else {
+            nOff = data.length;
+            await writeLog(data.map(d => ({ action: 'them_ngay_nghi', entity: 'off_days', entityId: d.id, source: 'Nhập Excel',
+              label: `${d.type === 'recur' ? DAYS_VN[d.weekday] + ' hằng tuần' : fmtDate(d.start_date) + (d.end_date !== d.start_date ? ' – ' + fmtDate(d.end_date) : '')} (${d.lanh_dao_id === null ? 'Chung' : ldById(d.lanh_dao_id)?.ten_ngan})` })));
+          }
+          await loadOffDays();
+        }
+
+        // 3) Hồ sơ
+        if (importedRows.length) {
+          const rows = importedRows.map(r => {
+            const rec = { ...r };
+            const l = findLd(rec.ldText);
+            if (!l) notes.push(`Hồ sơ dòng ${rec._rowNum}: không tìm thấy lãnh đạo "${rec.ldText}" → gán ${tgd()?.ten_ngan}.`);
+            rec.ld = (l || tgd())?.id;
+            rec.email = rec.emailIn || findEmployeeByName(rec.nguoigui)?.email || '';
+            if (!rec.ngaydk && rec.ngaygui) rec.ngaydk = calcDeadline(rec.ngaygui, rec.priority, rec.ld);
+            return {
+              ...toRow(rec),
+              status: rec.status || calcStatus(rec),
+              lydotuchoi: rec.status === 'rejected' && rec.lydo ? rec.lydo : null,
+              created_by: roleLabel() + ' (Nhập Excel)',
+              updated_by: roleLabel() + ' (Nhập Excel)'
+            };
+          });
+          const { data: created, error } = await sb.from('records').insert(rows).select('id,tenhs');
+          if (error) notes.push('Hồ sơ: ' + error.message);
+          else {
+            nRec = created.length;
+            await writeLog(created.map(c => ({ action: 'tao', entityId: c.id, label: `#${c.id} ${c.tenhs}`, source: 'Nhập Excel' })));
+          }
+        }
+      } finally {
+        btn.disabled = false;
+      }
       closeImportModal();
       await loadRecords();
-      showToast(`Đã import thành công ${created.length} hồ sơ!`);
+      if (document.getElementById('tab-config').classList.contains('active')) renderConfigTab();
+      const msg = `Đã nhập: ${nRec} hồ sơ, ${nLd} lãnh đạo, ${nOff} ngày nghỉ.`;
+      showToast(msg);
+      if (notes.length) setTimeout(() => alert(msg + '\n\nLưu ý:\n• ' + notes.join('\n• ')), 50);
     }
 
     function closeImportModal() {
       document.getElementById('importModal').style.display = 'none';
-      importedRows = [];
+      importedRows = []; importedLeaders = []; importedOffs = []; importNotes = [];
     }
 
     function showToast(msg) {
