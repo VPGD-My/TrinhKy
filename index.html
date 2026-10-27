@@ -1114,6 +1114,9 @@
             ngay_gui: record.ngaygui,
             trang_thai: "rejected",
             ly_do_tu_choi: record.lydotuchoi || "",
+            ghichu: record.ghichu || "",                              // v5.6: thẻ từ chối có thêm Ghi chú
+            trinh_den: ldById(record.ld)?.ten || "",                  // v5.6: Trình ký đến
+            trinh_den_ngan: ldById(record.ld)?.ten_ngan || "",        // v5.6: "PTGĐ KD đã ký" trên dòng tiêu đề
           }),
         });
 
@@ -1159,6 +1162,8 @@
             phong_ban: record.phong,
             ngay_gui: record.ngaygui,
             ghichu: record.ghichu || "",
+            trinh_den: ldById(record.ld)?.ten || "",                  // v5.6: Trình ký đến
+            trinh_den_ngan: ldById(record.ld)?.ten_ngan || "",        // v5.6: "PTGĐ KD đã ký" trên dòng tiêu đề
           }),
         });
 
