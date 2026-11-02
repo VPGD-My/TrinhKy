@@ -2125,7 +2125,7 @@
           ${dateCells}
           <td class="off-reason">${esc(o.reason) || '<span class="muted">—</span>'}</td>
           <td>${owner}</td>
-          <td class="act">${canDel ? `<button class="action-btn action-del" onclick="removeOffDay(${o.id})" title="Xóa"><i class="ti ti-x"></i></button>` : ''}</td>
+          <td class="off-act">${canDel ? `<button class="off-del" onclick="removeOffDay(${o.id})" title="Xóa ngày này" aria-label="Xóa ngày này"><i class="ti ti-trash"></i></button>` : ''}</td>
         </tr>`;
       }).join('')}</tbody></table></div>`;
     }

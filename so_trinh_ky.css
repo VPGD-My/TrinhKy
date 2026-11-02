@@ -1250,7 +1250,14 @@ td.col-act .acts            { min-width: 1; max-width: 170px; }   /* Thao tác: 
 .off-table td small { color: var(--text3); font-size: 11px; margin-left: 2px; }
 .off-table td.off-reason { white-space: normal; min-width: 140px; }
 .off-table .num { text-align: center; }
-.off-table td.act { text-align: right; width: 1%; }
+.off-table td.off-act { text-align: right; width: 1%; padding-right: 10px; }   /* v6.4.1: không dùng .act (trùng nhãn nhật ký) */
+.off-del {
+  width: 28px; height: 28px; display: inline-flex; align-items: center; justify-content: center;
+  background: transparent; border: 1px solid transparent; border-radius: var(--radius);
+  color: var(--text3); font-size: 15px; cursor: pointer; transition: background .15s, color .15s, border-color .15s;
+}
+.off-table tbody tr:hover .off-del { color: var(--del); }
+.off-del:hover { background: var(--del-bg); border-color: var(--del-line); color: var(--del); }
 .off-table .muted { color: var(--text3); }
 .off-table tbody tr:hover td { background: var(--hover-soft); }
 
