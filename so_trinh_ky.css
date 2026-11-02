@@ -1222,3 +1222,4 @@ td.col-act .acts            { min-width: 1; max-width: 170px; }   /* Thao tác: 
 .user-table .col-act { min-width: 0; width: 1%; }
 .user-table td.col-act .acts { flex-wrap: nowrap; max-width: none; }
 #tab-users .table-wrap { height: auto; max-height: calc(100vh - 260px); }
+.chk-line { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text2); margin-top: 8px; cursor: pointer; }

@@ -223,6 +223,7 @@
           <span id="userCount" style="font-size:12px;color:var(--text3)"></span>
         </div>
         <div style="display:flex;gap:8px">
+          <button class="btn" onclick="sendPendingTeams()" title="Cấp mật khẩu riêng và nhắn Teams cho các tài khoản chưa đổi mật khẩu tạm"><i class="ti ti-brand-teams"></i>Gửi MK qua Teams</button>
           <button class="btn" onclick="openBulkModal()"><i class="ti ti-users-plus"></i>Tạo từ danh sách nhân viên</button>
           <button class="btn btn-primary" onclick="openUserModal(null)"><i class="ti ti-user-plus"></i>Thêm người dùng</button>
         </div>
@@ -587,6 +588,13 @@
             <label>Họ tên<span class="required">*</span></label>
             <input type="text" class="field" id="u_hoten" maxlength="150">
           </div>
+          <!-- v6.2: thêm vào bảng employees nếu chưa có (để chọn được ở ô Người gửi) -->
+          <div class="form-group full" id="u_nvGroup">
+            <label class="chk-line" style="margin-top:0"><input type="checkbox" id="u_themNv" checked onchange="userEmailInput()"> Thêm vào danh sách nhân viên (Người gửi) nếu chưa có</label>
+            <input type="text" class="field" id="u_phong" list="u_phongList" maxlength="100" placeholder="Phòng ban (tùy chọn)" style="margin-top:6px">
+            <datalist id="u_phongList"></datalist>
+            <small id="u_nvHint" style="font-size:11px;color:var(--text3)"></small>
+          </div>
           <div class="form-group">
             <label>Vai trò<span class="required">*</span></label>
             <select class="field" id="u_vaitro" onchange="userRoleChange()">
@@ -604,6 +612,7 @@
               <input type="text" class="field" id="u_pw" autocomplete="off" spellcheck="false" style="flex:1">
               <button type="button" class="btn btn-sm" onclick="document.getElementById('u_pw').value=randomPw()"><i class="ti ti-refresh"></i>Tạo ngẫu nhiên</button>
             </div>
+            <label class="chk-line"><input type="checkbox" id="u_teams" checked> Nhắn tên đăng nhập + mật khẩu qua Teams cho người này</label>
           </div>
         </div>
       </div>
@@ -628,6 +637,7 @@
             <button type="button" class="btn btn-sm" onclick="document.getElementById('resetPwInput').value=randomPw()" title="Tạo ngẫu nhiên"><i class="ti ti-refresh"></i></button>
           </div>
         </div>
+        <label class="chk-line"><input type="checkbox" id="resetTeams" checked> Nhắn mật khẩu tạm qua Teams cho người này</label>
         <div class="pw-error" id="resetPwError"></div>
       </div>
       <div class="modal-footer">
@@ -646,20 +656,15 @@
       </div>
       <div class="modal-body">
         <div class="info-box" style="margin-bottom:12px"><i class="ti ti-info-circle" style="font-size:14px;flex-shrink:0"></i>
-          <span>Danh sách là nhân viên có email nhưng chưa có tài khoản. Tất cả được tạo với vai trò <b>Người trình ký</b> và
-            cùng một mật khẩu tạm; mỗi người phải đổi mật khẩu khi đăng nhập lần đầu.</span></div>
-        <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px">
-          <label style="font-size:13px;display:flex;gap:6px;align-items:center"><input type="checkbox" id="bulkAll" onchange="bulkToggleAll(this.checked)"> Chọn tất cả</label>
-          <span id="bulkCount" style="font-size:12px;color:var(--text3)"></span>
+          <span>Nhân viên có email nhưng chưa có tài khoản. Mỗi người được tạo vai trò <b>Người trình ký</b> với <b>mật khẩu ngẫu nhiên riêng</b>
+            và nhận tên đăng nhập + mật khẩu qua Teams; lần đầu đăng nhập phải đổi mật khẩu.</span></div>
+        <div style="display:flex;gap:14px;align-items:center;flex-wrap:wrap;margin-bottom:8px">
+          <label class="chk-line" style="margin:0"><input type="checkbox" id="bulkAll" onchange="bulkToggleAll(this.checked)"> Chọn tất cả</label>
+          <label class="chk-line" style="margin:0"><input type="checkbox" id="bulkOnlySubmitted" checked onchange="renderBulkList()"> Chỉ người đã từng trình ký</label>
+          <label class="chk-line" style="margin:0"><input type="checkbox" id="bulkTeams" checked> Nhắn qua Teams</label>
+          <span id="bulkCount" style="font-size:12px;color:var(--text3);margin-left:auto"></span>
         </div>
         <div class="bulk-list" id="bulkList"></div>
-        <div class="form-group" style="margin-top:12px">
-          <label>Mật khẩu tạm chung<span class="required">*</span></label>
-          <div style="display:flex;gap:8px">
-            <input type="text" class="field" id="bulkPw" autocomplete="off" spellcheck="false" style="flex:1">
-            <button type="button" class="btn btn-sm" onclick="document.getElementById('bulkPw').value=randomPw()"><i class="ti ti-refresh"></i>Tạo ngẫu nhiên</button>
-          </div>
-        </div>
         <div id="bulkResult" style="margin-top:10px;font-size:12px"></div>
       </div>
       <div class="modal-footer">
@@ -703,6 +708,14 @@
         { auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: false } }
       );
     const EMAIL_DOMAIN = 'duytanrecycling.com';
+
+    // v6.3: chỉ đóng modal khi bấm hẳn vào nền tối (nhấn VÀ nhả chuột đều ở nền).
+    // Trước đây bôi đen chữ trong ô nhập rồi thả chuột ra ngoài khung → trình duyệt tính là bấm vào nền → modal bị đóng.
+    let stkMouseDownEl = null;
+    document.addEventListener('mousedown', e => { stkMouseDownEl = e.target; }, true);
+    document.addEventListener('click', e => {
+      if (e.target.classList && e.target.classList.contains('modal-bg') && stkMouseDownEl !== e.target) e.stopImmediatePropagation();
+    }, true);
 
     const DAYS_VN = ['Chủ nhật', 'Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7'];
     const PRIORITY_LABEL = { 1: 'Ưu tiên 1 – Cao', 2: 'Ưu tiên 2 – Trung bình', 3: 'Ưu tiên 3 – Thấp' };
@@ -2279,6 +2292,10 @@
       document.getElementById('u_ld').value = u?.lanh_dao_id ?? (tgd()?.id || '');
       document.getElementById('u_ld').disabled = !!u && u.id === curUser?.id;
       document.getElementById('u_pwGroup').style.display = u ? 'none' : '';
+      document.getElementById('u_themNv').checked = true;
+      document.getElementById('u_phong').value = '';
+      document.getElementById('u_phongList').innerHTML = [...new Set(employees.map(e => (e.department || '').trim()).filter(Boolean))]
+        .sort((a, b) => a.localeCompare(b, 'vi')).map(d => `<option value="${esc(d)}">`).join('');
       document.getElementById('u_pw').value = u ? '' : randomPw();
       userEmailInput();
       userRoleChange();
@@ -2291,6 +2308,15 @@
       const emp = employees.find(e => (e.email || '').trim().toLowerCase() === v);
       const ht = document.getElementById('u_hoten');
       if (emp && !ht.value) ht.value = emp.fullname;
+      // v6.2: đã có trong employees thì không cần thêm
+      const creating = !userEditId;
+      document.getElementById('u_nvGroup').style.display = creating ? '' : 'none';
+      const them = document.getElementById('u_themNv').checked;
+      document.getElementById('u_phong').style.display = creating && !emp && them ? '' : 'none';
+      document.getElementById('u_nvHint').textContent = !v.includes('@') ? ''
+        : emp ? 'Đã có trong danh sách nhân viên' + (emp.department ? ' (' + emp.department + ')' : '') + '.'
+        : them ? 'Chưa có trong danh sách nhân viên: sẽ được thêm.'
+        : 'Chưa có trong danh sách nhân viên: người này sẽ không chọn được mình ở ô Người gửi.';
       document.getElementById('u_tenHint').textContent = v.includes('@') ? 'Tên đăng nhập: ' + v.split('@')[0] : '';
     }
     function userRoleChange() {
@@ -2313,8 +2339,15 @@
           await callAdmin('update', { id: u.id, ho_ten, vai_tro, lanh_dao_id });
           showToast('Đã lưu ' + u.ten_dang_nhap);
         } else {
-          const r = await callAdmin('create', { email, ho_ten, vai_tro, lanh_dao_id, password });
-          alert(`Đã tạo tài khoản.\n\nTên đăng nhập: ${r.ten_dang_nhap}\nMật khẩu tạm: ${password}\n\nGửi cho người dùng. Lần đăng nhập đầu họ phải đổi mật khẩu.`);
+          const gui_teams = document.getElementById('u_teams').checked;
+          const them_nhan_vien = document.getElementById('u_themNv').checked;
+          const phong_ban = document.getElementById('u_phong').value.trim();
+          const r = await callAdmin('create', { email, ho_ten, vai_tro, lanh_dao_id, password, gui_teams, them_nhan_vien, phong_ban });
+          if (r.nhan_vien === 'da_them') await loadEmployees();
+          else if (r.nhan_vien && r.nhan_vien !== 'da_co') alert('Đã tạo tài khoản, nhưng ' + r.nhan_vien + '\nThêm tay vào bảng employees để người này chọn được ở ô Người gửi.');
+          if (r.teams === 'da_gui') showToast(`Đã tạo ${r.ten_dang_nhap} và nhắn mật khẩu qua Teams`);
+          else alert(`Đã tạo tài khoản.\n\nTên đăng nhập: ${r.ten_dang_nhap}\nMật khẩu tạm: ${password}\n\n` +
+            (r.teams_error ? 'Không nhắn được Teams (' + r.teams_error + '). ' : '') + 'Gửi cho người dùng. Lần đăng nhập đầu họ phải đổi mật khẩu.');
         }
         closeUserModal();
         await loadUsers();
@@ -2345,10 +2378,14 @@
       const btn = document.getElementById('resetPwBtn');
       btn.disabled = true;
       try {
-        const r = await callAdmin('reset_password', { id: u.id, password: pw });
+        const gui_teams = document.getElementById('resetTeams').checked && u.id !== curUser?.id;
+        const r = await callAdmin('reset_password', { id: u.id, password: pw, gui_teams });
         closeResetPwModal();
         await loadUsers();
-        alert(`Đã cấp lại mật khẩu cho ${u.ten_dang_nhap}.\n\nMật khẩu tạm: ${pw}\n\nNgười dùng phải đổi mật khẩu khi đăng nhập.` + (r?.warning ? '\n\nLưu ý: ' + r.warning : ''));
+        if (r.teams === 'da_gui' && !r.warning) showToast(`Đã cấp lại mật khẩu cho ${u.ten_dang_nhap} và nhắn qua Teams`);
+        else alert(`Đã cấp lại mật khẩu cho ${u.ten_dang_nhap}.\n\nMật khẩu tạm: ${pw}\n\n` +
+          (r.teams === 'da_gui' ? 'Đã nhắn qua Teams. ' : r.teams_error ? 'Không nhắn được Teams (' + r.teams_error + '). Gửi tay cho người dùng. ' : '') +
+          'Người dùng phải đổi mật khẩu khi đăng nhập.' + (r?.warning ? '\n\nLưu ý: ' + r.warning : ''));
         if (u.id === curUser?.id) openMyPwModal(true);
       } catch (e) {
         err.innerHTML = '<i class="ti ti-alert-circle"></i> ' + esc(e.message);
@@ -2380,23 +2417,32 @@
       } catch (e) { showToast('❌ ' + e.message); }
     }
 
-    // Tạo hàng loạt từ bảng employees (chỉ người chưa có tài khoản)
+    // Tạo hàng loạt từ bảng employees (chỉ người chưa có tài khoản), mỗi người 1 mật khẩu ngẫu nhiên
     let bulkCandidates = [];
+    const sleep = ms => new Promise(r => setTimeout(r, ms));   // giãn nhịp gửi email (Resend giới hạn số lần / giây)
+
     function openBulkModal() {
+      document.getElementById('bulkResult').innerHTML = '';
+      document.getElementById('bulkBtn').disabled = false;
+      renderBulkList();
+      document.getElementById('bulkModal').style.display = 'flex';
+    }
+    function renderBulkList() {
       const has = new Set(users.map(u => u.email));
+      // người đã từng trình ký: email người gửi trên hồ sơ (trợ lý TGĐ thấy mọi hồ sơ)
+      const submitted = new Set(records.map(r => (r.email || '').trim().toLowerCase()).filter(Boolean));
+      const only = document.getElementById('bulkOnlySubmitted').checked;
       const seen = new Set();
       bulkCandidates = employees
         .map(e => ({ email: (e.email || '').trim().toLowerCase(), ho_ten: (e.fullname || '').trim() }))
-        .filter(e => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e.email) && e.ho_ten && !has.has(e.email) && !seen.has(e.email) && seen.add(e.email))
+        .filter(e => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e.email) && e.ho_ten && !has.has(e.email)
+          && (!only || submitted.has(e.email)) && !seen.has(e.email) && seen.add(e.email))
         .sort((a, b) => a.ho_ten.localeCompare(b.ho_ten, 'vi'));
       document.getElementById('bulkList').innerHTML = bulkCandidates.length
         ? bulkCandidates.map((e, i) => `<label><input type="checkbox" data-i="${i}" onchange="bulkCountUpd()"> <b>${esc(e.ho_ten)}</b> <span>${esc(e.email)}</span></label>`).join('')
-        : '<div class="empty">Mọi nhân viên có email đều đã có tài khoản.</div>';
+        : '<div class="empty">Không còn nhân viên nào chưa có tài khoản.</div>';
       document.getElementById('bulkAll').checked = false;
-      document.getElementById('bulkPw').value = randomPw();
-      document.getElementById('bulkResult').innerHTML = '';
       bulkCountUpd();
-      document.getElementById('bulkModal').style.display = 'flex';
     }
     function closeBulkModal() { document.getElementById('bulkModal').style.display = 'none'; }
     function bulkToggleAll(on) { document.querySelectorAll('#bulkList input').forEach(x => x.checked = on); bulkCountUpd(); }
@@ -2404,24 +2450,64 @@
       const n = document.querySelectorAll('#bulkList input:checked').length;
       document.getElementById('bulkCount').textContent = `Đã chọn ${n} / ${bulkCandidates.length}`;
     }
+
+    // Kết quả hàng loạt: chỉ hiện mật khẩu của người KHÔNG nhắn được Teams (để gửi tay)
+    function bulkReport(title, done, manual, errs) {
+      return `<b>${esc(title)}: ${done} người.</b>` +
+        (manual.length ? `<div style="margin-top:8px">Chưa nhắn Teams được, gửi tay:</div><table class="cfg-table" style="margin-top:4px">
+          <tr><th>Tên đăng nhập</th><th>Mật khẩu tạm</th><th>Lý do</th></tr>
+          ${manual.map(m => `<tr><td>${esc(m.ten)}</td><td><code>${esc(m.pw)}</code></td><td style="font-size:11px">${esc(m.why || '')}</td></tr>`).join('')}</table>` : '') +
+        (errs.length ? `<ul style="color:var(--red-text);margin-top:6px">${errs.map(x => `<li>${esc(x)}</li>`).join('')}</ul>` : '');
+    }
+
     async function runBulkCreate() {
       const pick = [...document.querySelectorAll('#bulkList input:checked')].map(x => bulkCandidates[+x.dataset.i]);
-      const pw = document.getElementById('bulkPw').value;
+      const gui_teams = document.getElementById('bulkTeams').checked;
       if (!pick.length) { showToast('Chưa chọn nhân viên nào'); return; }
-      if (pw.length < 6) { showToast('Mật khẩu tạm tối thiểu 6 ký tự'); return; }
       const btn = document.getElementById('bulkBtn');
       btn.disabled = true;
       const out = document.getElementById('bulkResult');
-      let ok = 0; const errs = [];
+      let ok = 0; const manual = [], errs = [];
       for (const [i, e] of pick.entries()) {
         out.textContent = `Đang tạo ${i + 1} / ${pick.length}: ${e.email}`;
-        try { await callAdmin('create', { email: e.email, ho_ten: e.ho_ten, vai_tro: 'nguoi_trinh', password: pw }); ok++; }
-        catch (err) { errs.push(`${e.email}: ${err.message}`); }
+        const pw = randomPw();
+        try {
+          const r = await callAdmin('create', { email: e.email, ho_ten: e.ho_ten, vai_tro: 'nguoi_trinh', password: pw, gui_teams });
+          ok++;
+          if (r.teams !== 'da_gui') manual.push({ ten: r.ten_dang_nhap, pw, why: r.teams_error || 'Không chọn nhắn Teams' });
+        } catch (err) { errs.push(`${e.email}: ${err.message}`); }
+        if (gui_teams) await sleep(600);
       }
-      btn.disabled = false;
-      out.innerHTML = `<b>Đã tạo ${ok} / ${pick.length} tài khoản.</b> Mật khẩu tạm chung: <code>${esc(pw)}</code>` +
-        (errs.length ? `<ul style="color:var(--red-text);margin-top:6px">${errs.map(x => `<li>${esc(x)}</li>`).join('')}</ul>` : '');
+      out.innerHTML = bulkReport('Đã tạo tài khoản', ok, manual, errs);
       await loadUsers();
+      renderBulkList();
+      btn.disabled = false;
+    }
+
+    // Tài khoản chưa đổi mật khẩu tạm (VD tạo bằng mật khẩu chung trước đây): cấp mật khẩu riêng + nhắn Teams
+    function sendPendingTeams() {
+      const list = users.filter(u => !u.deleted_at && u.phai_doi_mat_khau && u.id !== curUser?.id);
+      if (!list.length) { showToast('Không có tài khoản nào đang chờ đổi mật khẩu tạm'); return; }
+      openConfirmModal(`Cấp mật khẩu tạm MỚI (riêng từng người) và nhắn qua Teams cho ${list.length} tài khoản chưa đổi mật khẩu? Mật khẩu tạm cũ của họ hết hiệu lực.`, async () => {
+        document.getElementById('bulkList').innerHTML = '';
+        document.getElementById('bulkCount').textContent = '';
+        document.getElementById('bulkBtn').disabled = true;
+        const out = document.getElementById('bulkResult');
+        document.getElementById('bulkModal').style.display = 'flex';
+        let ok = 0; const manual = [], errs = [];
+        for (const [i, u] of list.entries()) {
+          out.textContent = `Đang gửi ${i + 1} / ${list.length}: ${u.ten_dang_nhap}`;
+          const pw = randomPw();
+          try {
+            const r = await callAdmin('reset_password', { id: u.id, password: pw, gui_teams: true });
+            ok++;
+            if (r.teams !== 'da_gui') manual.push({ ten: u.ten_dang_nhap, pw, why: r.teams_error });
+          } catch (err) { errs.push(`${u.ten_dang_nhap}: ${err.message}`); }
+          await sleep(600);
+        }
+        out.innerHTML = bulkReport('Đã cấp mật khẩu riêng', ok, manual, errs);
+        await loadUsers();
+      }, false, 'Gửi');
     }
 
     ['userModal', 'resetPwModal', 'bulkModal'].forEach(id => document.getElementById(id).addEventListener('click', function (e) {
