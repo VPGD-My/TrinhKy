@@ -15,7 +15,7 @@
     })();
   </script>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
-  <link rel="stylesheet" href="so_trinh_ky.css?v=5">
+  <link rel="stylesheet" href="so_trinh_ky.css?v=6">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 
@@ -32,18 +32,11 @@
     </div>
 
     <div class="header-right">
-      <div class="role-switch">
-        <span>Người trình ký</span>
-        <label class="toggle">
-          <input type="checkbox" id="roleToggle" onchange="switchRole()">
-          <span class="slider-t"></span>
-        </label>
-        <span>Trợ lý</span>
-      </div>
-      <span class="role-badge role-user" id="roleBadge">
-        <i class="ti ti-user" style="font-size:12px"></i>Người trình ký
-      </span>
-      <button class="btn btn-sm" id="myPwBtn" onclick="openMyPwModal()" style="display:none" title="Đổi mật khẩu trợ lý của bạn"><i class="ti ti-key"></i>Đổi mật khẩu</button>
+      <!-- v6: đăng nhập bằng tài khoản, bỏ công tắc Trợ lý -->
+      <span class="user-chip" id="userChip" style="display:none" title=""><i class="ti ti-user-circle"></i><span id="userName"></span></span>
+      <span class="role-badge role-user" id="roleBadge" style="display:none"></span>
+      <button class="btn btn-sm" id="myPwBtn" onclick="openMyPwModal()" style="display:none" title="Đổi mật khẩu của bạn"><i class="ti ti-key"></i>Đổi mật khẩu</button>
+      <button class="btn btn-sm" id="logoutBtn" onclick="logout()" style="display:none" title="Đăng xuất khỏi máy này"><i class="ti ti-logout"></i>Đăng xuất</button>
       <button class="btn theme-btn" id="themeBtn" onclick="toggleTheme()" title="Đổi giao diện sáng / tối"><i class="ti ti-moon"></i></button>
     </div>
   </div>
@@ -52,6 +45,8 @@
     <div class="nav-tab active" onclick="showTab('tab-records',this)"><i class="ti ti-files"></i>Danh sách hồ sơ</div>
     <div class="nav-tab" id="tab-config-nav" onclick="showTab('tab-config',this)" style="display:none"><i
         class="ti ti-settings"></i>Cấu hình &amp; Ngày nghỉ</div>
+    <div class="nav-tab" id="tab-users-nav" onclick="showTab('tab-users',this)" style="display:none"><i
+        class="ti ti-users"></i>Người dùng</div>
   </div>
 
   <div class="main">
@@ -193,45 +188,77 @@
           <div id="offDayList"></div>
         </div>
 
-        <!-- v5: chỉ Trợ lý TGĐ – danh sách lãnh đạo, mật khẩu trợ lý -->
+        <!-- v5: chỉ Trợ lý TGĐ – danh sách lãnh đạo (v6: bỏ mật khẩu trợ lý theo lãnh đạo) -->
         <div class="card-box wide" id="leaderCard" style="display:none">
           <div class="card-box-header">
-            <h3><i class="ti ti-users" style="font-size:15px;color:var(--violet)"></i>Lãnh đạo &amp; mật khẩu trợ lý</h3>
+            <h3><i class="ti ti-users" style="font-size:15px;color:var(--violet)"></i>Lãnh đạo</h3>
             <button class="btn btn-sm" onclick="openLeaderModal(null)"><i class="ti ti-plus"></i>Thêm lãnh đạo</button>
           </div>
           <table class="cfg-table ld-table">
             <thead>
-              <tr><th>Mã</th><th>Tên</th><th>Nhãn</th><th>Mật khẩu trợ lý</th><th></th></tr>
+              <tr><th>Mã</th><th>Tên</th><th>Nhãn</th><th>Trợ lý</th><th></th></tr>
             </thead>
             <tbody id="leaderBody"></tbody>
           </table>
           <div class="cfg-info"><i class="ti ti-info-circle" style="font-size:13px;flex-shrink:0;margin-top:1px"></i>
-            Mỗi lãnh đạo có một mật khẩu trợ lý riêng. Nhập mật khẩu nào thì vào giao diện trợ lý của lãnh đạo đó.
+            Trợ lý của từng lãnh đạo được gán ở tab <b>Người dùng</b> (vai trò Trợ lý, chọn lãnh đạo). Một lãnh đạo có thể có nhiều trợ lý.
             Trợ lý TGĐ quản lý danh sách này và các ngày nghỉ chung (lễ, Tết).</div>
         </div>
 
       </div>
     </div>
 
+    <!-- v6: Người dùng (chỉ Trợ lý TGĐ) -->
+    <div id="tab-users" class="tab-content">
+      <div class="toolbar">
+        <div class="toolbar-left">
+          <div class="search-box"><i class="ti ti-search" style="font-size:14px;color:var(--text3)"></i><input type="text"
+              placeholder="Tìm tên đăng nhập, họ tên..." id="userSearch" oninput="renderUsers()"></div>
+          <select class="filter" id="userFilter" onchange="renderUsers()">
+            <option value="">Đang hoạt động</option>
+            <option value="tro_ly">Chỉ trợ lý</option>
+            <option value="khoa">Đã khóa</option>
+            <option value="all">Tất cả</option>
+          </select>
+          <span id="userCount" style="font-size:12px;color:var(--text3)"></span>
+        </div>
+        <div style="display:flex;gap:8px">
+          <button class="btn" onclick="openBulkModal()"><i class="ti ti-users-plus"></i>Tạo từ danh sách nhân viên</button>
+          <button class="btn btn-primary" onclick="openUserModal(null)"><i class="ti ti-user-plus"></i>Thêm người dùng</button>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table class="user-table">
+          <thead>
+            <tr><th>Tên đăng nhập</th><th>Họ tên</th><th>Email</th><th>Vai trò</th><th>Trạng thái</th><th class="col-act">Thao tác</th></tr>
+          </thead>
+          <tbody id="userBody"></tbody>
+        </table>
+      </div>
+      <div class="cfg-info" style="margin-top:10px"><i class="ti ti-info-circle" style="font-size:13px;flex-shrink:0;margin-top:1px"></i>
+        Tên đăng nhập là phần trước @ của email. Tài khoản mới và tài khoản được cấp lại mật khẩu phải đổi mật khẩu ở lần đăng nhập đầu.
+        Khóa tài khoản: người đó bị đăng xuất khỏi mọi máy và không đăng nhập được nữa; hồ sơ cũ giữ nguyên.</div>
+    </div>
+
   </div>
 
-  <!-- Password Modal -->
-  <div class="modal-bg" id="pwModal" style="display:none">
-    <div class="modal pw-modal">
-      <div class="modal-body" style="text-align:center;padding:28px 24px 20px">
-        <div class="pw-icon"><i class="ti ti-lock"></i></div>
-        <h2 style="font-size:15px;font-weight:600;margin-bottom:4px">Chuyển sang quyền Trợ lý</h2>
-        <p style="font-size:12px;color:var(--text2);margin-bottom:16px">Nhập mật khẩu trợ lý. Mỗi lãnh đạo (TGĐ, từng PTGĐ) có
-          mật khẩu riêng.</p>
-        <input type="password" class="field" id="pwInput" placeholder="Nhập mật khẩu..." style="text-align:center"
-          onkeydown="if(event.key==='Enter')confirmAdminLogin()">
-        <div class="pw-error" id="pwError"><i class="ti ti-alert-circle"></i> Sai mật khẩu, vui lòng thử lại</div>
+  <!-- v6: Màn hình đăng nhập -->
+  <div class="login-bg" id="loginScreen">
+    <form class="login-box" onsubmit="event.preventDefault(); doLogin();" autocomplete="on">
+      <img src="01.HinhAnh/Logo DTR 2024.png" alt="Logo" class="login-logo">
+      <h1>Sổ trình ký</h1>
+      <p class="login-sub">Đăng nhập bằng tài khoản email công ty</p>
+      <label for="loginUser">Tên đăng nhập</label>
+      <div class="login-user">
+        <input type="text" class="field" id="loginUser" name="username" autocomplete="username" autocapitalize="none" spellcheck="false" placeholder="vd: toantt">
+        <span>@duytanrecycling.com</span>
       </div>
-      <div class="modal-footer" style="justify-content:center">
-        <button class="btn" onclick="cancelAdminLogin()">Hủy</button>
-        <button class="btn btn-primary" onclick="confirmAdminLogin()"><i class="ti ti-login"></i>Kích hoạt</button>
-      </div>
-    </div>
+      <label for="loginPw">Mật khẩu</label>
+      <input type="password" class="field" id="loginPw" name="password" autocomplete="current-password">
+      <div class="pw-error" id="loginError"></div>
+      <button type="submit" class="btn btn-primary login-btn" id="loginBtn"><i class="ti ti-login"></i>Đăng nhập</button>
+      <p class="login-help">Quên mật khẩu: liên hệ Trợ lý Tổng Giám đốc để được cấp lại.</p>
+    </form>
   </div>
 
   <!-- Import Modal -->
@@ -446,11 +473,6 @@
             <label>Số lượng bản cứng</label>
             <input type="number" class="field" id="fwSl" min="1" value="1">
           </div>
-          <div class="form-group full" id="fwActorGroup">
-            <label>Người thực hiện<span class="required">*</span> <span style="font-size:11px;color:var(--text3)">(ghi vào nhật ký)</span></label>
-            <input type="text" class="field" id="fwActor" list="fwActorList" placeholder="Họ tên người bấm trình tiếp">
-            <datalist id="fwActorList"></datalist>
-          </div>
         </div>
         <div class="info-box scope-note violet" style="margin-top:12px;margin-bottom:0">
           <i class="ti ti-info-circle" style="font-size:14px;flex-shrink:0"></i>
@@ -496,14 +518,6 @@
             <label>Tên đầy đủ<span class="required">*</span></label>
             <input type="text" class="field" id="ld_ten" maxlength="150" placeholder="VD: Phó Tổng Giám đốc Kinh doanh">
           </div>
-          <div class="form-group">
-            <label id="ld_pw_label">Mật khẩu trợ lý<span class="required">*</span></label>
-            <input type="password" class="field" id="ld_pw" autocomplete="new-password">
-          </div>
-          <div class="form-group">
-            <label>Nhập lại mật khẩu</label>
-            <input type="password" class="field" id="ld_pw2" autocomplete="new-password">
-          </div>
           <div class="info-box" id="ld_hint"></div>
         </div>
       </div>
@@ -519,10 +533,10 @@
     <div class="modal pw-modal">
       <div class="modal-body" style="padding:24px 24px 16px">
         <div class="pw-icon"><i class="ti ti-key"></i></div>
-        <h2 style="font-size:15px;font-weight:600;margin-bottom:4px;text-align:center" id="myPwTitle">Đổi mật khẩu trợ lý</h2>
-        <p style="font-size:12px;color:var(--text2);margin-bottom:14px;text-align:center">Lần đăng nhập sau dùng mật khẩu mới.</p>
+        <h2 style="font-size:15px;font-weight:600;margin-bottom:4px;text-align:center" id="myPwTitle">Đổi mật khẩu</h2>
+        <p style="font-size:12px;color:var(--text2);margin-bottom:14px;text-align:center" id="myPwSub">Các máy đang đăng nhập vẫn giữ đăng nhập.</p>
         <div class="form-group" style="margin-bottom:10px">
-          <label>Mật khẩu hiện tại<span class="required">*</span></label>
+          <label id="myPwOldLabel">Mật khẩu hiện tại<span class="required">*</span></label>
           <input type="password" class="field" id="myPwOld" autocomplete="current-password">
         </div>
         <div class="form-group" style="margin-bottom:10px">
@@ -536,7 +550,7 @@
         <div class="pw-error" id="myPwError"></div>
       </div>
       <div class="modal-footer">
-        <button class="btn" onclick="closeMyPwModal()">Hủy</button>
+        <button class="btn" id="myPwCancelBtn">Hủy</button>
         <button class="btn btn-primary" id="myPwSaveBtn" onclick="saveMyPw()"><i class="ti ti-check"></i>Đổi mật khẩu</button>
       </div>
     </div>
@@ -551,6 +565,107 @@
       </div>
       <div class="modal-body" id="detailBody"></div>
       <div class="modal-footer" id="detailFooter"></div>
+    </div>
+  </div>
+
+  <!-- v6: Thêm / sửa người dùng (Trợ lý TGĐ) -->
+  <div class="modal-bg" id="userModal" style="display:none">
+    <div class="modal" style="max-width:540px">
+      <div class="modal-header">
+        <h2 id="userTitle">Thêm người dùng</h2>
+        <button class="action-btn" onclick="closeUserModal()" style="padding:4px 6px"><i class="ti ti-x"></i></button>
+      </div>
+      <div class="modal-body">
+        <div class="form-grid">
+          <div class="form-group full">
+            <label>Email công ty<span class="required">*</span> <span style="font-size:11px;color:var(--text3)">(gõ tên để chọn từ danh sách nhân viên)</span></label>
+            <input type="text" class="field" id="u_email" list="u_emailList" autocomplete="off" spellcheck="false" placeholder="vd: toantt@duytanrecycling.com" oninput="userEmailInput()">
+            <datalist id="u_emailList"></datalist>
+            <small id="u_tenHint" style="font-size:11px;color:var(--text3)"></small>
+          </div>
+          <div class="form-group full">
+            <label>Họ tên<span class="required">*</span></label>
+            <input type="text" class="field" id="u_hoten" maxlength="150">
+          </div>
+          <div class="form-group">
+            <label>Vai trò<span class="required">*</span></label>
+            <select class="field" id="u_vaitro" onchange="userRoleChange()">
+              <option value="nguoi_trinh">Người trình ký</option>
+              <option value="tro_ly">Trợ lý lãnh đạo</option>
+            </select>
+          </div>
+          <div class="form-group" id="u_ldGroup">
+            <label>Trợ lý của<span class="required">*</span></label>
+            <select class="field" id="u_ld"></select>
+          </div>
+          <div class="form-group full" id="u_pwGroup">
+            <label>Mật khẩu ban đầu<span class="required">*</span> <span style="font-size:11px;color:var(--text3)">(tối thiểu 6 ký tự, người dùng phải đổi khi đăng nhập lần đầu)</span></label>
+            <div style="display:flex;gap:8px">
+              <input type="text" class="field" id="u_pw" autocomplete="off" spellcheck="false" style="flex:1">
+              <button type="button" class="btn btn-sm" onclick="document.getElementById('u_pw').value=randomPw()"><i class="ti ti-refresh"></i>Tạo ngẫu nhiên</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn" onclick="closeUserModal()">Hủy</button>
+        <button class="btn btn-primary" id="userSaveBtn" onclick="saveUser()"><i class="ti ti-check"></i>Lưu</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- v6: Cấp lại mật khẩu -->
+  <div class="modal-bg" id="resetPwModal" style="display:none">
+    <div class="modal pw-modal">
+      <div class="modal-body" style="padding:24px 24px 16px">
+        <div class="pw-icon"><i class="ti ti-key"></i></div>
+        <h2 style="font-size:15px;font-weight:600;margin-bottom:4px;text-align:center" id="resetPwTitle">Cấp lại mật khẩu</h2>
+        <p style="font-size:12px;color:var(--text2);margin-bottom:14px;text-align:center">Người dùng bị đăng xuất khỏi mọi máy và phải đổi mật khẩu này khi đăng nhập lại.</p>
+        <div class="form-group">
+          <label>Mật khẩu tạm<span class="required">*</span></label>
+          <div style="display:flex;gap:8px">
+            <input type="text" class="field" id="resetPwInput" autocomplete="off" spellcheck="false" style="flex:1">
+            <button type="button" class="btn btn-sm" onclick="document.getElementById('resetPwInput').value=randomPw()" title="Tạo ngẫu nhiên"><i class="ti ti-refresh"></i></button>
+          </div>
+        </div>
+        <div class="pw-error" id="resetPwError"></div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn" onclick="closeResetPwModal()">Hủy</button>
+        <button class="btn btn-primary" id="resetPwBtn" onclick="saveResetPw()"><i class="ti ti-check"></i>Cấp lại</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- v6: Tạo tài khoản hàng loạt từ bảng employees -->
+  <div class="modal-bg" id="bulkModal" style="display:none">
+    <div class="modal" style="max-width:640px">
+      <div class="modal-header">
+        <h2><i class="ti ti-users-plus" style="color:var(--blue);margin-right:6px"></i>Tạo tài khoản từ danh sách nhân viên</h2>
+        <button class="action-btn" onclick="closeBulkModal()" style="padding:4px 6px"><i class="ti ti-x"></i></button>
+      </div>
+      <div class="modal-body">
+        <div class="info-box" style="margin-bottom:12px"><i class="ti ti-info-circle" style="font-size:14px;flex-shrink:0"></i>
+          <span>Danh sách là nhân viên có email nhưng chưa có tài khoản. Tất cả được tạo với vai trò <b>Người trình ký</b> và
+            cùng một mật khẩu tạm; mỗi người phải đổi mật khẩu khi đăng nhập lần đầu.</span></div>
+        <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px">
+          <label style="font-size:13px;display:flex;gap:6px;align-items:center"><input type="checkbox" id="bulkAll" onchange="bulkToggleAll(this.checked)"> Chọn tất cả</label>
+          <span id="bulkCount" style="font-size:12px;color:var(--text3)"></span>
+        </div>
+        <div class="bulk-list" id="bulkList"></div>
+        <div class="form-group" style="margin-top:12px">
+          <label>Mật khẩu tạm chung<span class="required">*</span></label>
+          <div style="display:flex;gap:8px">
+            <input type="text" class="field" id="bulkPw" autocomplete="off" spellcheck="false" style="flex:1">
+            <button type="button" class="btn btn-sm" onclick="document.getElementById('bulkPw').value=randomPw()"><i class="ti ti-refresh"></i>Tạo ngẫu nhiên</button>
+          </div>
+        </div>
+        <div id="bulkResult" style="margin-top:10px;font-size:12px"></div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn" onclick="closeBulkModal()">Đóng</button>
+        <button class="btn btn-primary" id="bulkBtn" onclick="runBulkCreate()"><i class="ti ti-check"></i>Tạo tài khoản</button>
+      </div>
     </div>
   </div>
 
@@ -580,19 +695,22 @@
     const SUPABASE_KEY =
       'sb_publishable_mHMxM2cefCNjReBXXDJDlg_f0gHmSj0';
 
+    // v6: luôn ghi nhớ đăng nhập trên máy này (phiên lưu localStorage, tự gia hạn) cho tới khi bấm Đăng xuất
     const sb =
       window.supabase.createClient(
         SUPABASE_URL,
-        SUPABASE_KEY
+        SUPABASE_KEY,
+        { auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: false } }
       );
+    const EMAIL_DOMAIN = 'duytanrecycling.com';
 
     const DAYS_VN = ['Chủ nhật', 'Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7'];
     const PRIORITY_LABEL = { 1: 'Ưu tiên 1 – Cao', 2: 'Ưu tiên 2 – Trung bình', 3: 'Ưu tiên 3 – Thấp' };
     const PRIORITY_COL = { 1: 'so_ngay_cao', 2: 'so_ngay_tb', 3: 'so_ngay_thap' };
 
-    // v5: mật khẩu trợ lý không còn nằm trong code. Mỗi lãnh đạo có mật khẩu riêng,
-    // lưu dạng mã băm SHA-256 trong bảng lanh_dao (xem db/003_lanh_dao_trinh_tiep.sql).
+    // v6: vai trò lấy từ tài khoản đăng nhập (bảng nguoi_dung). Quyền thật do RLS trên Supabase quyết định.
     let isAdmin = false, editId = null, firstLoad = true;
+    let curUser = null;               // dòng nguoi_dung của người đang đăng nhập
     let session = { ld: null };       // lãnh đạo của trợ lý đang đăng nhập (null = Người trình ký)
     let soView = null;                // Trợ lý TGĐ: sổ đang xem (id lãnh đạo hoặc 'ALL')
     let cfgLdId = null;               // tab Cấu hình: lãnh đạo đang xem
@@ -601,6 +719,7 @@
     let offDays = [];                 // {id, type, start, end, weekday, reason, ld}
     let records = [];
     let employees = [];
+    let users = [];                   // v6: bảng nguoi_dung (chỉ Trợ lý TGĐ đọc được hết)
 
     // ════════════════════════════════════════════════════════
     //  Lãnh đạo, vai trò, phạm vi
@@ -610,6 +729,8 @@
     const myLd = () => (isAdmin ? session.ld : null);
     const isTgdAsst = () => isAdmin && !!ldById(session.ld)?.la_tgd;
     const roleLabel = () => isAdmin ? 'Trợ lý ' + (ldById(session.ld)?.ten_ngan || '') : 'Người trình ký';
+    // tên ghi vào created_by / updated_by / nhật ký: họ tên thật + vai trò
+    const actorName = () => curUser ? curUser.ho_ten + (isAdmin ? ' (' + roleLabel() + ')' : '') : roleLabel();
     const inScope = r => isAdmin && r.ld === session.ld;     // trợ lý chỉ thao tác hồ sơ trong sổ của mình
     const childOf = r => records.find(x => x.goc === r.id);
     const ldDays = (ldId, level) => (ldById(ldId) || tgd() || {})[PRIORITY_COL[level]] || { 1: 1, 2: 3, 3: 7 }[level];
@@ -629,13 +750,6 @@
     function esc(s) {
       return String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
     }
-
-    async function sha256Hex(text) {
-      if (!window.crypto?.subtle) throw new Error('Trình duyệt không hỗ trợ mã hóa (cần mở trang qua https).');
-      const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text));
-      return [...new Uint8Array(buf)].map(b => b.toString(16).padStart(2, '0')).join('');
-    }
-    const pwHash = (ma, pw) => sha256Hex('stk|' + ma.trim().toLowerCase() + '|' + pw);
 
     // ════════════════════════════════════════════════════════
     //  Nhật ký (bảng audit_log, chỉ ghi thêm)
@@ -666,9 +780,9 @@
     // Lỗi ghi nhật ký không làm hỏng thao tác chính, chỉ báo ra console.
     async function writeLog(entries) {
       const rows = (Array.isArray(entries) ? entries : [entries]).map(e => ({
-        user_id: e.userId || (isAdmin ? 'tro-ly:' + (ldById(session.ld)?.ma || '') : 'nguoi-trinh-ky'),
-        user_name: e.userName || roleLabel(),
-        authenticated: false,
+        user_id: curUser?.id,            // RLS: chỉ ghi nhật ký dưới tên chính mình
+        user_name: e.userName || actorName(),
+        authenticated: true,
         action: e.action,
         entity: e.entity || 'records',
         entity_id: e.entityId != null ? String(e.entityId) : null,
@@ -765,58 +879,90 @@
       document.getElementById(id).classList.add('active');
       el.classList.add('active');
       if (id === 'tab-config') renderConfigTab();
+      if (id === 'tab-users') loadUsers();
     }
 
     // ════════════════════════════════════════════════════════
-    //  Đăng nhập trợ lý
+    //  v6: Đăng nhập bằng tài khoản (Supabase Auth)
     // ════════════════════════════════════════════════════════
-    function switchRole() {
-      const toggle = document.getElementById('roleToggle');
-      if (toggle.checked) {
-        toggle.checked = false; // trả về cho tới khi nhập đúng mật khẩu
-        document.getElementById('pwInput').value = '';
-        document.getElementById('pwError').style.display = 'none';
-        document.getElementById('pwModal').style.display = 'flex';
-        setTimeout(() => document.getElementById('pwInput').focus(), 50);
-        return;
-      }
-      applyRole(false);
+    let booted = false;
+
+    function showLogin(msg) {
+      document.getElementById('loginScreen').style.display = 'flex';
+      const err = document.getElementById('loginError');
+      if (msg) { err.innerHTML = '<i class="ti ti-alert-circle"></i> ' + esc(msg); err.style.display = 'block'; }
+      else err.style.display = 'none';
+      setTimeout(() => document.getElementById(document.getElementById('loginUser').value ? 'loginPw' : 'loginUser').focus(), 50);
     }
 
-    async function confirmAdminLogin() {
-      const val = document.getElementById('pwInput').value;
-      const err = document.getElementById('pwError');
-      if (!val) { err.style.display = 'block'; return; }
-      if (!leaders.length) {
-        err.innerHTML = '<i class="ti ti-alert-circle"></i> Chưa có danh sách lãnh đạo (chưa chạy db/003?)';
-        err.style.display = 'block';
-        return;
-      }
-      let found = null;
-      try {
-        for (const l of leaders) {
-          if (l.mat_khau_hash && (await pwHash(l.ma, val)) === l.mat_khau_hash) { found = l; break; }
-        }
-      } catch (e) {
-        err.innerHTML = '<i class="ti ti-alert-circle"></i> ' + esc(e.message);
-        err.style.display = 'block';
-        return;
-      }
-      if (!found) {
-        err.innerHTML = '<i class="ti ti-alert-circle"></i> Sai mật khẩu, vui lòng thử lại';
-        err.style.display = 'block';
-        return;
-      }
-      document.getElementById('pwModal').style.display = 'none';
-      document.getElementById('roleToggle').checked = true;
-      applyRole(true, found.id);
-      showToast('Đã chuyển sang quyền ' + roleLabel());
+    // "toantt" hoặc "toantt@duytanrecycling.com" → email đầy đủ
+    function toEmail(v) {
+      v = (v || '').trim().toLowerCase();
+      return v.includes('@') ? v : v + '@' + EMAIL_DOMAIN;
     }
 
-    function cancelAdminLogin() {
-      document.getElementById('pwModal').style.display = 'none';
-      document.getElementById('roleToggle').checked = isAdmin;
+    async function doLogin() {
+      const user = document.getElementById('loginUser').value.trim();
+      const pw = document.getElementById('loginPw').value;
+      if (!user || !pw) { showLogin('Nhập tên đăng nhập và mật khẩu'); return; }
+      const btn = document.getElementById('loginBtn');
+      btn.disabled = true;
+      btn.innerHTML = '<i class="ti ti-loader-2"></i>Đang đăng nhập...';
+      const { error } = await sb.auth.signInWithPassword({ email: toEmail(user), password: pw });
+      btn.disabled = false;
+      btn.innerHTML = '<i class="ti ti-login"></i>Đăng nhập';
+      if (error) {
+        const m = /banned/i.test(error.message) ? 'Tài khoản đã bị khóa. Liên hệ Trợ lý TGĐ.'
+          : /invalid login|credentials/i.test(error.message) ? 'Sai tên đăng nhập hoặc mật khẩu'
+          : 'Không đăng nhập được: ' + error.message;
+        document.getElementById('loginPw').value = '';
+        showLogin(m);
+        return;
+      }
+      document.getElementById('loginPw').value = '';
+      await afterLogin();
     }
+
+    async function afterLogin() {
+      const { data: { user: au } } = await sb.auth.getUser();
+      if (!au) { showLogin(); return; }
+      const { data: p, error } = await sb.from('nguoi_dung')
+        .select('id,email,ten_dang_nhap,ho_ten,vai_tro,lanh_dao_id,phai_doi_mat_khau,deleted_at')
+        .eq('id', au.id).maybeSingle();
+      if (error || !p || p.deleted_at) {
+        const msg = error ? 'Không đọc được thông tin tài khoản: ' + error.message
+          : !p ? 'Tài khoản chưa được cấp quyền dùng Sổ trình ký. Liên hệ Trợ lý TGĐ.'
+          : 'Tài khoản đã bị khóa. Liên hệ Trợ lý TGĐ.';
+        booted = false;
+        await sb.auth.signOut({ scope: 'local' });
+        showLogin(msg);
+        return;
+      }
+      curUser = p;
+      booted = true;
+      document.getElementById('loginScreen').style.display = 'none';
+      document.getElementById('userName').textContent = p.ho_ten;
+      document.getElementById('userChip').title = p.email;
+      ['userChip', 'myPwBtn', 'logoutBtn'].forEach(id => document.getElementById(id).style.display = 'inline-flex');
+
+      await loadLeaders();
+      applyRole(p.vai_tro === 'tro_ly' && !!ldById(p.lanh_dao_id), p.lanh_dao_id);
+      await loadEmployees();
+      await loadRecords();
+      if (isTgdAsst()) await loadUsers();
+      if (p.phai_doi_mat_khau) openMyPwModal(true);
+    }
+
+    async function logout() {
+      booted = false;
+      await sb.auth.signOut({ scope: 'local' });   // chỉ máy này
+      location.reload();
+    }
+
+    // Phiên hết hạn / bị thu hồi (Trợ lý TGĐ cấp lại mật khẩu hoặc khóa) → về màn hình đăng nhập
+    sb.auth.onAuthStateChange((event) => {
+      if (event === 'SIGNED_OUT' && booted) { booted = false; location.reload(); }
+    });
 
     function applyRole(admin, ldId) {
       isAdmin = admin;
@@ -830,11 +976,11 @@
       b.innerHTML = isAdmin
         ? `<i class="ti ti-shield" style="font-size:12px"></i>${esc(roleLabel())}`
         : '<i class="ti ti-user" style="font-size:12px"></i>Người trình ký';
-      document.getElementById('roleToggle').checked = isAdmin;
+      b.style.display = 'inline-flex';
       document.getElementById('exportBtn').style.display = isAdmin ? 'inline-flex' : 'none';
-      document.getElementById('myPwBtn').style.display = isAdmin ? 'inline-flex' : 'none';
       document.getElementById('importBtn').style.display = isTgdAsst() ? 'inline-flex' : 'none';
       document.getElementById('tab-config-nav').style.display = isAdmin ? 'flex' : 'none';
+      document.getElementById('tab-users-nav').style.display = isTgdAsst() ? 'flex' : 'none';
       document.getElementById('thLyDoTuChoi').style.display = isAdmin ? '' : 'none';
       if (!isAdmin && document.getElementById('tab-config').classList.contains('active')) {
         showTab('tab-records', document.querySelector('.nav-tab'));
@@ -869,6 +1015,11 @@
           <option value="">Trình đến: tất cả</option>
           ${leaders.map(l => `<option value="${l.id}" ${String(l.id) === cur ? 'selected' : ''}>Trình ${esc(l.ten_ngan)}</option>`).join('')}
         </select>`;
+        if (curUser) {
+          note.innerHTML = `<i class="ti ti-info-circle" style="font-size:14px;flex-shrink:0"></i><span>Danh sách gồm hồ sơ <b>bạn đăng ký</b>
+            và hồ sơ người khác <b>đăng ký giúp bạn</b> (Người gửi là bạn).</span>`;
+          note.style.display = 'flex';
+        }
         return;
       }
       const me = ldById(session.ld);
@@ -1200,17 +1351,9 @@
         <div><span>Đối tác</span><span>${esc(r.doitac) || '—'}</span></div>`;
       document.getElementById('fwUutien').innerHTML = priorityOptions(T.id, r.priority);
       document.getElementById('fwSl').value = r.sl || 1;
-      const actorGroup = document.getElementById('fwActorGroup');
-      if (isAdmin) {
-        actorGroup.style.display = 'none';
-      } else {
-        actorGroup.style.display = '';
-        document.getElementById('fwActorList').innerHTML = employees.map(e => `<option value="${esc(e.fullname)}">`).join('');
-        document.getElementById('fwActor').value = r.nguoigui || '';
-      }
       document.getElementById('fwInfo').innerHTML =
         `Hồ sơ #${r.id} của ${esc(from.ten_ngan)} <b>giữ nguyên</b>. App tạo <b>hồ sơ mới trình ${esc(T.ten_ngan)}</b>, người gửi vẫn là
-         ${esc(r.nguoigui)}. Nhật ký ghi ở cả hai hồ sơ: ai bấm, lúc nào${isAdmin ? ', kèm ghi chú "trình hộ"' : ''}. Mỗi hồ sơ chỉ trình tiếp được một lần.`;
+         ${esc(r.nguoigui)}. Nhật ký ghi ở cả hai hồ sơ: ${esc(actorName())} bấm, lúc nào${isAdmin ? ', kèm ghi chú "trình hộ"' : ''}. Mỗi hồ sơ chỉ trình tiếp được một lần.`;
       const btn = document.getElementById('fwConfirmBtn');
       btn.disabled = false;
       document.getElementById('forwardModal').style.display = 'flex';
@@ -1225,11 +1368,7 @@
       const r = records.find(x => x.id === forwardTargetId);
       if (!r || !canForward(r)) { closeForwardModal(); return; }
       const T = tgd(), from = ldById(r.ld);
-      const actorName = isAdmin ? roleLabel() : document.getElementById('fwActor').value.trim();
-      if (!actorName) { showToast('Vui lòng nhập họ tên người thực hiện'); return; }
-      const emp = !isAdmin ? findEmployeeByName(actorName) : null;
-      const userId = isAdmin ? 'tro-ly:' + from.ma : (emp?.id != null ? 'nv:' + emp.id : 'nguoi-trinh-ky');
-      const userName = isAdmin ? actorName : actorName + ' (Người trình ký)';
+      const userId = curUser?.id, userName = actorName();   // v6: biết ai đang đăng nhập
       const priority = parseInt(document.getElementById('fwUutien').value) || r.priority;
       const sl = parseInt(document.getElementById('fwSl').value) || r.sl || 1;
 
@@ -1242,7 +1381,7 @@
         uutien: priority, ngaydukientra: null, ngaytra: null, giotra: null,
         nguoinhan: '', ghichu: '', status: 'pending', lydotuchoi: null,
         lanh_dao_id: T.id, ho_so_goc_id: r.id,
-        created_by: userName, updated_by: userName,
+        created_by_uid: curUser?.id, created_by: userName, updated_by: userName,
       }]).select('id').single();
       btn.disabled = false;
 
@@ -1334,9 +1473,14 @@
       sel.innerHTML = priorityOptions(formLd, cur);
     }
 
+    // v6: nhân viên ứng với tài khoản đang đăng nhập (so theo email)
+    const selfEmployee = () => curUser ? employees.find(e => (e.email || '').trim().toLowerCase() === curUser.email) : null;
+
     function openAddModal() {
-      selectedEmployee = null;
-      document.getElementById("employeeInput").value = "";
+      // người trình ký: Người gửi mặc định là chính mình; đăng ký giúp người khác thì chọn lại
+      const self = !isAdmin ? selfEmployee() : null;
+      selectedEmployee = self || null;
+      document.getElementById("employeeInput").value = self ? self.fullname : "";
       editId = null;
       document.getElementById('modalTitle').textContent = 'Đăng ký hồ sơ mới';
       clearForm();
@@ -1386,9 +1530,11 @@
       document.getElementById('modal').style.display = 'flex';
     }
 
-    function openConfirmModal(message, onConfirm, needReason) {
+    function openConfirmModal(message, onConfirm, needReason, okLabel) {
       document.getElementById('confirmMessage').textContent = message;
       const reason = document.getElementById('confirmReason');
+      document.getElementById('confirmOkBtn').textContent = okLabel || 'Xóa';
+      reason.placeholder = 'Lý do ' + (okLabel || 'Xóa').toLowerCase() + ' (bắt buộc)...';
       reason.value = '';
       reason.style.display = needReason ? 'block' : 'none';
       document.getElementById('confirmModal').style.display = 'flex';
@@ -1467,8 +1613,9 @@
           ...toRow(data),
           status: calcStatus(data),
           lydotuchoi: data.lydotuchoi || null,
-          created_by: roleLabel(),
-          updated_by: roleLabel()
+          created_by_uid: curUser?.id,
+          created_by: actorName(),
+          updated_by: actorName()
         }])
         .select('id')
         .single();
@@ -1489,7 +1636,7 @@
           ...toRow(data),
           status: data.status || calcStatus(data),
           lydotuchoi: data.lydotuchoi !== undefined ? (data.lydotuchoi || null) : null,
-          updated_by: roleLabel(),
+          updated_by: actorName(),
           updated_at: new Date().toISOString()
         })
         .eq('id', id)
@@ -1499,7 +1646,7 @@
 
       if (error) {
         console.error(error);
-        showToast("❌ Lỗi cập nhật: " + error.message);
+        showToast(error.code === '42501' ? '❌ Bạn không có quyền sửa hồ sơ này (hoặc đổi Người gửi khiến bạn không còn thấy hồ sơ).' : "❌ Lỗi cập nhật: " + error.message);
         return false;
       }
       if (!rows || !rows.length) {
@@ -1518,7 +1665,7 @@
         try {
           const { data: rows, error } = await sb
             .from('records')
-            .update({ deleted_at: new Date().toISOString(), deleted_by: roleLabel(), delete_reason: reason })
+            .update({ deleted_at: new Date().toISOString(), deleted_by: actorName(), delete_reason: reason })
             .eq('id', id)
             .is('deleted_at', null)
             .select('id');
@@ -1539,7 +1686,7 @@
     async function loadLeaders() {
       const { data, error } = await sb
         .from('lanh_dao')
-        .select('id,ma,ten,ten_ngan,la_tgd,so_ngay_cao,so_ngay_tb,so_ngay_thap,mat_khau_hash,thu_tu')
+        .select('id,ma,ten,ten_ngan,la_tgd,so_ngay_cao,so_ngay_tb,so_ngay_thap,thu_tu')
         .is('deleted_at', null)
         .order('thu_tu')
         .order('id');
@@ -1812,7 +1959,7 @@
       renderOffDays();
 
       document.getElementById('leaderCard').style.display = isTgdAsst() ? '' : 'none';
-      if (isTgdAsst()) renderLeaders();
+      if (isTgdAsst()) { renderLeaders(); if (!users.length) loadUsers(); }
     }
 
     function setCfgLd(id) { cfgLdId = id; renderConfigTab(); }
@@ -1831,7 +1978,7 @@
       }
       if (!changes.length) { showToast('Không có thay đổi'); return; }
       const { error } = await sb.from('lanh_dao')
-        .update({ ...patch, updated_at: new Date().toISOString(), updated_by: roleLabel() })
+        .update({ ...patch, updated_at: new Date().toISOString(), updated_by: actorName() })
         .eq('id', L.id);
       if (error) { showToast('❌ Lỗi lưu cấu hình: ' + error.message); return; }
       await writeLog({ action: 'cau_hinh', entity: 'lanh_dao', entityId: L.id, label: L.ten_ngan, changes, note: 'Số ngày làm việc theo mức ưu tiên' });
@@ -1851,7 +1998,7 @@
         const moi = calcDeadline(r.ngaygui, r.priority, r.ld);
         if (!moi || moi === r.ngaydk) continue;
         const { data: rows, error } = await sb.from('records')
-          .update({ ngaydukientra: moi, updated_by: roleLabel(), updated_at: new Date().toISOString() })
+          .update({ ngaydukientra: moi, updated_by: actorName(), updated_at: new Date().toISOString() })
           .eq('id', r.id).eq('status', 'processing').is('deleted_at', null).select('id');
         if (!error && rows?.length) {
           logs.push({ action: 'doi_han_tra', entityId: r.id, label: recLabel(r), source: 'Hệ thống', note: reason,
@@ -1931,7 +2078,7 @@
         weekday: entry.weekday ?? null,
         reason: entry.reason,
         lanh_dao_id: ldId,
-        created_by: roleLabel()
+        created_by: actorName()
       }]).select('id').single();
 
       if (error) { showToast('Lỗi lưu ngày nghỉ: ' + error.message); return; }
@@ -1954,7 +2101,7 @@
 
       const { error } = await sb
         .from('off_days')
-        .update({ deleted_at: new Date().toISOString(), deleted_by: roleLabel() })
+        .update({ deleted_at: new Date().toISOString(), deleted_by: actorName() })
         .eq('id', id)
         .is('deleted_at', null);
 
@@ -1980,8 +2127,9 @@
           <td><code>${esc(l.ma)}</code></td>
           <td>${esc(l.ten)}</td>
           <td>${capBadge(l.id)}</td>
-          <td style="font-size:12px;color:${l.mat_khau_hash ? 'var(--green)' : 'var(--danger)'}">${l.mat_khau_hash ? 'Đã đặt' : 'Chưa đặt'}</td>
-          <td style="text-align:right"><button class="btn btn-sm" onclick="openLeaderModal(${l.id})"><i class="ti ti-edit"></i>Sửa / đổi mật khẩu</button></td>
+          <td style="font-size:12px">${(() => { const a = users.filter(u => !u.deleted_at && u.vai_tro === 'tro_ly' && u.lanh_dao_id === l.id);
+            return a.length ? a.map(u => esc(u.ho_ten)).join(', ') : '<span style="color:var(--danger)">Chưa có trợ lý</span>'; })()}</td>
+          <td style="text-align:right"><button class="btn btn-sm" onclick="openLeaderModal(${l.id})"><i class="ti ti-edit"></i>Sửa</button></td>
         </tr>`).join('');
     }
 
@@ -1991,15 +2139,12 @@
       const l = id ? ldById(id) : null;
       document.getElementById('leaderTitle').textContent = l ? 'Sửa lãnh đạo ' + l.ten_ngan : 'Thêm lãnh đạo';
       document.getElementById('ld_ma').value = l ? l.ma : '';
-      document.getElementById('ld_ma').disabled = !!l;   // mã dùng để băm mật khẩu: không đổi sau khi tạo
+      document.getElementById('ld_ma').disabled = !!l;   // mã dùng khi nhập Excel: không đổi sau khi tạo
       document.getElementById('ld_ten').value = l ? l.ten : '';
       document.getElementById('ld_ngan').value = l ? l.ten_ngan : '';
-      document.getElementById('ld_pw').value = '';
-      document.getElementById('ld_pw2').value = '';
-      document.getElementById('ld_pw_label').innerHTML = l ? 'Mật khẩu trợ lý mới <span style="font-size:11px;color:var(--text3)">(để trống nếu không đổi)</span>' : 'Mật khẩu trợ lý<span class="required">*</span>';
       document.getElementById('ld_hint').innerHTML = `<i class="ti ti-info-circle" style="font-size:14px;flex-shrink:0"></i><span>${l
-        ? 'Đổi mật khẩu thì trợ lý của lãnh đạo này phải dùng mật khẩu mới từ lần đăng nhập sau.'
-        : 'Lãnh đạo mới nhận số ngày ưu tiên mặc định 1 / 3 / 7. Trợ lý của lãnh đạo đó tự chỉnh trong tab Cấu hình.'} Mật khẩu không trùng với lãnh đạo khác.</span>`;
+        ? 'Đổi tên / nhãn hiển thị ngay trên mọi hồ sơ của lãnh đạo này.'
+        : 'Lãnh đạo mới nhận số ngày ưu tiên mặc định 1 / 3 / 7. Sau khi lưu, vào tab Người dùng gán trợ lý cho lãnh đạo này.'}</span>`;
       document.getElementById('leaderModal').style.display = 'flex';
     }
 
@@ -2011,41 +2156,24 @@
       const ma = document.getElementById('ld_ma').value.trim();
       const ten = document.getElementById('ld_ten').value.trim();
       const ngan = document.getElementById('ld_ngan').value.trim();
-      const pw = document.getElementById('ld_pw').value, pw2 = document.getElementById('ld_pw2').value;
       if (!ma || !ten || !ngan) { showToast('Nhập đủ mã, tên, nhãn ngắn'); return; }
       if (!/^[A-Za-z0-9_-]{2,20}$/.test(ma)) { showToast('Mã chỉ gồm chữ không dấu, số, "-" hoặc "_" (2–20 ký tự)'); return; }
       if (!l && leaders.some(x => x.ma.toLowerCase() === ma.toLowerCase())) { showToast('Mã đã tồn tại'); return; }
-      if (!l && !pw) { showToast('Nhập mật khẩu trợ lý'); return; }
-      if (pw && pw.length < 6) { showToast('Mật khẩu tối thiểu 6 ký tự'); return; }
-      if (pw !== pw2) { showToast('Hai lần nhập mật khẩu không khớp'); return; }
-
-      let hash = null;
-      if (pw) {
-        hash = await pwHash(ma, pw);
-        for (const other of leaders) {
-          if (other.id !== l?.id && other.mat_khau_hash && (await pwHash(other.ma, pw)) === other.mat_khau_hash) {
-            showToast('Mật khẩu này đang dùng cho ' + other.ten_ngan + '. Chọn mật khẩu khác.');
-            return;
-          }
-        }
-      }
 
       const btn = document.getElementById('leaderSaveBtn');
       btn.disabled = true;
       let error, entityId, changes = [];
       if (l) {
-        const patch = { ten, ten_ngan: ngan, updated_at: new Date().toISOString(), updated_by: roleLabel() };
-        if (hash) patch.mat_khau_hash = hash;
+        const patch = { ten, ten_ngan: ngan, updated_at: new Date().toISOString(), updated_by: actorName() };
         if (ten !== l.ten) changes.push({ field: 'ten', label: 'Tên', old: l.ten, new: ten });
         if (ngan !== l.ten_ngan) changes.push({ field: 'ten_ngan', label: 'Nhãn', old: l.ten_ngan, new: ngan });
-        if (hash) changes.push({ field: 'mat_khau', label: 'Mật khẩu trợ lý', old: null, new: 'đã đổi' });
         ({ error } = await sb.from('lanh_dao').update(patch).eq('id', l.id));
         entityId = l.id;
       } else {
         const maxOrder = Math.max(0, ...leaders.map(x => x.thu_tu || 0));
         let created;
         ({ data: created, error } = await sb.from('lanh_dao').insert([{
-          ma, ten, ten_ngan: ngan, la_tgd: false, mat_khau_hash: hash, thu_tu: maxOrder + 1, created_by: roleLabel()
+          ma, ten, ten_ngan: ngan, la_tgd: false, thu_tu: maxOrder + 1, created_by: actorName()
         }]).select('id').single());
         entityId = created?.id;
         changes = [{ field: 'ten', label: 'Tên', old: null, new: ten }, { field: 'ten_ngan', label: 'Nhãn', old: null, new: ngan }];
@@ -2064,17 +2192,268 @@
     document.getElementById('leaderModal').addEventListener('click', function (e) { if (e.target === this) closeLeaderModal(); });
 
     // ════════════════════════════════════════════════════════
-    //  v5.1: Trợ lý tự đổi mật khẩu của lãnh đạo mình
+    //  v6: Quản lý người dùng (Trợ lý TGĐ). Mọi thao tác ghi đi qua Edge Function admin-users.
     // ════════════════════════════════════════════════════════
-    function openMyPwModal() {
-      if (!isAdmin) return;
-      document.getElementById('myPwTitle').textContent = 'Đổi mật khẩu ' + roleLabel();
+    let userEditId = null, resetPwId = null;
+
+    function randomPw() {
+      const chars = 'abcdefghjkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+      const a = new Uint32Array(10);
+      crypto.getRandomValues(a);
+      return [...a].map(x => chars[x % chars.length]).join('');
+    }
+
+    // Gọi Edge Function bằng phiên đăng nhập hiện tại. Trả về data, hoặc ném lỗi có thông báo tiếng Việt.
+    async function callAdmin(action, payload) {
+      const { data, error } = await sb.functions.invoke('admin-users', { body: { action, ...payload } });
+      if (error) {
+        let msg = error.message;
+        try { const j = await error.context.json(); msg = j.error || msg; } catch (e) { /* không đọc được nội dung lỗi */ }
+        throw new Error(msg);
+      }
+      if (data && data.ok === false) throw new Error(data.error || 'Lỗi không rõ');
+      return data;
+    }
+
+    async function loadUsers() {
+      if (!isTgdAsst()) return;
+      const { data, error } = await sb.from('nguoi_dung')
+        .select('id,email,ten_dang_nhap,ho_ten,vai_tro,lanh_dao_id,phai_doi_mat_khau,created_at,created_by,deleted_at,deleted_by,delete_reason')
+        .order('ten_dang_nhap');
+      if (error) { showToast('❌ Không đọc được danh sách người dùng: ' + error.message); return; }
+      users = data;
+      renderUsers();
+      if (document.getElementById('tab-config').classList.contains('active')) renderLeaders();
+    }
+
+    function renderUsers() {
+      const q = (document.getElementById('userSearch').value || '').toLowerCase().trim();
+      const f = document.getElementById('userFilter').value;
+      const rows = users.filter(u => {
+        if (f === '' && u.deleted_at) return false;
+        if (f === 'khoa' && !u.deleted_at) return false;
+        if (f === 'tro_ly' && (u.deleted_at || u.vai_tro !== 'tro_ly')) return false;
+        return !q || (u.ten_dang_nhap + ' ' + u.ho_ten + ' ' + u.email).toLowerCase().includes(q);
+      });
+      document.getElementById('userCount').textContent = `${rows.length} / ${users.length} tài khoản`;
+      const body = document.getElementById('userBody');
+      if (!rows.length) { body.innerHTML = '<tr><td colspan="6"><div class="empty"><i class="ti ti-users"></i>Không có tài khoản nào</div></td></tr>'; return; }
+      body.innerHTML = rows.map(u => {
+        const role = u.vai_tro === 'tro_ly' ? capBadge(u.lanh_dao_id).replace('</span>', ' · Trợ lý</span>') : '<span style="font-size:12px">Người trình ký</span>';
+        const st = u.deleted_at
+          ? `<span class="badge badge-rejected" title="${esc(u.delete_reason || '')}">Đã khóa</span>`
+          : u.phai_doi_mat_khau ? '<span class="badge badge-pending" title="Chưa đổi mật khẩu tạm">Chờ đổi MK</span>'
+          : '<span class="badge badge-done">Hoạt động</span>';
+        const self = u.id === curUser?.id;
+        let a = `<button class="action-btn" onclick="openUserModal('${u.id}')" title="Sửa"><i class="ti ti-edit"></i></button>`;
+        if (!u.deleted_at) a += `<button class="action-btn" onclick="openResetPwModal('${u.id}')" title="Cấp lại mật khẩu"><i class="ti ti-key"></i>Cấp lại MK</button>`;
+        if (!u.deleted_at && !self) a += `<button class="action-btn action-del" onclick="lockUser('${u.id}')" title="Khóa tài khoản"><i class="ti ti-lock"></i>Khóa</button>`;
+        if (u.deleted_at) a += `<button class="action-btn action-confirm" onclick="unlockUser('${u.id}')" title="Mở khóa"><i class="ti ti-lock-open"></i>Mở khóa</button>`;
+        return `<tr class="${u.deleted_at ? 'row-locked' : ''}">
+          <td><b>${esc(u.ten_dang_nhap)}</b>${self ? ' <span style="font-size:11px;color:var(--text3)">(bạn)</span>' : ''}</td>
+          <td>${esc(u.ho_ten)}</td>
+          <td style="font-size:12px;color:var(--text2)">${esc(u.email)}</td>
+          <td>${role}</td>
+          <td>${st}</td>
+          <td class="col-act"><div class="acts">${a}</div></td>
+        </tr>`;
+      }).join('');
+    }
+
+    function openUserModal(id) {
+      if (!isTgdAsst()) return;
+      userEditId = id;
+      const u = id ? users.find(x => x.id === id) : null;
+      document.getElementById('userTitle').textContent = u ? 'Sửa người dùng ' + u.ten_dang_nhap : 'Thêm người dùng';
+      const em = document.getElementById('u_email');
+      em.value = u ? u.email : '';
+      em.disabled = !!u;    // email = tài khoản đăng nhập, không đổi
+      const has = new Set(users.map(x => x.email));
+      document.getElementById('u_emailList').innerHTML = employees
+        .filter(e => e.email && !has.has(e.email.trim().toLowerCase()))
+        .map(e => `<option value="${esc(e.email.trim().toLowerCase())}">${esc(e.fullname)}</option>`).join('');
+      document.getElementById('u_hoten').value = u ? u.ho_ten : '';
+      document.getElementById('u_vaitro').value = u ? u.vai_tro : 'nguoi_trinh';
+      document.getElementById('u_vaitro').disabled = !!u && u.id === curUser?.id;   // không tự đổi vai trò
+      document.getElementById('u_ld').innerHTML = leaders.map(l => `<option value="${l.id}">${esc(l.ten)}</option>`).join('');
+      document.getElementById('u_ld').value = u?.lanh_dao_id ?? (tgd()?.id || '');
+      document.getElementById('u_ld').disabled = !!u && u.id === curUser?.id;
+      document.getElementById('u_pwGroup').style.display = u ? 'none' : '';
+      document.getElementById('u_pw').value = u ? '' : randomPw();
+      userEmailInput();
+      userRoleChange();
+      document.getElementById('userModal').style.display = 'flex';
+    }
+    function closeUserModal() { document.getElementById('userModal').style.display = 'none'; userEditId = null; }
+
+    function userEmailInput() {
+      const v = document.getElementById('u_email').value.trim().toLowerCase();
+      const emp = employees.find(e => (e.email || '').trim().toLowerCase() === v);
+      const ht = document.getElementById('u_hoten');
+      if (emp && !ht.value) ht.value = emp.fullname;
+      document.getElementById('u_tenHint').textContent = v.includes('@') ? 'Tên đăng nhập: ' + v.split('@')[0] : '';
+    }
+    function userRoleChange() {
+      document.getElementById('u_ldGroup').style.display = document.getElementById('u_vaitro').value === 'tro_ly' ? '' : 'none';
+    }
+
+    async function saveUser() {
+      const u = userEditId ? users.find(x => x.id === userEditId) : null;
+      const email = toEmail(document.getElementById('u_email').value);
+      const ho_ten = document.getElementById('u_hoten').value.trim();
+      const vai_tro = document.getElementById('u_vaitro').value;
+      const lanh_dao_id = vai_tro === 'tro_ly' ? +document.getElementById('u_ld').value : null;
+      const password = document.getElementById('u_pw').value;
+      if (!ho_ten) { showToast('Nhập họ tên'); return; }
+      if (!u && password.length < 6) { showToast('Mật khẩu ban đầu tối thiểu 6 ký tự'); return; }
+      const btn = document.getElementById('userSaveBtn');
+      btn.disabled = true;
+      try {
+        if (u) {
+          await callAdmin('update', { id: u.id, ho_ten, vai_tro, lanh_dao_id });
+          showToast('Đã lưu ' + u.ten_dang_nhap);
+        } else {
+          const r = await callAdmin('create', { email, ho_ten, vai_tro, lanh_dao_id, password });
+          alert(`Đã tạo tài khoản.\n\nTên đăng nhập: ${r.ten_dang_nhap}\nMật khẩu tạm: ${password}\n\nGửi cho người dùng. Lần đăng nhập đầu họ phải đổi mật khẩu.`);
+        }
+        closeUserModal();
+        await loadUsers();
+      } catch (e) {
+        showToast('❌ ' + e.message);
+      } finally {
+        btn.disabled = false;
+      }
+    }
+
+    function openResetPwModal(id) {
+      const u = users.find(x => x.id === id);
+      if (!u) return;
+      resetPwId = id;
+      document.getElementById('resetPwTitle').textContent = 'Cấp lại mật khẩu – ' + u.ten_dang_nhap;
+      document.getElementById('resetPwInput').value = randomPw();
+      document.getElementById('resetPwError').style.display = 'none';
+      document.getElementById('resetPwModal').style.display = 'flex';
+    }
+    function closeResetPwModal() { document.getElementById('resetPwModal').style.display = 'none'; resetPwId = null; }
+
+    async function saveResetPw() {
+      const u = users.find(x => x.id === resetPwId);
+      const pw = document.getElementById('resetPwInput').value;
+      const err = document.getElementById('resetPwError');
+      if (!u) return;
+      if (pw.length < 6) { err.innerHTML = '<i class="ti ti-alert-circle"></i> Tối thiểu 6 ký tự'; err.style.display = 'block'; return; }
+      const btn = document.getElementById('resetPwBtn');
+      btn.disabled = true;
+      try {
+        const r = await callAdmin('reset_password', { id: u.id, password: pw });
+        closeResetPwModal();
+        await loadUsers();
+        alert(`Đã cấp lại mật khẩu cho ${u.ten_dang_nhap}.\n\nMật khẩu tạm: ${pw}\n\nNgười dùng phải đổi mật khẩu khi đăng nhập.` + (r?.warning ? '\n\nLưu ý: ' + r.warning : ''));
+        if (u.id === curUser?.id) openMyPwModal(true);
+      } catch (e) {
+        err.innerHTML = '<i class="ti ti-alert-circle"></i> ' + esc(e.message);
+        err.style.display = 'block';
+      } finally {
+        btn.disabled = false;
+      }
+    }
+
+    function lockUser(id) {
+      const u = users.find(x => x.id === id);
+      if (!u) return;
+      openConfirmModal(`Khóa tài khoản ${u.ten_dang_nhap} (${u.ho_ten})? Người này bị đăng xuất khỏi mọi máy và không đăng nhập được nữa. Hồ sơ cũ giữ nguyên.`, async (reason) => {
+        try {
+          const r = await callAdmin('lock', { id, ly_do: reason });
+          await loadUsers();
+          showToast('Đã khóa ' + u.ten_dang_nhap + (r?.warning ? '. ' + r.warning : ''));
+        } catch (e) { showToast('❌ ' + e.message); }
+      }, true, 'Khóa');
+    }
+
+    async function unlockUser(id) {
+      const u = users.find(x => x.id === id);
+      if (!u) return;
+      try {
+        await callAdmin('unlock', { id });
+        await loadUsers();
+        showToast('Đã mở khóa ' + u.ten_dang_nhap + '. Dùng mật khẩu cũ, hoặc Cấp lại MK nếu họ quên.');
+      } catch (e) { showToast('❌ ' + e.message); }
+    }
+
+    // Tạo hàng loạt từ bảng employees (chỉ người chưa có tài khoản)
+    let bulkCandidates = [];
+    function openBulkModal() {
+      const has = new Set(users.map(u => u.email));
+      const seen = new Set();
+      bulkCandidates = employees
+        .map(e => ({ email: (e.email || '').trim().toLowerCase(), ho_ten: (e.fullname || '').trim() }))
+        .filter(e => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e.email) && e.ho_ten && !has.has(e.email) && !seen.has(e.email) && seen.add(e.email))
+        .sort((a, b) => a.ho_ten.localeCompare(b.ho_ten, 'vi'));
+      document.getElementById('bulkList').innerHTML = bulkCandidates.length
+        ? bulkCandidates.map((e, i) => `<label><input type="checkbox" data-i="${i}" onchange="bulkCountUpd()"> <b>${esc(e.ho_ten)}</b> <span>${esc(e.email)}</span></label>`).join('')
+        : '<div class="empty">Mọi nhân viên có email đều đã có tài khoản.</div>';
+      document.getElementById('bulkAll').checked = false;
+      document.getElementById('bulkPw').value = randomPw();
+      document.getElementById('bulkResult').innerHTML = '';
+      bulkCountUpd();
+      document.getElementById('bulkModal').style.display = 'flex';
+    }
+    function closeBulkModal() { document.getElementById('bulkModal').style.display = 'none'; }
+    function bulkToggleAll(on) { document.querySelectorAll('#bulkList input').forEach(x => x.checked = on); bulkCountUpd(); }
+    function bulkCountUpd() {
+      const n = document.querySelectorAll('#bulkList input:checked').length;
+      document.getElementById('bulkCount').textContent = `Đã chọn ${n} / ${bulkCandidates.length}`;
+    }
+    async function runBulkCreate() {
+      const pick = [...document.querySelectorAll('#bulkList input:checked')].map(x => bulkCandidates[+x.dataset.i]);
+      const pw = document.getElementById('bulkPw').value;
+      if (!pick.length) { showToast('Chưa chọn nhân viên nào'); return; }
+      if (pw.length < 6) { showToast('Mật khẩu tạm tối thiểu 6 ký tự'); return; }
+      const btn = document.getElementById('bulkBtn');
+      btn.disabled = true;
+      const out = document.getElementById('bulkResult');
+      let ok = 0; const errs = [];
+      for (const [i, e] of pick.entries()) {
+        out.textContent = `Đang tạo ${i + 1} / ${pick.length}: ${e.email}`;
+        try { await callAdmin('create', { email: e.email, ho_ten: e.ho_ten, vai_tro: 'nguoi_trinh', password: pw }); ok++; }
+        catch (err) { errs.push(`${e.email}: ${err.message}`); }
+      }
+      btn.disabled = false;
+      out.innerHTML = `<b>Đã tạo ${ok} / ${pick.length} tài khoản.</b> Mật khẩu tạm chung: <code>${esc(pw)}</code>` +
+        (errs.length ? `<ul style="color:var(--red-text);margin-top:6px">${errs.map(x => `<li>${esc(x)}</li>`).join('')}</ul>` : '');
+      await loadUsers();
+    }
+
+    ['userModal', 'resetPwModal', 'bulkModal'].forEach(id => document.getElementById(id).addEventListener('click', function (e) {
+      if (e.target === this) this.style.display = 'none';
+    }));
+
+    // ════════════════════════════════════════════════════════
+    //  v6: Người dùng tự đổi mật khẩu (bắt buộc ở lần đăng nhập đầu / sau khi được cấp lại)
+    // ════════════════════════════════════════════════════════
+    let myPwForced = false;
+
+    function openMyPwModal(forced) {
+      if (!curUser) return;
+      myPwForced = !!forced;
+      document.getElementById('myPwTitle').textContent = myPwForced ? 'Đặt mật khẩu mới' : 'Đổi mật khẩu';
+      document.getElementById('myPwSub').textContent = myPwForced
+        ? 'Bạn đang dùng mật khẩu tạm được cấp. Đặt mật khẩu của riêng bạn để tiếp tục.'
+        : 'Tài khoản ' + curUser.ten_dang_nhap + '. Các máy khác đang đăng nhập vẫn giữ đăng nhập.';
+      document.getElementById('myPwOldLabel').innerHTML = (myPwForced ? 'Mật khẩu tạm được cấp' : 'Mật khẩu hiện tại') + '<span class="required">*</span>';
+      // bắt buộc đổi: không đóng được, chỉ đổi mật khẩu hoặc đăng xuất (máy dùng chung)
+      const cb = document.getElementById('myPwCancelBtn');
+      cb.innerHTML = myPwForced ? '<i class="ti ti-logout"></i>Đăng xuất' : 'Hủy';
+      cb.onclick = myPwForced ? logout : closeMyPwModal;
       ['myPwOld', 'myPwNew', 'myPwNew2'].forEach(id => document.getElementById(id).value = '');
       document.getElementById('myPwError').style.display = 'none';
       document.getElementById('myPwModal').style.display = 'flex';
       setTimeout(() => document.getElementById('myPwOld').focus(), 50);
     }
-    function closeMyPwModal() { document.getElementById('myPwModal').style.display = 'none'; }
+    function closeMyPwModal() {
+      if (myPwForced) return;   // bắt buộc đổi: không đóng được
+      document.getElementById('myPwModal').style.display = 'none';
+    }
     function myPwErr(msg) {
       const e = document.getElementById('myPwError');
       e.innerHTML = '<i class="ti ti-alert-circle"></i> ' + esc(msg);
@@ -2082,38 +2461,31 @@
     }
 
     async function saveMyPw() {
-      const me = ldById(session.ld);
-      if (!isAdmin || !me) return;
+      if (!curUser) return;
       const oldPw = document.getElementById('myPwOld').value;
       const pw = document.getElementById('myPwNew').value, pw2 = document.getElementById('myPwNew2').value;
       if (!oldPw || !pw) { myPwErr('Nhập đủ mật khẩu hiện tại và mật khẩu mới'); return; }
       if (pw.length < 6) { myPwErr('Mật khẩu mới tối thiểu 6 ký tự'); return; }
       if (pw !== pw2) { myPwErr('Hai lần nhập mật khẩu mới không khớp'); return; }
       if (pw === oldPw) { myPwErr('Mật khẩu mới phải khác mật khẩu hiện tại'); return; }
+      const btn = document.getElementById('myPwSaveBtn');
+      btn.disabled = true;
       try {
-        // đọc lại mã băm mới nhất, phòng trường hợp Trợ lý TGĐ vừa đặt lại
-        const { data: cur, error: e1 } = await sb.from('lanh_dao').select('mat_khau_hash').eq('id', me.id).single();
-        if (e1) { myPwErr('Không đọc được dữ liệu: ' + e1.message); return; }
-        if ((await pwHash(me.ma, oldPw)) !== cur.mat_khau_hash) { myPwErr('Mật khẩu hiện tại không đúng'); return; }
-        for (const other of leaders) {
-          if (other.id !== me.id && other.mat_khau_hash && (await pwHash(other.ma, pw)) === other.mat_khau_hash) {
-            myPwErr('Mật khẩu này trùng với lãnh đạo khác, chọn mật khẩu khác'); return;
-          }
-        }
-        const hash = await pwHash(me.ma, pw);
-        const btn = document.getElementById('myPwSaveBtn');
-        btn.disabled = true;
-        const { error } = await sb.from('lanh_dao')
-          .update({ mat_khau_hash: hash, updated_at: new Date().toISOString(), updated_by: roleLabel() })
-          .eq('id', me.id).eq('mat_khau_hash', cur.mat_khau_hash);
-        btn.disabled = false;
-        if (error) { myPwErr('Lỗi lưu: ' + error.message); return; }
-        me.mat_khau_hash = hash;
-        await writeLog({ action: 'doi_mat_khau', entity: 'lanh_dao', entityId: me.id, label: me.ten_ngan, note: 'Trợ lý tự đổi mật khẩu' });
+        // kiểm tra mật khẩu hiện tại bằng cách đăng nhập lại
+        const { error: e1 } = await sb.auth.signInWithPassword({ email: curUser.email, password: oldPw });
+        if (e1) { myPwErr('Mật khẩu hiện tại không đúng'); return; }
+        const { error } = await sb.auth.updateUser({ password: pw });
+        if (error) { myPwErr(/different|same/i.test(error.message) ? 'Mật khẩu mới phải khác mật khẩu cũ' : 'Lỗi đổi mật khẩu: ' + error.message); return; }
+        const { error: e2 } = await sb.rpc('stk_da_doi_mat_khau');
+        if (e2) console.warn('stk_da_doi_mat_khau:', e2.message);
+        await writeLog({ action: 'doi_mat_khau', entity: 'nguoi_dung', entityId: curUser.id, label: curUser.email,
+          note: myPwForced ? 'Đổi mật khẩu tạm được cấp' : 'Tự đổi mật khẩu' });
+        curUser.phai_doi_mat_khau = false;
+        myPwForced = false;
         closeMyPwModal();
-        showToast('Đã đổi mật khẩu. Lần đăng nhập sau dùng mật khẩu mới.');
-      } catch (e) {
-        myPwErr(e.message);
+        showToast('Đã đổi mật khẩu.');
+      } finally {
+        btn.disabled = false;
       }
     }
     document.getElementById('myPwModal').addEventListener('click', function (e) { if (e.target === this) closeMyPwModal(); });
@@ -2511,7 +2883,7 @@
         for (const l of importedLeaders.filter(x => x.action !== 'giu')) {
           const patch = { ten: l.ten, ten_ngan: l.ngan, so_ngay_cao: l.d1, so_ngay_tb: l.d2, so_ngay_thap: l.d3, thu_tu: l.thutu };
           if (l.action === 'them') {
-            const { data, error } = await sb.from('lanh_dao').insert([{ ma: l.ma, la_tgd: false, created_by: roleLabel() + ' (Nhập Excel)', ...patch }]).select('id').single();
+            const { data, error } = await sb.from('lanh_dao').insert([{ ma: l.ma, la_tgd: false, created_by: actorName() + ' (Nhập Excel)', ...patch }]).select('id').single();
             if (error) { notes.push(`Lãnh đạo ${l.ma}: ${error.message}`); continue; }
             await writeLog({ action: 'them_lanh_dao', entity: 'lanh_dao', entityId: data.id, label: l.ngan, source: 'Nhập Excel',
               changes: [{ field: 'ten', label: 'Tên', old: null, new: l.ten }, { field: 'ten_ngan', label: 'Nhãn', old: null, new: l.ngan }] });
@@ -2521,7 +2893,7 @@
             add('ten', 'Tên', c.ten, l.ten); add('ten_ngan', 'Nhãn', c.ten_ngan, l.ngan);
             add('so_ngay_cao', PRIORITY_LABEL[1], c.so_ngay_cao, l.d1); add('so_ngay_tb', PRIORITY_LABEL[2], c.so_ngay_tb, l.d2);
             add('so_ngay_thap', PRIORITY_LABEL[3], c.so_ngay_thap, l.d3); add('thu_tu', 'Thứ tự', c.thu_tu || 0, l.thutu);
-            const { error } = await sb.from('lanh_dao').update({ ...patch, updated_at: new Date().toISOString(), updated_by: roleLabel() + ' (Nhập Excel)' }).eq('id', c.id);
+            const { error } = await sb.from('lanh_dao').update({ ...patch, updated_at: new Date().toISOString(), updated_by: actorName() + ' (Nhập Excel)' }).eq('id', c.id);
             if (error) { notes.push(`Lãnh đạo ${l.ma}: ${error.message}`); continue; }
             await writeLog({ action: 'sua_lanh_dao', entity: 'lanh_dao', entityId: c.id, label: l.ngan, source: 'Nhập Excel', changes });
           }
@@ -2543,7 +2915,7 @@
             (x.weekday ?? null) === o.weekday && x.ld === ld) ||
             offRows.some(x => x.type === o.type && x.start_date === o.start && x.end_date === o.end && x.weekday === o.weekday && x.lanh_dao_id === ld);
           if (dup) continue;
-          offRows.push({ type: o.type, start_date: o.start, end_date: o.end, weekday: o.weekday, reason: o.reason || null, lanh_dao_id: ld, created_by: roleLabel() + ' (Nhập Excel)' });
+          offRows.push({ type: o.type, start_date: o.start, end_date: o.end, weekday: o.weekday, reason: o.reason || null, lanh_dao_id: ld, created_by: actorName() + ' (Nhập Excel)' });
         }
         if (offRows.length) {
           const { data, error } = await sb.from('off_days').insert(offRows).select('id,type,start_date,end_date,weekday,lanh_dao_id');
@@ -2569,8 +2941,8 @@
               ...toRow(rec),
               status: rec.status || calcStatus(rec),
               lydotuchoi: rec.status === 'rejected' && rec.lydo ? rec.lydo : null,
-              created_by: roleLabel() + ' (Nhập Excel)',
-              updated_by: roleLabel() + ' (Nhập Excel)'
+              created_by: actorName() + ' (Nhập Excel)',
+              updated_by: actorName() + ' (Nhập Excel)'
             };
           });
           const { data: created, error } = await sb.from('records').insert(rows).select('id,tenhs');
@@ -2611,9 +2983,6 @@
 
     // ── END IMPORT ───────────────────────────────────────────────
 
-    document.getElementById('pwModal').addEventListener('click', function (e) {
-      if (e.target === this) cancelAdminLogin();
-    });
 
     // Delete hoặc Backspace sẽ xóa toàn bộ ngày/giờ
     ['f_gionhan', 'f_ngaygui', 'f_ngaytra', 'f_giortra'].forEach(id => {
@@ -2629,11 +2998,10 @@
       });
     });
 
+    // v6: còn phiên đăng nhập trên máy này thì vào thẳng, không thì hiện màn hình đăng nhập
     window.addEventListener('load', async () => {
-      await loadLeaders();
-      renderScope();
-      await loadEmployees();
-      await loadRecords();
+      const { data: { session: s } } = await sb.auth.getSession();
+      if (s) await afterLogin(); else showLogin();
     });
 
     const input = document.getElementById("employeeInput");

@@ -1166,3 +1166,59 @@ td.col-act .acts            { min-width: 1; max-width: 170px; }   /* Thao tác: 
 .dk-tra             { display: inline-block; white-space: nowrap; line-height: 1.35; text-align: center; }
 .dk-tra small       { font-size: 11px; color: var(--text3); }
 .dk-tra.overdue small { color: inherit; }
+/* ═══════════════════════════════════════════════════════════
+   v6 – ĐĂNG NHẬP, NGƯỜI DÙNG
+   ═══════════════════════════════════════════════════════════ */
+.login-bg {
+  position: fixed; inset: 0; z-index: 2000;
+  display: none; align-items: center; justify-content: center;
+  background: var(--page); padding: 16px;
+}
+.login-box {
+  width: 100%; max-width: 380px;
+  background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius-lg);
+  padding: 28px 26px 22px; display: flex; flex-direction: column; gap: 6px;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, .08);
+}
+.login-logo { height: 44px; object-fit: contain; align-self: center; margin-bottom: 6px; }
+.login-box h1 { font-size: 18px; font-weight: 700; color: var(--title); text-align: center; }
+.login-sub { font-size: 12px; color: var(--text2); text-align: center; margin-bottom: 10px; }
+.login-box label { font-size: 12px; font-weight: 600; color: var(--text2); margin-top: 6px; }
+.login-user { display: flex; align-items: stretch; }
+.login-user .field { flex: 1; min-width: 0; border-top-right-radius: 0; border-bottom-right-radius: 0; }
+.login-user span {
+  display: flex; align-items: center; padding: 0 10px; font-size: 12px; color: var(--text2);
+  background: var(--bg2); border: 1px solid var(--border2); border-left: none;
+  border-radius: 0 var(--radius) var(--radius) 0; white-space: nowrap;
+}
+.login-btn { justify-content: center; margin-top: 14px; padding: 9px; }
+.login-help { font-size: 11px; color: var(--text3); text-align: center; margin-top: 10px; }
+
+.user-chip {
+  display: inline-flex; align-items: center; gap: 5px;
+  font-size: 13px; font-weight: 600; color: var(--text);
+}
+.user-chip i { font-size: 17px; color: var(--text2); }
+
+.user-table { width: 100%; }
+.user-table td, .user-table th { white-space: nowrap; }
+.row-locked td { opacity: .55; }
+
+.bulk-list {
+  max-height: 300px; overflow-y: auto;
+  border: 1px solid var(--border); border-radius: var(--radius);
+}
+.bulk-list label {
+  display: flex; align-items: center; gap: 8px; padding: 6px 10px; font-size: 13px;
+  border-bottom: 1px solid var(--border); cursor: pointer;
+}
+.bulk-list label:last-child { border-bottom: none; }
+.bulk-list label:hover { background: var(--hover-soft); }
+.bulk-list label span { color: var(--text3); font-size: 12px; margin-left: auto; }
+
+@media (max-width: 720px) {
+  .user-chip span { display: none; }
+}
+.user-table .col-act { min-width: 0; width: 1%; }
+.user-table td.col-act .acts { flex-wrap: nowrap; max-width: none; }
+#tab-users .table-wrap { height: auto; max-height: calc(100vh - 260px); }
