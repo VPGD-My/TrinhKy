@@ -242,7 +242,7 @@
           <span id="userCount" style="font-size:12px;color:var(--text3)"></span>
         </div>
         <div style="display:flex;gap:8px">
-          <button class="btn" onclick="sendPendingTeams()" title="Cấp mật khẩu riêng và nhắn Teams cho các tài khoản chưa đổi mật khẩu tạm"><i class="ti ti-brand-teams"></i>Gửi MK qua Teams</button>
+          <button class="btn" onclick="openBulkModal('resend')" title="Chọn tài khoản chưa đổi mật khẩu tạm để cấp mật khẩu riêng và nhắn Teams"><i class="ti ti-brand-teams"></i>Gửi MK qua Teams</button>
           <button class="btn" onclick="openBulkModal()"><i class="ti ti-users-plus"></i>Cấp tài khoản lần đầu</button>
           <button class="btn btn-primary" onclick="openUserModal(null)"><i class="ti ti-user-plus"></i>Thêm người dùng</button>
         </div>
@@ -659,13 +659,17 @@
       </div>
       <div class="modal-body">
         <div class="info-box" style="margin-bottom:12px"><i class="ti ti-info-circle" style="font-size:14px;flex-shrink:0"></i>
-          <span>Danh sách người <b>đã trình ký</b> (lấy từ email người gửi trên hồ sơ) mà chưa có tài khoản. Mỗi người được tạo vai trò
+          <span id="bulkInfo">Danh sách người <b>đã trình ký</b> (lấy từ email người gửi trên hồ sơ) mà chưa có tài khoản. Mỗi người được tạo vai trò
             <b>Người trình ký</b>, <b>mật khẩu ngẫu nhiên riêng</b>, nhận qua Teams một lần; lần đầu đăng nhập phải đổi mật khẩu.
             Người đã có tài khoản không hiện ở đây nữa. Quyền trợ lý cấp sau ở nút Sửa từng người.</span></div>
+        <div class="seg bulk-mode" role="radiogroup" aria-label="Chế độ" style="margin-bottom:10px">
+          <button type="button" id="bulkModeNew" class="on" onclick="setBulkMode('new')">Chưa có tài khoản: tạo mới</button>
+          <button type="button" id="bulkModeResend" onclick="setBulkMode('resend')">Đã có tài khoản, chưa đổi MK: cấp lại &amp; nhắn Teams</button>
+        </div>
         <div style="display:flex;gap:14px;align-items:center;flex-wrap:wrap;margin-bottom:8px">
           <label class="chk-line" style="margin:0"><input type="checkbox" id="bulkAll" onchange="bulkToggleAll(this.checked)"> Chọn tất cả</label>
           <label class="chk-line" style="margin:0"><input type="checkbox" id="bulkOnlySubmitted" checked onchange="renderBulkList()"> Chỉ người đã trình ký (bỏ tick: cả danh sách nhân viên)</label>
-          <label class="chk-line" style="margin:0"><input type="checkbox" id="bulkTeams" checked> Nhắn qua Teams</label>
+          <label class="chk-line" style="margin:0" id="bulkTeamsWrap"><input type="checkbox" id="bulkTeams" checked> Nhắn qua Teams</label>
           <span id="bulkCount" style="font-size:12px;color:var(--text3);margin-left:auto"></span>
         </div>
         <div class="bulk-list" id="bulkList"></div>
@@ -674,7 +678,7 @@
       </div>
       <div class="modal-footer">
         <button class="btn" onclick="closeBulkModal()">Đóng</button>
-        <button class="btn btn-primary" id="bulkBtn" onclick="runBulkCreate()"><i class="ti ti-check"></i>Tạo tài khoản</button>
+        <button class="btn btn-primary" id="bulkBtn" onclick="runBulk()"><i class="ti ti-check"></i><span id="bulkBtnText">Tạo tài khoản</span></button>
       </div>
     </div>
   </div>
@@ -2534,14 +2538,52 @@
     let bulkCandidates = [];
     const sleep = ms => new Promise(r => setTimeout(r, ms));   // giãn nhịp gửi email (Resend giới hạn số lần / giây)
 
-    function openBulkModal() {
+    // v6.8: 2 chế độ – 'new' (tạo tài khoản cho người chưa có) | 'resend' (cấp lại MK + nhắn Teams cho tài khoản chưa đổi MK)
+    let bulkMode = 'new';
+    let teamsSent = {};   // id người dùng → thời điểm nhắn Teams thành công gần nhất (theo nhật ký)
+    const INFO_NEW = document.getElementById('bulkInfo').innerHTML;
+    const INFO_RESEND = `Tài khoản <b>đã tạo nhưng chưa đổi mật khẩu tạm</b> (VD tạo bằng mật khẩu chung trước đây, chưa nhận Teams).
+      Mỗi người được <b>cấp mật khẩu ngẫu nhiên mới</b> và nhận qua Teams; mật khẩu tạm cũ hết hiệu lực. Cột "Đã nhắn Teams" lấy từ nhật ký.`;
+
+    function openBulkModal(mode) {
       document.getElementById('bulkResult').innerHTML = '';
       document.getElementById('bulkBtn').disabled = false;
-      renderBulkList();
+      setBulkMode(mode === 'resend' ? 'resend' : 'new');
       document.getElementById('bulkModal').style.display = 'flex';
     }
+    async function setBulkMode(m) {
+      bulkMode = m;
+      document.getElementById('bulkModeNew').classList.toggle('on', m === 'new');
+      document.getElementById('bulkModeResend').classList.toggle('on', m === 'resend');
+      document.getElementById('bulkInfo').innerHTML = m === 'new' ? INFO_NEW : INFO_RESEND;
+      document.getElementById('bulkTeamsWrap').style.display = m === 'new' ? '' : 'none';
+      document.getElementById('bulkBtnText').textContent = m === 'new' ? 'Tạo tài khoản' : 'Cấp lại & nhắn Teams';
+      document.getElementById('bulkResult').innerHTML = '';
+      if (m === 'resend') {
+        document.getElementById('bulkList').innerHTML = '<div class="empty"><i class="ti ti-loader-2"></i>Đang tải...</div>';
+        await loadTeamsSent();
+      }
+      renderBulkList();
+    }
+    // lần nhắn Teams thành công gần nhất của từng tài khoản, đọc từ audit_log
+    async function loadTeamsSent() {
+      teamsSent = {};
+      for (let from = 0; ; from += 1000) {
+        const { data, error } = await sb.from('audit_log').select('entity_id,at,action,note')
+          .eq('entity', 'nguoi_dung').in('action', ['gui_mat_khau_teams', 'cap_lai_mat_khau'])
+          .order('at', { ascending: false }).range(from, from + 999);
+        if (error) { console.warn('audit_log:', error.message); return; }
+        for (const l of data) {
+          const ok = l.action === 'gui_mat_khau_teams' ? !/lỗi|chưa cấu hình/i.test(l.note || '') : /Đã gửi qua Teams/.test(l.note || '');
+          if (ok && !teamsSent[l.entity_id]) teamsSent[l.entity_id] = l.at;
+        }
+        if (data.length < 1000) return;
+      }
+    }
+    function runBulk() { return bulkMode === 'new' ? runBulkCreate() : runBulkResend(); }
     // v6.7: nguồn = người đã trình ký (email trên hồ sơ), kèm người chưa có trong employees; bỏ tick = cả bảng employees
     function renderBulkList() {
+      if (bulkMode === 'resend') return renderResendList();
       const has = new Set(users.map(u => u.email));
       const only = document.getElementById('bulkOnlySubmitted').checked;
       const okEmail = em => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(em);
@@ -2583,6 +2625,55 @@
       document.getElementById('bulkAll').checked = false;
       bulkCountUpd();
     }
+    function renderResendList() {
+      const only = document.getElementById('bulkOnlySubmitted').checked;
+      const cnt = {};
+      for (const r of records) { const em = (r.email || '').trim().toLowerCase(); if (em) cnt[em] = (cnt[em] || 0) + 1; }
+      bulkCandidates = users
+        .filter(u => !u.deleted_at && u.phai_doi_mat_khau && u.id !== curUser?.id && (!only || cnt[u.email]))
+        .map(u => ({ ...u, n: cnt[u.email] || 0, phong: userDept(u), sent: teamsSent[u.id] || null }))
+        .sort((a, b) => (a.sent ? 1 : 0) - (b.sent ? 1 : 0) || b.n - a.n || a.ho_ten.localeCompare(b.ho_ten, 'vi'));
+      document.getElementById('bulkList').innerHTML = bulkCandidates.length
+        ? `<table class="cfg-table bulk-table"><thead><tr><th></th><th>Họ tên</th><th>Tên đăng nhập</th><th>Phòng ban</th><th class="num">Số hồ sơ</th><th>Đã nhắn Teams</th></tr></thead><tbody>
+          ${bulkCandidates.map((u, i) => `<tr><td><input type="checkbox" data-i="${i}" onchange="bulkCountUpd()" aria-label="Chọn ${esc(u.ho_ten)}"></td>
+            <td><b>${esc(u.ho_ten)}</b></td><td>${esc(u.ten_dang_nhap)}</td><td>${esc(u.phong) || '—'}</td>
+            <td class="num">${u.n || '—'}</td>
+            <td>${u.sent ? `<span class="badge badge-done">${new Date(u.sent).toLocaleString('vi-VN')}</span>` : '<span class="badge badge-pending">Chưa</span>'}</td></tr>`).join('')}</tbody></table>`
+        : '<div class="empty">Không có tài khoản nào đang chờ đổi mật khẩu.</div>';
+      const notSent = bulkCandidates.filter(u => !u.sent).length;
+      document.getElementById('bulkNote').innerHTML = bulkCandidates.length
+        ? `${notSent} người chưa từng nhận Teams (xếp trên cùng). <button type="button" class="btn btn-sm" onclick="bulkPickNotSent()">Chọn những người chưa nhận</button>` : '';
+      document.getElementById('bulkAll').checked = false;
+      bulkCountUpd();
+    }
+    function bulkPickNotSent() {
+      document.querySelectorAll('#bulkList input[data-i]').forEach(x => x.checked = !bulkCandidates[+x.dataset.i].sent);
+      bulkCountUpd();
+    }
+    async function runBulkResend() {
+      const pick = [...document.querySelectorAll('#bulkList input:checked')].map(x => bulkCandidates[+x.dataset.i]);
+      if (!pick.length) { showToast('Chưa chọn tài khoản nào'); return; }
+      const btn = document.getElementById('bulkBtn');
+      btn.disabled = true;
+      const out = document.getElementById('bulkResult');
+      let ok = 0; const manual = [], errs = [];
+      for (const [i, u] of pick.entries()) {
+        out.textContent = `Đang gửi ${i + 1} / ${pick.length}: ${u.ten_dang_nhap}`;
+        const pw = randomPw();
+        try {
+          const r = await callAdmin('reset_password', { id: u.id, password: pw, gui_teams: true });
+          ok++;
+          if (r.teams !== 'da_gui') manual.push({ ten: u.ten_dang_nhap, pw, why: r.teams_error });
+        } catch (err) { errs.push(`${u.ten_dang_nhap}: ${err.message}`); }
+        await sleep(600);
+      }
+      out.innerHTML = bulkReport('Đã cấp mật khẩu mới và nhắn Teams', ok, manual, errs);
+      await loadUsers();
+      await loadTeamsSent();
+      renderResendList();
+      btn.disabled = false;
+    }
+
     function closeBulkModal() { document.getElementById('bulkModal').style.display = 'none'; }
     function bulkToggleAll(on) { document.querySelectorAll('#bulkList input').forEach(x => x.checked = on); bulkCountUpd(); }
     function bulkCountUpd() {

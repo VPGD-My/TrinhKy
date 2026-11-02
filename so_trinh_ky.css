@@ -1289,3 +1289,5 @@ html[data-theme="dark"] .lc6 { --lc-bg: #352d0f; --lc-text: #E6CF7A; --lc-line: 
 .bulk-table td:first-child { width: 1%; }
 .bulk-table .num { text-align: center; }
 .bulk-new { font-size: 11px; color: var(--amber-text); margin-top: 2px; }
+.bulk-mode { display: flex; flex-wrap: wrap; }
+.bulk-mode button { flex: 1 1 260px; }
