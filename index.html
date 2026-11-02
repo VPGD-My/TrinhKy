@@ -13,6 +13,25 @@
       if (t !== 'dark' && t !== 'light') t = window.matchMedia && matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
       document.documentElement.setAttribute('data-theme', t);
     })();
+    // v6.4: tự co giãn theo bề rộng cửa sổ (thay cho zoom cố định 68%).
+    //  W   = bề rộng (px) mà bảng hồ sơ vừa khít ở cỡ 100%. Màn hình rộng hơn thì phóng to, hẹp hơn thì thu nhỏ.
+    //  MIN / MAX = giới hạn thu nhỏ / phóng to. Điện thoại (< PHONE px) giữ 100%, bảng cuộn ngang.
+    //  Tính theo bề rộng cửa sổ trình duyệt (outerWidth) nên Ctrl + / Ctrl - của trình duyệt vẫn phóng to / thu nhỏ thêm được.
+    (function () {
+      var W = 1440, MIN = 0.6, MAX = 1.25, PHONE = 768;
+      function fit() {
+        var inner = window.innerWidth || document.documentElement.clientWidth;
+        var w = window.outerWidth || inner;
+        var z = inner < PHONE ? 1 : Math.min(MAX, Math.max(MIN, w / W));
+        z = Math.round(z * 100) / 100;
+        var r = document.documentElement;
+        r.style.zoom = z;
+        r.style.setProperty('--z', z);
+      }
+      fit();
+      var t;
+      window.addEventListener('resize', function () { clearTimeout(t); t = setTimeout(fit, 120); });
+    })();
   </script>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
   <link rel="stylesheet" href="so_trinh_ky.css?v=6">
@@ -717,6 +736,39 @@
       if (e.target.classList && e.target.classList.contains('modal-bg') && stkMouseDownEl !== e.target) e.stopImmediatePropagation();
     }, true);
 
+    // v6.4: nút con mắt xem / ẩn mật khẩu cho mọi ô mật khẩu
+    function initPwEyes() {
+      document.querySelectorAll('input[type="password"]').forEach(inp => {
+        if (inp.parentElement.classList.contains('pw-wrap')) return;
+        const wrap = document.createElement('span');
+        wrap.className = 'pw-wrap';
+        inp.parentNode.insertBefore(wrap, inp);
+        wrap.appendChild(inp);
+        const b = document.createElement('button');
+        b.type = 'button';
+        b.className = 'pw-eye';
+        b.tabIndex = -1;
+        b.title = 'Hiện mật khẩu';
+        b.innerHTML = '<i class="ti ti-eye"></i>';
+        b.addEventListener('click', () => {
+          const show = inp.type === 'password';
+          inp.type = show ? 'text' : 'password';
+          b.innerHTML = show ? '<i class="ti ti-eye-off"></i>' : '<i class="ti ti-eye"></i>';
+          b.title = show ? 'Ẩn mật khẩu' : 'Hiện mật khẩu';
+          inp.focus();
+        });
+        wrap.appendChild(b);
+      });
+    }
+    // ẩn lại mật khẩu khi mở modal / form
+    function hidePwEyes(scope) {
+      (scope || document).querySelectorAll('.pw-wrap').forEach(w => {
+        const inp = w.querySelector('input'), b = w.querySelector('.pw-eye');
+        if (inp && inp.type === 'text') { inp.type = 'password'; b.innerHTML = '<i class="ti ti-eye"></i>'; b.title = 'Hiện mật khẩu'; }
+      });
+    }
+    initPwEyes();
+
     const DAYS_VN = ['Chủ nhật', 'Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7'];
     const PRIORITY_LABEL = { 1: 'Ưu tiên 1 – Cao', 2: 'Ưu tiên 2 – Trung bình', 3: 'Ưu tiên 3 – Thấp' };
     const PRIORITY_COL = { 1: 'so_ngay_cao', 2: 'so_ngay_tb', 3: 'so_ngay_thap' };
@@ -754,10 +806,16 @@
       return !isAdmin || r.ld === session.ld;   // người trình ký, hoặc trợ lý của chính PTGĐ đó
     }
 
+    // v6.4: mỗi PTGĐ một màu (theo thứ tự trong danh sách lãnh đạo, 6 màu xoay vòng). TGĐ giữ màu xanh dương.
+    function ldColor(ldId) {
+      const ptgd = leaders.filter(l => !l.la_tgd);
+      const i = ptgd.findIndex(l => l.id === ldId);
+      return i < 0 ? '' : 'lc lc' + ((i % 6) + 1);
+    }
     function capBadge(ldId) {
       const l = ldById(ldId);
       if (!l) return '<span class="cap cap-chung">?</span>';
-      return `<span class="cap ${l.la_tgd ? 'cap-tgd' : 'cap-ptgd'}" title="${esc(l.ten)}">${esc(l.ten_ngan)}</span>`;
+      return `<span class="cap ${l.la_tgd ? 'cap-tgd' : 'cap-ptgd ' + ldColor(l.id)}" title="${esc(l.ten)}">${esc(l.ten_ngan)}</span>`;
     }
 
     function esc(s) {
@@ -933,6 +991,7 @@
         return;
       }
       document.getElementById('loginPw').value = '';
+      hidePwEyes(document.getElementById('loginScreen'));
       await afterLogin();
     }
 
@@ -1461,7 +1520,7 @@
 
     function renderLdPick() {
       document.getElementById('ldPick').innerHTML = leaders.map(l => `
-        <label class="ld-opt ${l.la_tgd ? 'tgd' : 'ptgd'} ${formLd === l.id ? 'on' : ''} ${formLdLocked ? 'locked' : ''}">
+        <label class="ld-opt ${l.la_tgd ? 'tgd' : 'ptgd ' + ldColor(l.id)} ${formLd === l.id ? 'on' : ''} ${formLdLocked ? 'locked' : ''}">
           <input type="radio" name="f_ld" value="${l.id}" ${formLd === l.id ? 'checked' : ''} ${formLdLocked ? 'disabled' : ''} onchange="pickLd(${l.id})">
           <span><b>${esc(l.ten)}</b></span>
         </label>`).join('') || '<span style="font-size:12px;color:var(--danger)">Chưa có danh sách lãnh đạo (chưa chạy db/003).</span>';
@@ -2041,27 +2100,34 @@
         if (ra) return ((a.weekday + 6) % 7) - ((b.weekday + 6) % 7);
         return b.id - a.id;
       });
-      list.innerHTML = `<div class="off-list">${sorted.map(o => {
-        let label, badge;
+      const days = o => Math.round((new Date(o.end + 'T00:00:00') - new Date(o.start + 'T00:00:00')) / 86400000) + 1;
+      list.innerHTML = `<div class="off-table-wrap"><table class="cfg-table off-table">
+        <thead><tr><th>Loại</th><th>Từ ngày</th><th>Đến ngày</th><th class="num">Số ngày</th><th>Lý do</th><th>Áp dụng</th><th></th></tr></thead>
+        <tbody>${sorted.map(o => {
+        let type, from, to, n;
         if (o.type === 'recur') {
-          label = DAYS_VN[o.weekday] + ' hằng tuần';
-          badge = '<span class="off-type-badge">Lặp lại</span>';
-        } else if (o.start === o.end || !o.end) {
-          label = fmtDate(o.start);
-          badge = '<span class="off-type-badge">Ngày lẻ</span>';
+          type = 'Lặp lại';
+          from = `<b>${DAYS_VN[o.weekday]}</b> hằng tuần`;
         } else {
-          label = fmtDate(o.start) + ' – ' + fmtDate(o.end);
-          badge = '<span class="off-type-badge">Khoảng ngày</span>';
+          const end = o.end || o.start;
+          type = o.start === end ? 'Ngày lẻ' : 'Khoảng ngày';
+          from = `<b>${fmtDate(o.start)}</b> <small>${dayVN(o.start)}</small>`;
+          to = o.start === end ? '' : `<b>${fmtDate(end)}</b> <small>${dayVN(end)}</small>`;
+          n = days({ start: o.start, end });
         }
         const owner = o.ld === null ? '<span class="cap cap-chung">Chung</span>' : capBadge(o.ld);
         const canDel = o.ld === null ? isTgdAsst() : canEditLd(o.ld);
-        return `<div class="chip">
-          <i class="ti ti-calendar-x" style="font-size:13px;color:var(--amber-text)"></i>
-          ${badge}${owner}
-          <span style="flex:1"><strong>${label}</strong>${o.reason ? ' – ' + esc(o.reason) : ''}</span>
-          ${canDel ? `<button onclick="removeOffDay(${o.id})" title="Xóa"><i class="ti ti-x" style="font-size:12px"></i></button>` : ''}
-        </div>`;
-      }).join('')}</div>`;
+        const dateCells = o.type === 'recur'
+          ? `<td colspan="3">${from}</td>`
+          : `<td>${from}</td><td>${to || '<span class="muted">—</span>'}</td><td class="num">${n}</td>`;
+        return `<tr>
+          <td><span class="off-type-badge">${type}</span></td>
+          ${dateCells}
+          <td class="off-reason">${esc(o.reason) || '<span class="muted">—</span>'}</td>
+          <td>${owner}</td>
+          <td class="act">${canDel ? `<button class="action-btn action-del" onclick="removeOffDay(${o.id})" title="Xóa"><i class="ti ti-x"></i></button>` : ''}</td>
+        </tr>`;
+      }).join('')}</tbody></table></div>`;
     }
 
     async function addOffDay() {
@@ -2532,6 +2598,7 @@
       cb.innerHTML = myPwForced ? '<i class="ti ti-logout"></i>Đăng xuất' : 'Hủy';
       cb.onclick = myPwForced ? logout : closeMyPwModal;
       ['myPwOld', 'myPwNew', 'myPwNew2'].forEach(id => document.getElementById(id).value = '');
+      hidePwEyes(document.getElementById('myPwModal'));
       document.getElementById('myPwError').style.display = 'none';
       document.getElementById('myPwModal').style.display = 'flex';
       setTimeout(() => document.getElementById('myPwOld').focus(), 50);

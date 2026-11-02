@@ -9,6 +9,8 @@
   padding: 0;
 }
 
+/* v6.4: cỡ hiển thị tự co giãn theo bề rộng cửa sổ (đoạn script đầu index.html đặt zoom và biến --z).
+   68% chỉ dùng tạm khi trình duyệt chặn script. */
 html {
   zoom: 68%;
 }
@@ -523,7 +525,7 @@ tbody td {
   border: 1px solid var(--border2);
   width: 100%;
   max-width: 700px;
-  max-height: 90vh;
+  max-height: calc(90vh / var(--z, 1));   /* v6.4: vh bị nhân theo zoom, chia lại để modal không cao quá màn hình */
   overflow-y: auto;
 }
 
@@ -1099,7 +1101,7 @@ td.col-act .action-btn { padding: 3px 6px; }
    ----------------------------------------------------------------------------------
    • min-width : cột không hẹp hơn số này (0 = để trình duyệt tự chia theo nội dung).
    • max-width : chỉ dùng cho 2 cột cuối (Lý do từ chối, Thao tác).
-   • Đơn vị px tính TRƯỚC zoom 68% của app (170px hiển thị thực tế ≈ 116px).
+   • Đơn vị px tính TRƯỚC zoom tự co giãn của app (v6.4: zoom = bề rộng cửa sổ / 1440, trong khoảng 0.6 – 1.25).
    • Tổng các min-width càng lớn thì bảng càng dễ hiện lại thanh cuộn ngang.
      Nên tăng cột này thì giảm cột khác. Thử ngay bằng Live Server, lưu file là thấy.
    • Ô nào có chữ dài (Tên hồ sơ, Ghi chú) tự xuống dòng khi cột hẹp.
@@ -1221,5 +1223,49 @@ td.col-act .acts            { min-width: 1; max-width: 170px; }   /* Thao tác: 
 }
 .user-table .col-act { min-width: 0; width: 1%; }
 .user-table td.col-act .acts { flex-wrap: nowrap; max-width: none; }
-#tab-users .table-wrap { height: auto; max-height: calc(100vh - 260px); }
 .chk-line { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text2); margin-top: 8px; cursor: pointer; }
+
+/* ═══════════════════════════════════════════════════════════
+   v6.4 – MẮT MẬT KHẨU, BẢNG NGÀY NGHỈ, MÀU NHÃN LÃNH ĐẠO
+   ═══════════════════════════════════════════════════════════ */
+/* Nút con mắt trong ô mật khẩu */
+.pw-wrap { position: relative; display: block; width: 100%; }
+.pw-wrap > .field { width: 100%; padding-right: 34px; }
+.pw-eye {
+  position: absolute; right: 6px; top: 50%; transform: translateY(-50%);
+  background: none; border: none; cursor: pointer; padding: 4px;
+  color: var(--text3); display: flex; align-items: center; font-size: 16px; line-height: 1;
+}
+.pw-eye:hover { color: var(--text); }
+.login-user .pw-wrap { flex: 1; }
+
+/* Danh sách người dùng: chiếm hết chiều cao còn lại như bảng hồ sơ */
+#tab-users .table-wrap { flex: 1; min-height: 0; }
+
+/* Ngày công tác / nghỉ: dạng bảng */
+.off-table-wrap { max-height: 420px; overflow: auto; }
+.off-table { width: 100%; }
+.off-table thead th { position: sticky; top: 0; z-index: 1; background: var(--bg2); white-space: nowrap; }
+.off-table td { vertical-align: middle; white-space: nowrap; }
+.off-table td small { color: var(--text3); font-size: 11px; margin-left: 2px; }
+.off-table td.off-reason { white-space: normal; min-width: 140px; }
+.off-table .num { text-align: center; }
+.off-table td.act { text-align: right; width: 1%; }
+.off-table .muted { color: var(--text3); }
+.off-table tbody tr:hover td { background: var(--hover-soft); }
+
+/* Màu nhãn PTGĐ: mỗi lãnh đạo một màu (lc1 … lc6 xoay vòng theo thứ tự lãnh đạo). TGĐ giữ .cap-tgd */
+.lc1 { --lc-bg: #EEEAF8; --lc-text: #46307D; --lc-line: #CFC4EC; --lc-main: #5B3FA0; }  /* tím     */
+.lc2 { --lc-bg: #E1F5F2; --lc-text: #0F5E55; --lc-line: #A8DDD5; --lc-main: #138A7C; }  /* xanh ngọc */
+.lc3 { --lc-bg: #FDEBDD; --lc-text: #8A4512; --lc-line: #F3C29E; --lc-main: #C2621B; }  /* cam     */
+.lc4 { --lc-bg: #FBE7F0; --lc-text: #8C2456; --lc-line: #F0B7D0; --lc-main: #B8316F; }  /* hồng    */
+.lc5 { --lc-bg: #E7F4E4; --lc-text: #2E6A1E; --lc-line: #B9DDB0; --lc-main: #3F8A2A; }  /* xanh lá */
+.lc6 { --lc-bg: #FAF3D6; --lc-text: #6E5300; --lc-line: #E8D68A; --lc-main: #A07B00; }  /* vàng    */
+html[data-theme="dark"] .lc1 { --lc-bg: #261f3d; --lc-text: #C9BCF2; --lc-line: #4b3d7a; --lc-main: #A993E8; }
+html[data-theme="dark"] .lc2 { --lc-bg: #12302c; --lc-text: #8FD8CC; --lc-line: #24584f; --lc-main: #5CC4B4; }
+html[data-theme="dark"] .lc3 { --lc-bg: #3a2414; --lc-text: #F2B88A; --lc-line: #6b4022; --lc-main: #E8955A; }
+html[data-theme="dark"] .lc4 { --lc-bg: #3a1828; --lc-text: #F0A6C8; --lc-line: #6a2c49; --lc-main: #E077A6; }
+html[data-theme="dark"] .lc5 { --lc-bg: #1c3018; --lc-text: #A8D99A; --lc-line: #34592c; --lc-main: #7FC46C; }
+html[data-theme="dark"] .lc6 { --lc-bg: #352d0f; --lc-text: #E6CF7A; --lc-line: #5e5220; --lc-main: #D4B44A; }
+.cap.lc         { background: var(--lc-bg); color: var(--lc-text); border-color: var(--lc-line); }
+.ld-opt.on.lc   { border-color: var(--lc-main); background: var(--lc-bg); }
