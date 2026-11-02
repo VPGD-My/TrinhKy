@@ -243,14 +243,14 @@
         </div>
         <div style="display:flex;gap:8px">
           <button class="btn" onclick="sendPendingTeams()" title="Cấp mật khẩu riêng và nhắn Teams cho các tài khoản chưa đổi mật khẩu tạm"><i class="ti ti-brand-teams"></i>Gửi MK qua Teams</button>
-          <button class="btn" onclick="openBulkModal()"><i class="ti ti-users-plus"></i>Tạo từ danh sách nhân viên</button>
+          <button class="btn" onclick="openBulkModal()"><i class="ti ti-users-plus"></i>Cấp tài khoản lần đầu</button>
           <button class="btn btn-primary" onclick="openUserModal(null)"><i class="ti ti-user-plus"></i>Thêm người dùng</button>
         </div>
       </div>
       <div class="table-wrap">
         <table class="user-table">
           <thead>
-            <tr><th>Tên đăng nhập</th><th>Họ tên</th><th>Email</th><th>Vai trò</th><th>Trạng thái</th><th class="col-act">Thao tác</th></tr>
+            <tr><th>Tên đăng nhập</th><th>Họ tên</th><th>Email</th><th>Phòng ban</th><th>Vai trò</th><th>Trạng thái</th><th class="col-act">Thao tác</th></tr>
           </thead>
           <tbody id="userBody"></tbody>
         </table>
@@ -652,22 +652,24 @@
 
   <!-- v6: Tạo tài khoản hàng loạt từ bảng employees -->
   <div class="modal-bg" id="bulkModal" style="display:none">
-    <div class="modal" style="max-width:640px">
+    <div class="modal" style="max-width:860px">
       <div class="modal-header">
-        <h2><i class="ti ti-users-plus" style="color:var(--blue);margin-right:6px"></i>Tạo tài khoản từ danh sách nhân viên</h2>
+        <h2><i class="ti ti-users-plus" style="color:var(--blue);margin-right:6px"></i>Cấp tài khoản lần đầu</h2>
         <button class="action-btn" onclick="closeBulkModal()" style="padding:4px 6px"><i class="ti ti-x"></i></button>
       </div>
       <div class="modal-body">
         <div class="info-box" style="margin-bottom:12px"><i class="ti ti-info-circle" style="font-size:14px;flex-shrink:0"></i>
-          <span>Nhân viên có email nhưng chưa có tài khoản. Mỗi người được tạo vai trò <b>Người trình ký</b> với <b>mật khẩu ngẫu nhiên riêng</b>
-            và nhận tên đăng nhập + mật khẩu qua Teams; lần đầu đăng nhập phải đổi mật khẩu.</span></div>
+          <span>Danh sách người <b>đã trình ký</b> (lấy từ email người gửi trên hồ sơ) mà chưa có tài khoản. Mỗi người được tạo vai trò
+            <b>Người trình ký</b>, <b>mật khẩu ngẫu nhiên riêng</b>, nhận qua Teams một lần; lần đầu đăng nhập phải đổi mật khẩu.
+            Người đã có tài khoản không hiện ở đây nữa. Quyền trợ lý cấp sau ở nút Sửa từng người.</span></div>
         <div style="display:flex;gap:14px;align-items:center;flex-wrap:wrap;margin-bottom:8px">
           <label class="chk-line" style="margin:0"><input type="checkbox" id="bulkAll" onchange="bulkToggleAll(this.checked)"> Chọn tất cả</label>
-          <label class="chk-line" style="margin:0"><input type="checkbox" id="bulkOnlySubmitted" checked onchange="renderBulkList()"> Chỉ người đã từng trình ký</label>
+          <label class="chk-line" style="margin:0"><input type="checkbox" id="bulkOnlySubmitted" checked onchange="renderBulkList()"> Chỉ người đã trình ký (bỏ tick: cả danh sách nhân viên)</label>
           <label class="chk-line" style="margin:0"><input type="checkbox" id="bulkTeams" checked> Nhắn qua Teams</label>
           <span id="bulkCount" style="font-size:12px;color:var(--text3);margin-left:auto"></span>
         </div>
         <div class="bulk-list" id="bulkList"></div>
+        <div id="bulkNote" style="margin-top:6px;font-size:12px;color:var(--text3)"></div>
         <div id="bulkResult" style="margin-top:10px;font-size:12px"></div>
       </div>
       <div class="modal-footer">
@@ -2345,6 +2347,10 @@
       if (document.getElementById('tab-config').classList.contains('active')) renderLeaders();
     }
 
+    // v6.7: phòng ban của tài khoản = employees.department (so theo email), tên đầy đủ
+    const empByEmail = em => employees.find(e => (e.email || '').trim().toLowerCase() === (em || '').trim().toLowerCase());
+    const userDept = u => (empByEmail(u.email)?.department || '').trim();
+
     function renderUsers() {
       const q = (document.getElementById('userSearch').value || '').toLowerCase().trim();
       const f = document.getElementById('userFilter').value;
@@ -2352,11 +2358,11 @@
         if (f === '' && u.deleted_at) return false;
         if (f === 'khoa' && !u.deleted_at) return false;
         if (f === 'tro_ly' && (u.deleted_at || u.vai_tro !== 'tro_ly')) return false;
-        return !q || (u.ten_dang_nhap + ' ' + u.ho_ten + ' ' + u.email).toLowerCase().includes(q);
+        return !q || (u.ten_dang_nhap + ' ' + u.ho_ten + ' ' + u.email + ' ' + userDept(u)).toLowerCase().includes(q);
       });
       document.getElementById('userCount').textContent = `${rows.length} / ${users.length} tài khoản`;
       const body = document.getElementById('userBody');
-      if (!rows.length) { body.innerHTML = '<tr><td colspan="6"><div class="empty"><i class="ti ti-users"></i>Không có tài khoản nào</div></td></tr>'; return; }
+      if (!rows.length) { body.innerHTML = '<tr><td colspan="7"><div class="empty"><i class="ti ti-users"></i>Không có tài khoản nào</div></td></tr>'; return; }
       body.innerHTML = rows.map(u => {
         const role = u.vai_tro === 'tro_ly' ? capBadge(u.lanh_dao_id).replace('</span>', ' · Trợ lý</span>') : '<span style="font-size:12px">Người trình ký</span>';
         const st = u.deleted_at
@@ -2372,6 +2378,7 @@
           <td><b>${esc(u.ten_dang_nhap)}</b>${self ? ' <span style="font-size:11px;color:var(--text3)">(bạn)</span>' : ''}</td>
           <td>${esc(u.ho_ten)}</td>
           <td style="font-size:12px;color:var(--text2)">${esc(u.email)}</td>
+          <td style="font-size:12px">${esc(userDept(u)) || '<span style="color:var(--text3)">—</span>'}</td>
           <td>${role}</td>
           <td>${st}</td>
           <td class="col-act"><div class="acts">${a}</div></td>
@@ -2533,20 +2540,46 @@
       renderBulkList();
       document.getElementById('bulkModal').style.display = 'flex';
     }
+    // v6.7: nguồn = người đã trình ký (email trên hồ sơ), kèm người chưa có trong employees; bỏ tick = cả bảng employees
     function renderBulkList() {
       const has = new Set(users.map(u => u.email));
-      // người đã từng trình ký: email người gửi trên hồ sơ (trợ lý TGĐ thấy mọi hồ sơ)
-      const submitted = new Set(records.map(r => (r.email || '').trim().toLowerCase()).filter(Boolean));
       const only = document.getElementById('bulkOnlySubmitted').checked;
-      const seen = new Set();
-      bulkCandidates = employees
-        .map(e => ({ email: (e.email || '').trim().toLowerCase(), ho_ten: (e.fullname || '').trim() }))
-        .filter(e => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e.email) && e.ho_ten && !has.has(e.email)
-          && (!only || submitted.has(e.email)) && !seen.has(e.email) && seen.add(e.email))
-        .sort((a, b) => a.ho_ten.localeCompare(b.ho_ten, 'vi'));
+      const okEmail = em => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(em);
+      const by = new Map();
+      let noEmail = 0;
+      for (const r of records) {
+        const em = (r.email || '').trim().toLowerCase();
+        if (!em) { noEmail++; continue; }
+        let x = by.get(em);
+        if (!x) { x = { email: em, ho_ten: '', phong: '', n: 0, last: '' }; by.set(em, x); }
+        x.n++;
+        const d = r.ngaygui || (r.created_at || '').slice(0, 10);
+        if (d >= x.last) { x.last = d; if (r.nguoigui) x.ho_ten = r.nguoigui.trim(); if (r.phong) x.phong = r.phong; }
+      }
+      let list;
+      if (only) {
+        list = [...by.values()];
+      } else {
+        const seen = new Set();
+        list = employees.map(e => ({ email: (e.email || '').trim().toLowerCase(), ho_ten: '', phong: '', n: 0, last: '' }))
+          .filter(e => e.email && !seen.has(e.email) && seen.add(e.email))
+          .map(e => by.get(e.email) || e);
+      }
+      bulkCandidates = list.map(x => {
+        const emp = empByEmail(x.email);
+        return { ...x, ho_ten: (emp?.fullname || x.ho_ten || '').trim(), phong: (emp?.department || '').trim() || phongFull(x.phong), inEmp: !!emp };
+      }).filter(x => okEmail(x.email) && x.ho_ten && !has.has(x.email))
+        .sort((a, b) => b.n - a.n || a.ho_ten.localeCompare(b.ho_ten, 'vi'));
       document.getElementById('bulkList').innerHTML = bulkCandidates.length
-        ? bulkCandidates.map((e, i) => `<label><input type="checkbox" data-i="${i}" onchange="bulkCountUpd()"> <b>${esc(e.ho_ten)}</b> <span>${esc(e.email)}</span></label>`).join('')
-        : '<div class="empty">Không còn nhân viên nào chưa có tài khoản.</div>';
+        ? `<table class="cfg-table bulk-table"><thead><tr><th></th><th>Họ tên</th><th>Email</th><th>Phòng ban</th><th class="num">Số hồ sơ</th><th>Gần nhất</th></tr></thead><tbody>
+          ${bulkCandidates.map((e, i) => `<tr><td><input type="checkbox" data-i="${i}" onchange="bulkCountUpd()" aria-label="Chọn ${esc(e.ho_ten)}"></td>
+            <td><b>${esc(e.ho_ten)}</b>${e.inEmp ? '' : '<div class="bulk-new">Chưa có trong DS nhân viên – sẽ thêm</div>'}</td>
+            <td>${esc(e.email)}</td><td>${esc(e.phong) || '<span style="color:var(--danger)">Chưa có</span>'}</td>
+            <td class="num">${e.n || '—'}</td><td>${e.last ? fmtDate(e.last) : '—'}</td></tr>`).join('')}</tbody></table>`
+        : '<div class="empty">Mọi người đã trình ký đều đã có tài khoản.</div>';
+      const missing = [...by.values()].filter(x => !okEmail(x.email)).length;
+      document.getElementById('bulkNote').textContent = only && (noEmail || missing)
+        ? `${noEmail} hồ sơ không có email người gửi${missing ? `, ${missing} email sai định dạng` : ''}: không tạo được tài khoản cho những người này (thêm tay ở "Thêm người dùng").` : '';
       document.getElementById('bulkAll').checked = false;
       bulkCountUpd();
     }
@@ -2578,13 +2611,16 @@
         out.textContent = `Đang tạo ${i + 1} / ${pick.length}: ${e.email}`;
         const pw = randomPw();
         try {
-          const r = await callAdmin('create', { email: e.email, ho_ten: e.ho_ten, vai_tro: 'nguoi_trinh', password: pw, gui_teams });
+          // chưa có trong employees thì thêm luôn (họ tên, email, phòng ban từ hồ sơ gần nhất)
+          const r = await callAdmin('create', { email: e.email, ho_ten: e.ho_ten, vai_tro: 'nguoi_trinh', password: pw, gui_teams,
+            them_nhan_vien: !e.inEmp, phong_ban: e.inEmp ? '' : e.phong });
           ok++;
           if (r.teams !== 'da_gui') manual.push({ ten: r.ten_dang_nhap, pw, why: r.teams_error || 'Không chọn nhắn Teams' });
         } catch (err) { errs.push(`${e.email}: ${err.message}`); }
         if (gui_teams) await sleep(600);
       }
       out.innerHTML = bulkReport('Đã tạo tài khoản', ok, manual, errs);
+      await loadEmployees();
       await loadUsers();
       renderBulkList();
       btn.disabled = false;
