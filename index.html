@@ -355,26 +355,10 @@
           </div>
           <div class="form-group">
             <label>Phòng ban<span class="required">*</span></label>
-            <select class="field" id="f_phong" required>
-              <option value="">-- Chọn --</option>
-              <option>Ban Cải tiến</option>
-              <option>HSE</option>
-              <option>Cung ứng</option>
-              <option>Ban EPR</option>
-              <option>HCNS</option>
-              <option>Sản xuất</option>
-              <option>Kế toán</option>
-              <option>Kinh doanh</option>
-              <option>KSNB</option>
-              <option>Kỹ thuật</option>
-              <option>Marketing</option>
-              <option>Mua hàng &amp; XNK</option>
-              <option>QLCL</option>
-              <option>QTHT</option>
-              <option>R&amp;D</option>
-              <option>VPGĐ</option>
-              <option>XDCB</option>
-            </select>
+            <!-- v6.6: lấy theo employees.department của người gửi, không chọn tay. f_phong giữ tên đầy đủ (lưu / xuất), ô hiện tên ngắn -->
+            <input type="hidden" id="f_phong">
+            <input type="text" class="field phong-ro" id="f_phong_show" readonly tabindex="-1" placeholder="Theo người gửi">
+            <small id="f_phongHint" class="phong-warn" style="display:none"></small>
           </div>
           <div class="form-group">
             <label>Người gửi<span class="required">*</span></label>
@@ -1148,7 +1132,7 @@
       const loai = document.getElementById('filterLoai').value;
       const st = document.getElementById('filterStatus').value;
       return scopeRecords().filter(r => {
-        const mq = !q || ((r.ten || '') + (r.nguoigui || '') + (r.doitac || '') + (r.phong || '')).toLowerCase().includes(q);
+        const mq = !q || ((r.ten || '') + (r.nguoigui || '') + (r.doitac || '') + (r.phong || '') + phongLabel(r.phong)).toLowerCase().includes(q);
         return mq && (!loai || r.loai === loai) && (!st || r.status === st);
       });
     }
@@ -1202,7 +1186,7 @@
               <td style="max-width:280px;white-space:normal;word-break:break-word">${esc(r.ten)}${links}</td>
               <td>${capBadge(r.ld)}</td>
               <td style="text-align:center">${r.sl}</td>
-              <td>${esc(r.phong)}</td><td>${esc(r.nguoigui)}</td><td style="max-width:110px;white-space:normal;word-break:break-word">${esc(r.doitac) || '—'}</td>
+              <td title="${esc(r.phong)}">${esc(phongLabel(r.phong))}</td><td>${esc(r.nguoigui)}</td><td style="max-width:110px;white-space:normal;word-break:break-word">${esc(r.doitac) || '—'}</td>
               <td class="col-ut"><span class="badge ${utBadge}">${utLabel}</span></td>
               <td>${deadlineCell}</td>
               <td>${r.ngaytra ? `<span class="dk-tra">${fmtDate(r.ngaytra)}<br><small>${dayVN(r.ngaytra)}</small></span>` : '—'}</td><td style="text-align:center">${fmtTime(r.giortra)}</td>
@@ -1548,6 +1532,53 @@
     // v6: nhân viên ứng với tài khoản đang đăng nhập (so theo email)
     const selfEmployee = () => curUser ? employees.find(e => (e.email || '').trim().toLowerCase() === curUser.email) : null;
 
+    // v6.5: chọn Người gửi → tự chọn Phòng ban theo cột department của bảng employees.
+    // So khớp không phân biệt hoa thường, dấu, khoảng trắng, "&"/"và". Không khớp thì giữ nguyên và báo để chọn tay.
+    const normDept = v => String(v || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/g, 'd')
+      .replace(/&/g, 'va').replace(/[^a-z0-9]/g, '');
+    // v6.6: phòng ban LƯU tên đầy đủ theo employees.department. Tên ngắn CHỈ hiện ở bảng tổng hợp hồ sơ (v6.6.1),
+    //  mọi chỗ khác (form, popup, trình tiếp, Excel, Teams) dùng tên đầy đủ.
+    //  PHONG_BAN: [tên ngắn hiển thị, tên đầy đủ trong employees]. Thêm / sửa dòng ở đây khi có phòng ban mới.
+    //  Tên không có trong bảng: hiển thị nguyên như đang lưu.
+    const PHONG_BAN = [
+      ['Cung ứng', 'Cung Ứng'],
+      ['HCNS', 'Hành Chánh Nhân Sự'],
+      ['Kế toán', 'Kế Toán Tài Chính'],
+      ['Kinh doanh', 'Kinh Doanh'],
+      ['Kỹ thuật', 'Kỹ Thuật'],
+      ['Marketing', 'Marketing'],
+      ['Mua hàng & XNK', 'Mua Hàng & XNK'],
+      ['QLCL', 'Quản Lý Chất Lượng'],
+      ['R&D', 'Nghiên Cứu & Phát Triển'],
+      ['Sản xuất', 'Xưởng Sản Xuất'],
+      ['VPGĐ', 'Văn Phòng Giám Đốc'],
+    ];
+    // tên ngắn cũ (trước v6.6) → tên đầy đủ, dùng khi nhập Excel (db/006 đã đổi hồ sơ cũ)
+    const PHONG_BAN_CU = { 'Ban EPR': 'Marketing', 'XDCB': 'Hành Chánh Nhân Sự' };
+    const PB_SHORT = Object.fromEntries(PHONG_BAN.map(([n, d]) => [normDept(d), n]));
+    const PB_FULL = Object.fromEntries([...PHONG_BAN.map(([n, d]) => [normDept(n), d]),
+      ...Object.entries(PHONG_BAN_CU).map(([n, d]) => [normDept(n), d])]);
+    const phongLabel = v => PB_SHORT[normDept(v)] || (v || '');
+    const phongFull = v => PB_FULL[normDept(v)] || (v || '').trim();
+
+    function setPhong(full) {
+      document.getElementById('f_phong').value = full || '';
+      const show = document.getElementById('f_phong_show');
+      show.value = full || '';   // v6.6.1: form hiện tên đầy đủ, tên ngắn chỉ dùng ở bảng tổng hợp
+    }
+
+    // chọn Người gửi → phòng ban theo danh sách nhân viên
+    function applyEmployeeDept(emp) {
+      const hint = document.getElementById('f_phongHint');
+      const dep = (emp?.department || '').trim();
+      setPhong(dep);
+      hint.style.display = 'none';
+      if (emp && !dep) {
+        hint.textContent = 'Người này chưa có phòng ban trong danh sách nhân viên. Liên hệ Trợ lý TGĐ cập nhật trước khi đăng ký.';
+        hint.style.display = 'block';
+      }
+    }
+
     function openAddModal() {
       // người trình ký: Người gửi mặc định là chính mình; đăng ký giúp người khác thì chọn lại
       const self = !isAdmin ? selfEmployee() : null;
@@ -1556,6 +1587,7 @@
       editId = null;
       document.getElementById('modalTitle').textContent = 'Đăng ký hồ sơ mới';
       clearForm();
+      if (self) applyEmployeeDept(self);
       setFormLd(isAdmin ? session.ld : null, false);   // trợ lý đăng ký hộ: mặc định lãnh đạo của mình
       document.getElementById('adminSection').style.display = isAdmin ? 'block' : 'none';
       document.getElementById('lydoTuChoiGroup').style.display = 'none';
@@ -1578,7 +1610,7 @@
       document.getElementById('f_loai').value = r.loai;
       document.getElementById('f_ten').value = r.ten;
       document.getElementById('f_sl').value = r.sl;
-      document.getElementById('f_phong').value = r.phong;
+      setPhong(r.phong);
       document.getElementById('f_doitac').value = r.doitac || '';
       document.getElementById('f_uutien').value = String(r.priority);
       document.getElementById('f_ngaydk_preview').value = r.ngaydk ? fmtDate(r.ngaydk) + ' (' + dayVN(r.ngaydk) + ')' : '';
@@ -1641,6 +1673,8 @@
           if (el) el.value = '';
         });
       document.getElementById('f_sl').value = 1;
+      document.getElementById('f_phongHint').style.display = 'none';
+      setPhong('');
       document.getElementById('f_uutien').innerHTML = priorityOptions(null, 2);
     }
 
@@ -1876,12 +1910,13 @@
       document.getElementById('f_loai').value = r.loai;
       document.getElementById('f_ten').value = r.ten;
       document.getElementById('f_sl').value = r.sl;
-      document.getElementById('f_phong').value = r.phong;
+      setPhong(r.phong);
       document.getElementById('f_doitac').value = r.doitac || '';
       document.getElementById('f_uutien').value = String(r.priority);
 
       const emp = findEmployeeByName(r.nguoigui);
       selectedEmployee = emp || null;
+      if (emp) applyEmployeeDept(emp);   // copy: phòng ban hiện tại của người gửi
       document.getElementById('employeeInput').value = emp ? emp.fullname : '';
 
       document.getElementById('adminSection').style.display = isAdmin ? 'block' : 'none';
@@ -1920,6 +1955,11 @@
 
       const doitac = document.getElementById('f_doitac').value.trim(), sl = document.getElementById('f_sl').value;
 
+      if (nguoigui && !phong) {
+        showToast('Người gửi chưa có phòng ban trong danh sách nhân viên. Liên hệ Trợ lý TGĐ cập nhật.');
+        resetSaveBtn();
+        return;
+      }
       if (!loai || !ten || !phong || !nguoigui || !doitac || !sl || parseInt(sl) < 1) {
         showToast('Vui lòng điền đầy đủ tất cả các trường bắt buộc (*)');
         resetSaveBtn();
@@ -3089,6 +3129,9 @@
             if (!l) notes.push(`Hồ sơ dòng ${rec._rowNum}: không tìm thấy lãnh đạo "${rec.ldText}" → gán ${tgd()?.ten_ngan}.`);
             rec.ld = (l || tgd())?.id;
             rec.email = rec.emailIn || findEmployeeByName(rec.nguoigui)?.email || '';
+            // v6.6: phòng ban lấy theo danh sách nhân viên; không tìm thấy người thì đổi tên trong file sang tên đầy đủ
+            const empIn = employees.find(e => (e.email || '').trim().toLowerCase() === (rec.email || '').trim().toLowerCase()) || findEmployeeByName(rec.nguoigui);
+            rec.phong = (empIn?.department || '').trim() || phongFull(rec.phong);
             if (!rec.ngaydk && rec.ngaygui) rec.ngaydk = calcDeadline(rec.ngaygui, rec.priority, rec.ld);
             return {
               ...toRow(rec),
@@ -3165,6 +3208,7 @@
     input.addEventListener("input", function () {
       const q = this.value.toLowerCase().trim();
       selectedEmployee = null;   // gõ lại tên thì phải chọn lại từ danh sách
+      setPhong(''); document.getElementById('f_phongHint').style.display = 'none';
 
       if (!q) {
         list.style.display = "none";
@@ -3178,7 +3222,7 @@
       list.innerHTML = filtered.map(e => `
         <div class="autocomplete-item" data-id="${esc(e.id)}">
           <div class="emp-name">${esc(e.fullname)}</div>
-          <div class="emp-email">${esc(e.email)}</div>
+          <div class="emp-email">${esc(e.email)}${e.department ? ' · ' + esc(e.department) : ''}</div>
         </div>
       `).join("");
 
@@ -3194,6 +3238,7 @@
 
       input.value = emp.fullname;
       selectedEmployee = emp;
+      applyEmployeeDept(emp);   // v6.5: tự chọn phòng ban theo danh sách nhân viên
 
       list.style.display = "none";
     });

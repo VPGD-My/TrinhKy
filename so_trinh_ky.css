@@ -1276,3 +1276,8 @@ html[data-theme="dark"] .lc5 { --lc-bg: #1c3018; --lc-text: #A8D99A; --lc-line: 
 html[data-theme="dark"] .lc6 { --lc-bg: #352d0f; --lc-text: #E6CF7A; --lc-line: #5e5220; --lc-main: #D4B44A; }
 .cap.lc         { background: var(--lc-bg); color: var(--lc-text); border-color: var(--lc-line); }
 .ld-opt.on.lc   { border-color: var(--lc-main); background: var(--lc-bg); }
+
+/* v6.6 – ô Phòng ban chỉ xem (lấy theo danh sách nhân viên) */
+.field.phong-ro { background: var(--bg3); color: var(--text); cursor: default; font-weight: 500; }
+.field.phong-ro:focus { outline: none; box-shadow: none; border-color: var(--border2); }
+.phong-warn { font-size: 11.5px; color: var(--red-text); background: var(--red-bg); border-radius: 6px; padding: 5px 8px; margin-top: 4px; }
