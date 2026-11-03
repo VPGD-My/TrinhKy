@@ -414,9 +414,9 @@
               </div>
               <div class="form-group">
                 <label>Người nhận HS</label>
-                <!-- v6.10: chọn từ danh sách nhân viên -->
+                <!-- v6.10.1: gợi ý từ danh sách nhân viên, không bắt buộc -->
                 <div class="autocomplete">
-                  <input type="text" class="field" id="f_nguoinhan" placeholder="Gõ tên để chọn từ danh sách nhân viên..." autocomplete="off">
+                  <input type="text" class="field" id="f_nguoinhan" placeholder="Gõ tên hoặc chọn từ danh sách nhân viên..." autocomplete="off">
                   <div id="nguoinhanList" class="autocomplete-list"></div>
                 </div>
               </div>
@@ -1985,15 +1985,8 @@
       const keep = f => (prev ? prev[f] || '' : '');
       const ngaygui = isAdmin ? document.getElementById('f_ngaygui').value : keep('ngaygui');
 
-      // v6.10: Người nhận HS phải chọn từ danh sách nhân viên (giữ nguyên giá trị cũ nếu không sửa ô này)
+      // v6.10.1: Người nhận HS gợi ý từ danh sách nhân viên, nhưng được gõ tự do (không bắt buộc chọn)
       const nguoiNhanVal = document.getElementById('f_nguoinhan').value.trim();
-      if (isAdmin && nguoiNhanVal && nguoiNhanVal !== keep('nguoinhan')
-          && !employees.some(e => (e.fullname || '').trim().toLowerCase() === nguoiNhanVal.toLowerCase())) {
-        showToast('Người nhận HS phải chọn từ danh sách nhân viên');
-        document.getElementById('f_nguoinhan').focus();
-        resetSaveBtn();
-        return;
-      }
       const data = {
         loai, ten, phong, nguoigui, email: email || (prev ? prev.email : ''), priority, ld,
         sl: parseInt(document.getElementById('f_sl').value) || 1,
