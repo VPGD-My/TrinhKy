@@ -609,6 +609,9 @@
             <label>Trợ lý của<span class="required">*</span></label>
             <select class="field" id="u_ld"></select>
           </div>
+          <div class="form-group full" id="u_quyenGroup" style="display:none">
+            <label class="chk-line" style="margin-top:0"><input type="checkbox" id="u_quyen"> <b>Quản lý tài khoản</b>: được tạo người dùng, sửa họ tên, cấp lại mật khẩu / nhắn Teams cho <b>Người trình ký</b> (không khóa, không đổi vai trò, không đụng tài khoản trợ lý)</label>
+          </div>
           <div class="form-group full" id="u_pwGroup">
             <label>Mật khẩu ban đầu<span class="required">*</span> <span style="font-size:11px;color:var(--text3)">(tối thiểu 6 ký tự, người dùng phải đổi khi đăng nhập lần đầu)</span></label>
             <div style="display:flex;gap:8px">
@@ -989,7 +992,7 @@
       const { data: { user: au } } = await sb.auth.getUser();
       if (!au) { showLogin(); return; }
       const { data: p, error } = await sb.from('nguoi_dung')
-        .select('id,email,ten_dang_nhap,ho_ten,vai_tro,lanh_dao_id,phai_doi_mat_khau,deleted_at')
+        .select('id,email,ten_dang_nhap,ho_ten,vai_tro,lanh_dao_id,phai_doi_mat_khau,quyen_tai_khoan,deleted_at')
         .eq('id', au.id).maybeSingle();
       if (error || !p || p.deleted_at) {
         const msg = error ? 'Không đọc được thông tin tài khoản: ' + error.message
@@ -1011,7 +1014,7 @@
       applyRole(p.vai_tro === 'tro_ly' && !!ldById(p.lanh_dao_id), p.lanh_dao_id);
       await loadEmployees();
       await loadRecords();
-      if (isTgdAsst()) await loadUsers();
+      if (canManageAcc()) await loadUsers();
       if (p.phai_doi_mat_khau) openMyPwModal(true);
     }
 
@@ -1042,7 +1045,7 @@
       document.getElementById('exportBtn').style.display = isAdmin ? 'inline-flex' : 'none';
       document.getElementById('importBtn').style.display = isTgdAsst() ? 'inline-flex' : 'none';
       document.getElementById('tab-config-nav').style.display = isAdmin ? 'flex' : 'none';
-      document.getElementById('tab-users-nav').style.display = isTgdAsst() ? 'flex' : 'none';
+      document.getElementById('tab-users-nav').style.display = canManageAcc() ? 'flex' : 'none';
       document.getElementById('thLyDoTuChoi').style.display = isAdmin ? '' : 'none';
       if (!isAdmin && document.getElementById('tab-config').classList.contains('active')) {
         showTab('tab-records', document.querySelector('.nav-tab'));
@@ -2340,10 +2343,15 @@
       return data;
     }
 
+    // v6.9: quản lý tài khoản = Trợ lý TGĐ, hoặc trợ lý được Trợ lý TGĐ bật quyền (chỉ với tài khoản Người trình ký)
+    function canManageAcc() { return isTgdAsst() || (isAdmin && !!curUser?.quyen_tai_khoan); }
+    // tài khoản u có thao tác được không (Sửa / Cấp lại MK)
+    const canTouchUser = u => isTgdAsst() || u.vai_tro === 'nguoi_trinh';
+
     async function loadUsers() {
-      if (!isTgdAsst()) return;
+      if (!canManageAcc()) return;
       const { data, error } = await sb.from('nguoi_dung')
-        .select('id,email,ten_dang_nhap,ho_ten,vai_tro,lanh_dao_id,phai_doi_mat_khau,created_at,created_by,deleted_at,deleted_by,delete_reason')
+        .select('id,email,ten_dang_nhap,ho_ten,vai_tro,lanh_dao_id,phai_doi_mat_khau,quyen_tai_khoan,created_at,created_by,deleted_at,deleted_by,delete_reason')
         .order('ten_dang_nhap');
       if (error) { showToast('❌ Không đọc được danh sách người dùng: ' + error.message); return; }
       users = data;
@@ -2368,16 +2376,19 @@
       const body = document.getElementById('userBody');
       if (!rows.length) { body.innerHTML = '<tr><td colspan="7"><div class="empty"><i class="ti ti-users"></i>Không có tài khoản nào</div></td></tr>'; return; }
       body.innerHTML = rows.map(u => {
-        const role = u.vai_tro === 'tro_ly' ? capBadge(u.lanh_dao_id).replace('</span>', ' · Trợ lý</span>') : '<span style="font-size:12px">Người trình ký</span>';
+        const role = (u.vai_tro === 'tro_ly' ? capBadge(u.lanh_dao_id).replace('</span>', ' · Trợ lý</span>') : '<span style="font-size:12px">Người trình ký</span>')
+          + (u.vai_tro === 'tro_ly' && u.quyen_tai_khoan ? ' <span class="badge badge-processing" title="Được tạo người dùng, cấp mật khẩu cho Người trình ký">Quản lý TK</span>' : '');
         const st = u.deleted_at
           ? `<span class="badge badge-rejected" title="${esc(u.delete_reason || '')}">Đã khóa</span>`
           : u.phai_doi_mat_khau ? '<span class="badge badge-pending" title="Chưa đổi mật khẩu tạm">Chờ đổi MK</span>'
           : '<span class="badge badge-done">Hoạt động</span>';
         const self = u.id === curUser?.id;
-        let a = `<button class="action-btn" onclick="openUserModal('${u.id}')" title="Sửa"><i class="ti ti-edit"></i></button>`;
-        if (!u.deleted_at) a += `<button class="action-btn" onclick="openResetPwModal('${u.id}')" title="Cấp lại mật khẩu"><i class="ti ti-key"></i>Cấp lại MK</button>`;
-        if (!u.deleted_at && !self) a += `<button class="action-btn action-del" onclick="lockUser('${u.id}')" title="Khóa tài khoản"><i class="ti ti-lock"></i>Khóa</button>`;
-        if (u.deleted_at) a += `<button class="action-btn action-confirm" onclick="unlockUser('${u.id}')" title="Mở khóa"><i class="ti ti-lock-open"></i>Mở khóa</button>`;
+        const touch = canTouchUser(u);   // v6.9: quản lý TK (không phải Trợ lý TGĐ) chỉ thao tác Người trình ký, không khóa
+        let a = touch ? `<button class="action-btn" onclick="openUserModal('${u.id}')" title="Sửa"><i class="ti ti-edit"></i></button>` : '';
+        if (touch && !u.deleted_at) a += `<button class="action-btn" onclick="openResetPwModal('${u.id}')" title="Cấp lại mật khẩu"><i class="ti ti-key"></i>Cấp lại MK</button>`;
+        if (isTgdAsst() && !u.deleted_at && !self) a += `<button class="action-btn action-del" onclick="lockUser('${u.id}')" title="Khóa tài khoản"><i class="ti ti-lock"></i>Khóa</button>`;
+        if (isTgdAsst() && u.deleted_at) a += `<button class="action-btn action-confirm" onclick="unlockUser('${u.id}')" title="Mở khóa"><i class="ti ti-lock-open"></i>Mở khóa</button>`;
+        if (!a) a = '<span style="font-size:11px;color:var(--text3)">Chỉ Trợ lý TGĐ</span>';
         return `<tr class="${u.deleted_at ? 'row-locked' : ''}">
           <td><b>${esc(u.ten_dang_nhap)}</b>${self ? ' <span style="font-size:11px;color:var(--text3)">(bạn)</span>' : ''}</td>
           <td>${esc(u.ho_ten)}</td>
@@ -2391,7 +2402,7 @@
     }
 
     function openUserModal(id) {
-      if (!isTgdAsst()) return;
+      if (!canManageAcc()) return;
       userEditId = id;
       const u = id ? users.find(x => x.id === id) : null;
       document.getElementById('userTitle').textContent = u ? 'Sửa người dùng ' + u.ten_dang_nhap : 'Thêm người dùng';
@@ -2404,10 +2415,12 @@
         .map(e => `<option value="${esc(e.email.trim().toLowerCase())}">${esc(e.fullname)}</option>`).join('');
       document.getElementById('u_hoten').value = u ? u.ho_ten : '';
       document.getElementById('u_vaitro').value = u ? u.vai_tro : 'nguoi_trinh';
-      document.getElementById('u_vaitro').disabled = !!u && u.id === curUser?.id;   // không tự đổi vai trò
+      document.getElementById('u_vaitro').disabled = !isTgdAsst() || (!!u && u.id === curUser?.id);   // không tự đổi vai trò; quản lý TK chỉ tạo Người trình ký
       document.getElementById('u_ld').innerHTML = leaders.map(l => `<option value="${l.id}">${esc(l.ten)}</option>`).join('');
       document.getElementById('u_ld').value = u?.lanh_dao_id ?? (tgd()?.id || '');
-      document.getElementById('u_ld').disabled = !!u && u.id === curUser?.id;
+      document.getElementById('u_ld').disabled = !isTgdAsst() || (!!u && u.id === curUser?.id);
+      document.getElementById('u_quyen').checked = !!u?.quyen_tai_khoan;
+      document.getElementById('u_quyen').disabled = !!u && u.id === curUser?.id;
       document.getElementById('u_pwGroup').style.display = u ? 'none' : '';
       document.getElementById('u_themNv').checked = true;
       document.getElementById('u_phong').value = '';
@@ -2437,7 +2450,10 @@
       document.getElementById('u_tenHint').textContent = v.includes('@') ? 'Tên đăng nhập: ' + v.split('@')[0] : '';
     }
     function userRoleChange() {
-      document.getElementById('u_ldGroup').style.display = document.getElementById('u_vaitro').value === 'tro_ly' ? '' : 'none';
+      const tl = document.getElementById('u_vaitro').value === 'tro_ly';
+      document.getElementById('u_ldGroup').style.display = tl ? '' : 'none';
+      // chỉ Trợ lý TGĐ bật / tắt quyền quản lý tài khoản, và chỉ cho trợ lý
+      document.getElementById('u_quyenGroup').style.display = tl && isTgdAsst() ? '' : 'none';
     }
 
     async function saveUser() {
@@ -2446,6 +2462,7 @@
       const ho_ten = document.getElementById('u_hoten').value.trim();
       const vai_tro = document.getElementById('u_vaitro').value;
       const lanh_dao_id = vai_tro === 'tro_ly' ? +document.getElementById('u_ld').value : null;
+      const quyen_tai_khoan = vai_tro === 'tro_ly' && document.getElementById('u_quyen').checked;
       const password = document.getElementById('u_pw').value;
       if (!ho_ten) { showToast('Nhập họ tên'); return; }
       if (!u && password.length < 6) { showToast('Mật khẩu ban đầu tối thiểu 6 ký tự'); return; }
@@ -2453,13 +2470,13 @@
       btn.disabled = true;
       try {
         if (u) {
-          await callAdmin('update', { id: u.id, ho_ten, vai_tro, lanh_dao_id });
+          await callAdmin('update', { id: u.id, ho_ten, vai_tro, lanh_dao_id, quyen_tai_khoan });
           showToast('Đã lưu ' + u.ten_dang_nhap);
         } else {
           const gui_teams = document.getElementById('u_teams').checked;
           const them_nhan_vien = document.getElementById('u_themNv').checked;
           const phong_ban = document.getElementById('u_phong').value.trim();
-          const r = await callAdmin('create', { email, ho_ten, vai_tro, lanh_dao_id, password, gui_teams, them_nhan_vien, phong_ban });
+          const r = await callAdmin('create', { email, ho_ten, vai_tro, lanh_dao_id, quyen_tai_khoan, password, gui_teams, them_nhan_vien, phong_ban });
           if (r.nhan_vien === 'da_them') await loadEmployees();
           else if (r.nhan_vien && r.nhan_vien !== 'da_co') alert('Đã tạo tài khoản, nhưng ' + r.nhan_vien + '\nThêm tay vào bảng employees để người này chọn được ở ô Người gửi.');
           if (r.teams === 'da_gui') showToast(`Đã tạo ${r.ten_dang_nhap} và nhắn mật khẩu qua Teams`);
@@ -2630,7 +2647,7 @@
       const cnt = {};
       for (const r of records) { const em = (r.email || '').trim().toLowerCase(); if (em) cnt[em] = (cnt[em] || 0) + 1; }
       bulkCandidates = users
-        .filter(u => !u.deleted_at && u.phai_doi_mat_khau && u.id !== curUser?.id && (!only || cnt[u.email]))
+        .filter(u => !u.deleted_at && u.phai_doi_mat_khau && u.id !== curUser?.id && canTouchUser(u) && (!only || cnt[u.email]))
         .map(u => ({ ...u, n: cnt[u.email] || 0, phong: userDept(u), sent: teamsSent[u.id] || null }))
         .sort((a, b) => (a.sent ? 1 : 0) - (b.sent ? 1 : 0) || b.n - a.n || a.ho_ten.localeCompare(b.ho_ten, 'vi'));
       document.getElementById('bulkList').innerHTML = bulkCandidates.length
