@@ -62,6 +62,8 @@
 
   <div class="nav-tabs">
     <div class="nav-tab active" onclick="showTab('tab-records',this)"><i class="ti ti-files"></i>Danh sách hồ sơ</div>
+    <div class="nav-tab" id="tab-stamp-nav" onclick="showTab('tab-stamp',this)" style="display:none"><i
+        class="ti ti-rubber-stamp"></i>Đóng dấu <span class="nav-count" id="stampNavCount" style="display:none"></span></div>
     <div class="nav-tab" id="tab-config-nav" onclick="showTab('tab-config',this)" style="display:none"><i
         class="ti ti-settings"></i>Cấu hình &amp; Ngày nghỉ</div>
     <div class="nav-tab" id="tab-users-nav" onclick="showTab('tab-users',this)" style="display:none"><i
@@ -224,6 +226,43 @@
             Trợ lý TGĐ quản lý danh sách này và các ngày nghỉ chung (lễ, Tết).</div>
         </div>
 
+      </div>
+    </div>
+
+    <!-- v7.0: Đóng dấu -->
+    <div id="tab-stamp" class="tab-content">
+      <div class="info-box scope-note" id="stampNote" style="display:none"></div>
+      <div class="stats stats-4" id="stampStats"></div>
+      <div class="toolbar">
+        <div class="toolbar-left">
+          <div class="search-box"><i class="ti ti-search" style="font-size:14px;color:var(--text3)"></i><input type="text"
+              placeholder="Tìm tên hồ sơ, người gửi, đối tác..." id="stampSearch" oninput="renderStamps()"></div>
+          <select class="filter" id="stampStatus" onchange="renderStamps()">
+            <option value="">Tất cả trạng thái</option>
+            <option value="cho_dong_dau">Chờ đóng dấu</option>
+            <option value="da_dong_dau">Đã đóng dấu</option>
+            <option value="tu_choi">Từ chối</option>
+          </select>
+          <select class="filter" id="stampSource" onchange="renderStamps()">
+            <option value="">Mọi nguồn</option>
+            <option value="ho_so">Từ hồ sơ đã ký</option>
+            <option value="le">Đăng ký lẻ</option>
+          </select>
+          <span id="stampCountText" style="font-size:12px;color:var(--text3)"></span>
+        </div>
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-success" id="stampExportBtn" onclick="exportStamps()" style="display:none"><i class="ti ti-file-spreadsheet"></i>Xuất Excel</button>
+          <button class="btn btn-primary" onclick="openStampModal(null, null)"><i class="ti ti-rubber-stamp"></i>Đăng ký đóng dấu</button>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table id="tbl-dong-dau">
+          <thead>
+            <tr><th>STT</th><th>Ngày ĐK</th><th>Tên hồ sơ</th><th>Loại hồ sơ</th><th>Phòng ban</th><th>Người gửi</th>
+              <th>Số bản</th><th>Loại dấu</th><th>Trạng thái</th><th>Ngày đóng dấu</th><th>Người nhận lại</th><th>Ghi chú</th><th class="col-act">Thao tác</th></tr>
+          </thead>
+          <tbody id="stampBody"></tbody>
+        </table>
       </div>
     </div>
 
@@ -578,53 +617,72 @@
 
   <!-- v6: Thêm / sửa người dùng (Trợ lý TGĐ) -->
   <div class="modal-bg" id="userModal" style="display:none">
-    <div class="modal" style="max-width:540px">
+    <!-- v7.2: bố cục lại theo nhóm Tài khoản / Vai trò & quyền / Mật khẩu -->
+    <div class="modal user-modal" style="max-width:580px">
       <div class="modal-header">
         <h2 id="userTitle">Thêm người dùng</h2>
-        <button class="action-btn" onclick="closeUserModal()" style="padding:4px 6px"><i class="ti ti-x"></i></button>
+        <button class="action-btn" onclick="closeUserModal()" style="padding:4px 6px" aria-label="Đóng"><i class="ti ti-x"></i></button>
       </div>
       <div class="modal-body">
-        <div class="form-grid">
-          <div class="form-group full">
-            <label>Email công ty<span class="required">*</span> <span style="font-size:11px;color:var(--text3)">(gõ tên để chọn từ danh sách nhân viên)</span></label>
-            <input type="text" class="field" id="u_email" list="u_emailList" autocomplete="off" spellcheck="false" placeholder="vd: toantt@duytanrecycling.com" oninput="userEmailInput()">
-            <datalist id="u_emailList"></datalist>
-            <small id="u_tenHint" style="font-size:11px;color:var(--text3)"></small>
-          </div>
-          <div class="form-group full">
-            <label>Họ tên<span class="required">*</span></label>
-            <input type="text" class="field" id="u_hoten" maxlength="150">
-          </div>
-          <!-- v6.2: thêm vào bảng employees nếu chưa có (để chọn được ở ô Người gửi) -->
-          <div class="form-group full" id="u_nvGroup">
-            <label class="chk-line" style="margin-top:0"><input type="checkbox" id="u_themNv" checked onchange="userEmailInput()"> Thêm vào danh sách nhân viên (Người gửi) nếu chưa có</label>
-            <input type="text" class="field" id="u_phong" list="u_phongList" maxlength="100" placeholder="Phòng ban (tùy chọn)" style="margin-top:6px">
-            <datalist id="u_phongList"></datalist>
-            <small id="u_nvHint" style="font-size:11px;color:var(--text3)"></small>
-          </div>
-          <div class="form-group">
-            <label>Vai trò<span class="required">*</span></label>
-            <select class="field" id="u_vaitro" onchange="userRoleChange()">
-              <option value="nguoi_trinh">Người trình ký</option>
-              <option value="tro_ly">Trợ lý lãnh đạo</option>
-            </select>
-          </div>
-          <div class="form-group" id="u_ldGroup">
-            <label>Trợ lý của<span class="required">*</span></label>
-            <select class="field" id="u_ld"></select>
-          </div>
-          <div class="form-group full" id="u_quyenGroup" style="display:none">
-            <label class="chk-line" style="margin-top:0"><input type="checkbox" id="u_quyen"> <b>Quản lý tài khoản</b>: được tạo người dùng, sửa họ tên, cấp lại mật khẩu / nhắn Teams cho <b>Người trình ký</b> (không khóa, không đổi vai trò, không đụng tài khoản trợ lý)</label>
-          </div>
-          <div class="form-group full" id="u_pwGroup">
-            <label>Mật khẩu ban đầu<span class="required">*</span> <span style="font-size:11px;color:var(--text3)">(tối thiểu 6 ký tự, người dùng phải đổi khi đăng nhập lần đầu)</span></label>
-            <div style="display:flex;gap:8px">
-              <input type="text" class="field" id="u_pw" autocomplete="off" spellcheck="false" style="flex:1">
-              <button type="button" class="btn btn-sm" onclick="document.getElementById('u_pw').value=randomPw()"><i class="ti ti-refresh"></i>Tạo ngẫu nhiên</button>
+        <section class="u-sec">
+          <h3>Tài khoản</h3>
+          <div class="form-grid">
+            <div class="form-group full">
+              <label for="u_email">Email công ty<span class="required">*</span></label>
+              <input type="text" class="field" id="u_email" list="u_emailList" autocomplete="off" spellcheck="false" placeholder="Gõ tên hoặc email, VD toantt@duytanrecycling.com" oninput="userEmailInput()">
+              <datalist id="u_emailList"></datalist>
+              <small id="u_tenHint" class="u-hint"></small>
             </div>
-            <label class="chk-line"><input type="checkbox" id="u_teams" checked> Nhắn tên đăng nhập + mật khẩu qua Teams cho người này</label>
+            <div class="form-group full">
+              <label for="u_hoten">Họ tên<span class="required">*</span></label>
+              <input type="text" class="field" id="u_hoten" maxlength="150">
+            </div>
+            <!-- v6.2: thêm vào bảng employees nếu chưa có (để chọn được ở ô Người gửi) -->
+            <div class="form-group full" id="u_nvGroup">
+              <label class="chk-line" style="margin-top:0"><input type="checkbox" id="u_themNv" checked onchange="userEmailInput()"> Thêm vào danh sách nhân viên nếu chưa có</label>
+              <input type="text" class="field" id="u_phong" list="u_phongList" maxlength="100" placeholder="Phòng ban (tùy chọn)" style="margin-top:6px">
+              <datalist id="u_phongList"></datalist>
+              <small id="u_nvHint" class="u-hint"></small>
+            </div>
           </div>
-        </div>
+        </section>
+
+        <section class="u-sec">
+          <h3>Vai trò &amp; quyền</h3>
+          <div class="form-grid">
+            <div class="form-group">
+              <label for="u_vaitro">Vai trò<span class="required">*</span></label>
+              <select class="field" id="u_vaitro" onchange="userRoleChange()">
+                <option value="nguoi_trinh">Người trình ký</option>
+                <option value="tro_ly">Trợ lý lãnh đạo</option>
+              </select>
+            </div>
+            <div class="form-group" id="u_ldGroup">
+              <label for="u_ld">Trợ lý của<span class="required">*</span></label>
+              <select class="field" id="u_ld"></select>
+            </div>
+          </div>
+          <div class="perm-list" id="u_permBox">
+            <label class="perm-card" id="u_dongdauGroup" style="display:none">
+              <input type="checkbox" id="u_dongdau">
+              <span class="perm-text"><b>Xử lý đóng dấu</b><small>Xác nhận đã đóng dấu, từ chối các lượt đăng ký đóng dấu. VD: văn thư giữ mộc.</small></span>
+            </label>
+            <label class="perm-card" id="u_quyenGroup" style="display:none">
+              <input type="checkbox" id="u_quyen">
+              <span class="perm-text"><b>Quản lý tài khoản</b><small>Tạo người dùng, sửa họ tên, cấp lại mật khẩu cho Người trình ký. Không khóa, không đổi vai trò.</small></span>
+            </label>
+          </div>
+        </section>
+
+        <section class="u-sec" id="u_pwGroup">
+          <h3>Mật khẩu ban đầu</h3>
+          <div class="u-pw-row">
+            <input type="text" class="field" id="u_pw" autocomplete="off" spellcheck="false" aria-label="Mật khẩu ban đầu">
+            <button type="button" class="btn" onclick="document.getElementById('u_pw').value=randomPw()"><i class="ti ti-refresh"></i>Tạo ngẫu nhiên</button>
+          </div>
+          <small class="u-hint">Tối thiểu 6 ký tự. Người dùng phải đổi khi đăng nhập lần đầu.</small>
+          <label class="chk-line"><input type="checkbox" id="u_teams" checked> Nhắn tên đăng nhập và mật khẩu qua Teams</label>
+        </section>
       </div>
       <div class="modal-footer">
         <button class="btn" onclick="closeUserModal()">Hủy</button>
@@ -686,6 +744,104 @@
       <div class="modal-footer">
         <button class="btn" onclick="closeBulkModal()">Đóng</button>
         <button class="btn btn-primary" id="bulkBtn" onclick="runBulk()"><i class="ti ti-check"></i><span id="bulkBtnText">Tạo tài khoản</span></button>
+      </div>
+    </div>
+  </div>
+
+  <!-- v7.0: Đăng ký / sửa đóng dấu -->
+  <div class="modal-bg" id="stampModal" style="display:none">
+    <div class="modal" style="max-width:640px">
+      <div class="modal-header">
+        <h2 id="stampTitle"><i class="ti ti-rubber-stamp" style="margin-right:6px"></i>Đăng ký đóng dấu</h2>
+        <button class="action-btn" onclick="closeStampModal()" style="padding:4px 6px" aria-label="Đóng"><i class="ti ti-x"></i></button>
+      </div>
+      <div class="modal-body">
+        <div class="info-box" id="stampSrc" style="margin-bottom:12px;display:none"></div>
+        <div class="form-grid">
+          <div class="form-group full">
+            <label for="s_ten">Tên hồ sơ<span class="required">*</span></label>
+            <input type="text" class="field" id="s_ten" maxlength="300">
+          </div>
+          <div class="form-group">
+            <label for="s_loai">Loại hồ sơ</label>
+            <select class="field" id="s_loai"></select>
+          </div>
+          <div class="form-group">
+            <label for="s_doitac">Đối tác</label>
+            <input type="text" class="field" id="s_doitac" maxlength="200">
+          </div>
+          <div class="form-group">
+            <label for="s_nguoigui">Người gửi<span class="required">*</span></label>
+            <div class="autocomplete">
+              <input type="text" class="field" id="s_nguoigui" placeholder="Gõ tên để chọn..." autocomplete="off">
+              <div id="s_nguoiguiList" class="autocomplete-list"></div>
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="s_phong">Phòng ban</label>
+            <input type="text" class="field phong-ro" id="s_phong" readonly tabindex="-1" placeholder="Theo người gửi">
+          </div>
+          <div class="form-group">
+            <label for="s_soban">Số bản cần đóng dấu<span class="required">*</span></label>
+            <input type="number" class="field" id="s_soban" min="1" max="999" value="1">
+          </div>
+          <div class="form-group">
+            <label for="s_loaidau">Loại dấu<span class="required">*</span></label>
+            <select class="field" id="s_loaidau">
+              <option>Dấu công ty</option>
+              <option>Dấu giáp lai</option>
+              <option>Dấu treo</option>
+              <option>Dấu chức danh</option>
+              <option>Khác</option>
+            </select>
+          </div>
+          <div class="form-group full">
+            <label for="s_ghichu">Ghi chú / Yêu cầu</label>
+            <textarea class="field" id="s_ghichu" rows="2" maxlength="1000" placeholder="VD: đóng dấu giáp lai các trang, trả trước 15h..."></textarea>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn" onclick="closeStampModal()">Hủy</button>
+        <button class="btn btn-primary" id="stampSaveBtn" onclick="saveStamp()"><i class="ti ti-check"></i>Lưu</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- v7.0: Xác nhận đã đóng dấu -->
+  <div class="modal-bg" id="stampDoneModal" style="display:none">
+    <div class="modal" style="max-width:520px">
+      <div class="modal-header">
+        <h2><i class="ti ti-circle-check" style="color:var(--green);margin-right:6px"></i>Xác nhận đã đóng dấu</h2>
+        <button class="action-btn" onclick="closeStampDone()" style="padding:4px 6px" aria-label="Đóng"><i class="ti ti-x"></i></button>
+      </div>
+      <div class="modal-body">
+        <div class="summary" id="sdSummary" style="margin-bottom:12px"></div>
+        <div class="form-grid">
+          <div class="form-group">
+            <label for="sd_ngay">Ngày đóng dấu<span class="required">*</span></label>
+            <input type="date" class="field" id="sd_ngay">
+          </div>
+          <div class="form-group">
+            <label for="sd_gio">Giờ</label>
+            <input type="time" class="field" id="sd_gio">
+          </div>
+          <div class="form-group">
+            <label for="sd_nguoi">Người đóng dấu<span class="required">*</span></label>
+            <input type="text" class="field" id="sd_nguoi" maxlength="150">
+          </div>
+          <div class="form-group">
+            <label for="sd_nhan">Người nhận lại hồ sơ</label>
+            <div class="autocomplete">
+              <input type="text" class="field" id="sd_nhan" placeholder="Gõ tên hoặc chọn..." autocomplete="off">
+              <div id="sd_nhanList" class="autocomplete-list"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn" onclick="closeStampDone()">Hủy</button>
+        <button class="btn btn-primary" id="sdBtn" onclick="confirmStampDone()"><i class="ti ti-rubber-stamp"></i>Đã đóng dấu</button>
       </div>
     </div>
   </div>
@@ -782,6 +938,7 @@
     let records = [];
     let employees = [];
     let users = [];                   // v6: bảng nguoi_dung (chỉ Trợ lý TGĐ đọc được hết)
+    let stamps = [];                  // v7.0: bảng dong_dau (lượt đăng ký đóng dấu)
 
     // ════════════════════════════════════════════════════════
     //  Lãnh đạo, vai trò, phạm vi
@@ -797,9 +954,19 @@
     const childOf = r => records.find(x => x.goc === r.id);
     const ldDays = (ldId, level) => (ldById(ldId) || tgd() || {})[PRIORITY_COL[level]] || { 1: 1, 2: 3, 3: 7 }[level];
 
+    // v7.1: hồ sơ trình 2 lượt (PTGĐ → TGĐ): số nhỏ sau tên để phân biệt với hồ sơ trình 1 người
+    function luotBadge(r) {
+      return '';   // v7.2: bỏ số nhỏ theo góp ý, chip "Từ PTGĐ #… / Đã trình TGĐ #…" đã đủ phân biệt
+      if (r.goc) return `<sup class="luot luot-2" title="Lượt 2: trình tiếp từ hồ sơ #${r.goc}">2</sup>`;
+      const kid = childOf(r);
+      if (kid) return `<sup class="luot luot-1" title="Lượt 1: đã trình tiếp lên hồ sơ #${kid.id}">1</sup>`;
+      return '';
+    }
+
     function canForward(r) {
       const l = ldById(r.ld);
       if (!l || l.la_tgd || !tgd() || r.status !== 'done' || childOf(r)) return false;
+      if (typeof stamps !== 'undefined' && stampOf(r.id)) return false;   // v7.3: đã chuyển đóng dấu thì không trình tiếp nữa
       return !isAdmin || r.ld === session.ld;   // người trình ký, hoặc trợ lý của chính PTGĐ đó
     }
 
@@ -948,6 +1115,7 @@
       el.classList.add('active');
       if (id === 'tab-config') renderConfigTab();
       if (id === 'tab-users') loadUsers();
+      if (id === 'tab-stamp') loadStamps();
     }
 
     // ════════════════════════════════════════════════════════
@@ -996,7 +1164,7 @@
       const { data: { user: au } } = await sb.auth.getUser();
       if (!au) { showLogin(); return; }
       const { data: p, error } = await sb.from('nguoi_dung')
-        .select('id,email,ten_dang_nhap,ho_ten,vai_tro,lanh_dao_id,phai_doi_mat_khau,quyen_tai_khoan,deleted_at')
+        .select('id,email,ten_dang_nhap,ho_ten,vai_tro,lanh_dao_id,phai_doi_mat_khau,quyen_tai_khoan,quyen_dong_dau,deleted_at')
         .eq('id', au.id).maybeSingle();
       if (error || !p || p.deleted_at) {
         const msg = error ? 'Không đọc được thông tin tài khoản: ' + error.message
@@ -1018,6 +1186,10 @@
       applyRole(p.vai_tro === 'tro_ly' && !!ldById(p.lanh_dao_id), p.lanh_dao_id);
       await loadEmployees();
       await loadRecords();
+      document.getElementById('tab-stamp-nav').style.display = 'flex';
+      await loadStamps();
+      // v7.1: văn thư (có quyền xử lý đóng dấu, không phải trợ lý) vào thẳng tab Đóng dấu
+      if (p.quyen_dong_dau && p.vai_tro !== 'tro_ly') showTab('tab-stamp', document.getElementById('tab-stamp-nav'));
       if (canManageAcc()) await loadUsers();
       if (p.phai_doi_mat_khau) openMyPwModal(true);
     }
@@ -1173,6 +1345,8 @@
         if (r.goc) links += `<div class="link-chip" onclick="jumpTo(${r.goc})" title="Hồ sơ gốc"><i class="ti ti-arrow-back-up"></i>Từ ${esc(ldById(records.find(x => x.id === r.goc)?.ld)?.ten_ngan || 'PTGĐ')} #${r.goc}</div>`;
         const kid = childOf(r);
         if (kid) links += `<div class="link-chip" onclick="jumpTo(${kid.id})" title="Đã trình tiếp"><i class="ti ti-arrow-forward-up"></i>Đã trình ${esc(ldById(kid.ld)?.ten_ngan || 'TGĐ')} #${kid.id}</div>`;
+        const st = stampOf(r.id);
+        if (st) links += `<div class="link-chip stamp-chip" onclick="jumpToStamp(${st.id})" title="Lượt đóng dấu"><i class="ti ti-rubber-stamp"></i>${STAMP_LABEL[st.status]} #${st.id}</div>`;
 
         const can = inScope(r);
         let actions = '';
@@ -1185,6 +1359,8 @@
           actions += `<button class="action-btn action-reject" onclick="openRejectModal(${r.id})"><i class="ti ti-ban"></i>Từ chối</button>`;
         if (canForward(r))
           actions += `<button class="action-btn action-forward" onclick="openForwardModal(${r.id})" title="${esc(ldById(r.ld)?.ten_ngan)} đã ký. Trình tiếp lên ${esc(tgd()?.ten_ngan)}"><i class="ti ti-arrow-forward-up"></i>Trình tiếp ${esc(tgd()?.ten_ngan)}</button>`;
+        if (canStampFromRecord(r))
+          actions += `<button class="action-btn action-stamp" onclick="openStampModal(${r.id}, null)" title="Đã ký. Chuyển sang đóng dấu"><i class="ti ti-rubber-stamp"></i>Đóng dấu</button>`;
         actions += `<button class="action-btn" onclick="openCopy(${r.id})" title="Copy hồ sơ"><i class="ti ti-copy"></i></button>`;
         // Sửa: trợ lý trong sổ của mình; người trình ký khi hồ sơ còn chờ xác nhận (như bản cũ)
         if (can || (!isAdmin && r.status === 'pending'))
@@ -1196,7 +1372,7 @@
               <td style="color:var(--text3);font-size:12px">${i + 1}</td>
               <td>${dayVN(r.ngaygui)}</td><td style="text-align:center">${fmtTime(r.gionhan)}</td><td>${fmtDate(r.ngaygui)}</td>
               <td>${esc(r.loai)}</td>
-              <td style="max-width:280px;white-space:normal;word-break:break-word">${esc(r.ten)}${links}</td>
+              <td style="max-width:280px;white-space:normal;word-break:break-word">${esc(r.ten)}${luotBadge(r)}${links}</td>
               <td>${capBadge(r.ld)}</td>
               <td style="text-align:center">${r.sl}</td>
               <td title="${esc(r.phong)}">${esc(phongLabel(r.phong))}</td><td>${esc(r.nguoigui)}</td><td style="max-width:110px;white-space:normal;word-break:break-word">${esc(r.doitac) || '—'}</td>
@@ -1475,22 +1651,338 @@
     }
 
     // ════════════════════════════════════════════════════════
+    //  v7.0: Đóng dấu (bảng dong_dau)
+    //   • Từ hồ sơ đã ký: nút "Đóng dấu" trên hồ sơ Hoàn thành (mỗi hồ sơ 1 lượt đang hiệu lực).
+    //   • Đăng ký lẻ: tab Đóng dấu › Đăng ký đóng dấu, không cần qua BTGĐ.
+    //   • Xử lý: Trợ lý TGĐ + tài khoản có quyền "Xử lý đóng dấu".
+    // ════════════════════════════════════════════════════════
+    const STAMP_LABEL = { cho_dong_dau: 'Chờ đóng dấu', da_dong_dau: 'Đã đóng dấu', tu_choi: 'Từ chối' };
+    const STAMP_BADGE = { cho_dong_dau: 'badge-pending', da_dong_dau: 'badge-done', tu_choi: 'badge-rejected' };
+    const STAMP_FIELDS = [['ten_hs', 'Tên hồ sơ'], ['loai_hs', 'Loại hồ sơ'], ['nguoi_gui', 'Người gửi'], ['phongban', 'Phòng ban'],
+      ['doi_tac', 'Đối tác'], ['so_ban', 'Số bản'], ['loai_dau', 'Loại dấu'], ['ghi_chu', 'Ghi chú'], ['status', 'Trạng thái'],
+      ['ngay_dong_dau', 'Ngày đóng dấu'], ['gio_dong_dau', 'Giờ đóng dấu'], ['nguoi_dong_dau', 'Người đóng dấu'],
+      ['nguoi_nhan_lai', 'Người nhận lại'], ['ly_do_tu_choi', 'Lý do từ chối']];
+    const isStamper = () => isTgdAsst() || !!curUser?.quyen_dong_dau;
+    const stampOf = recId => stamps.find(x => x.ho_so_id === recId && x.status !== 'tu_choi');
+    const stampMine = x => x.created_by_uid === curUser?.id || (x.email || '').trim().toLowerCase() === curUser?.email;
+    const stampLabel = x => `#${x.id} ${x.ten_hs || ''}`;
+    function stampDiff(a, b) {
+      const show = (f, v) => v == null || v === '' ? '' : f === 'status' ? STAMP_LABEL[v] || v
+        : f === 'ngay_dong_dau' ? fmtDate(v) : f === 'gio_dong_dau' ? fmtTime(v) : String(v);
+      return STAMP_FIELDS.map(([f, label]) => {
+        const o = a ? show(f, a[f]) : '', n = b ? show(f, b[f]) : '';
+        return o === n ? null : { field: f, label, old: o || null, new: n || null };
+      }).filter(Boolean);
+    }
+
+    // Hồ sơ Hoàn thành (đã ký), chưa có lượt đóng dấu đang hiệu lực, chưa trình tiếp lên TGĐ
+    function canStampFromRecord(r) {
+      if (r.status !== 'done' || stampOf(r.id) || childOf(r)) return false;
+      return !isAdmin || inScope(r) || isStamper();
+    }
+
+    async function loadStamps() {
+      let all = [];
+      for (let from = 0; ; from += 1000) {
+        const { data, error } = await sb.from('dong_dau').select('*').is('deleted_at', null).order('id', { ascending: false }).range(from, from + 999);
+        if (error) {
+          if (!/dong_dau/.test(error.message || '')) showToast('❌ Không đọc được danh sách đóng dấu: ' + error.message);
+          else console.warn('dong_dau:', error.message);   // chưa chạy db/008
+          return;
+        }
+        all = all.concat(data);
+        if (data.length < 1000) break;
+      }
+      stamps = all;
+      renderStamps();
+      if (document.getElementById('tab-records').classList.contains('active')) renderTable();
+    }
+
+    function renderStamps() {
+      const q = (document.getElementById('stampSearch').value || '').toLowerCase().trim();
+      const st = document.getElementById('stampStatus').value, src = document.getElementById('stampSource').value;
+      const rows = stamps.filter(x => (!st || x.status === st) && (!src || (src === 'ho_so' ? x.ho_so_id : !x.ho_so_id))
+        && (!q || [x.ten_hs, x.nguoi_gui, x.doi_tac, x.phongban, phongLabel(x.phongban), x.loai_hs].join(' ').toLowerCase().includes(q)));
+      const pending = stamps.filter(x => x.status === 'cho_dong_dau').length;
+      // v7.1: thẻ thống kê như tab hồ sơ (số theo toàn bộ lượt mình thấy, bấm thẻ chỉ lọc danh sách)
+      const sc = v => stamps.filter(x => x.status === v).length;
+      const card = (v, label, val, color) => `<div class="stat click ${st === v ? 'on' : ''}" onclick="filterStampStatus('${v}')" title="${v ? 'Bấm để lọc, bấm lần nữa để bỏ lọc' : 'Hiện tất cả trạng thái'}">
+          <div class="stat-label">${label}</div><div class="stat-val" style="color:${color}">${val}</div></div>`;
+      document.getElementById('stampStats').innerHTML =
+        card('', 'Tổng lượt', stamps.length, 'var(--text)') +
+        card('cho_dong_dau', 'Chờ đóng dấu', sc('cho_dong_dau'), 'var(--amber-text)') +
+        card('da_dong_dau', 'Đã đóng dấu', sc('da_dong_dau'), 'var(--green)') +
+        card('tu_choi', 'Từ chối', sc('tu_choi'), 'var(--red-text)');
+      const nc = document.getElementById('stampNavCount');
+      nc.textContent = pending; nc.style.display = isStamper() && pending ? 'inline-block' : 'none';
+      document.getElementById('stampCountText').textContent = `${rows.length} / ${stamps.length} lượt · ${pending} chờ đóng dấu`;
+      document.getElementById('stampExportBtn').style.display = isStamper() ? 'inline-flex' : 'none';
+      const note = document.getElementById('stampNote');
+      note.innerHTML = isStamper()
+        ? '<i class="ti ti-info-circle" style="font-size:14px;flex-shrink:0"></i><span>Bạn có quyền <b>xử lý đóng dấu</b>: xác nhận đã đóng dấu hoặc từ chối các lượt chờ.</span>'
+        : '<i class="ti ti-info-circle" style="font-size:14px;flex-shrink:0"></i><span>Đăng ký đóng dấu từ hồ sơ đã ký (nút <b>Đóng dấu</b> ở Danh sách hồ sơ) hoặc đăng ký lẻ tại đây. Sửa / hủy được khi còn Chờ đóng dấu.</span>';
+      note.style.display = 'flex';
+      const body = document.getElementById('stampBody');
+      if (!rows.length) { body.innerHTML = '<tr><td colspan="13"><div class="empty"><i class="ti ti-rubber-stamp"></i>Chưa có lượt đóng dấu nào</div></td></tr>'; return; }
+      body.innerHTML = rows.map((x, i) => {
+        const pend = x.status === 'cho_dong_dau';
+        const mine = stampMine(x);
+        let a = '';
+        if (isStamper() && pend) {
+          a += `<button class="action-btn action-done" onclick="openStampDone(${x.id})"><i class="ti ti-rubber-stamp"></i>Đã đóng dấu</button>`;
+          a += `<button class="action-btn action-reject" onclick="rejectStamp(${x.id})"><i class="ti ti-ban"></i>Từ chối</button>`;
+        }
+        if (pend && (isStamper() || mine)) a += `<button class="action-btn" onclick="openStampModal(null, ${x.id})" title="Sửa"><i class="ti ti-edit"></i></button>`;
+        a += `<button class="action-btn" onclick="openHistory(${x.id}, 'dong_dau')" title="Lịch sử"><i class="ti ti-history"></i></button>`;
+        if (isStamper() || (pend && mine)) a += `<button class="action-btn action-del" onclick="deleteStamp(${x.id})" title="${isStamper() ? 'Xóa' : 'Hủy đăng ký'}"><i class="ti ti-trash"></i></button>`;
+        const hsx = x.ho_so_id ? records.find(y => y.id === x.ho_so_id) : null;
+        const src = x.ho_so_id ? `<div class="link-chip" onclick="showTab('tab-records', document.querySelector('.nav-tab'));jumpTo(${x.ho_so_id})" title="Hồ sơ đã ký"><i class="ti ti-file-check"></i>Từ hồ sơ #${x.ho_so_id}${hsx ? luotBadge(hsx) : ''}</div>` : '';   // v7.3: đăng ký lẻ không hiện chip (không có "Từ hồ sơ" là đăng ký lẻ)
+        return `<tr id="stamp-${x.id}">
+          <td style="color:var(--text3);font-size:12px">${i + 1}</td>
+          <td>${fmtDate((x.created_at || '').slice(0, 10))}</td>
+          <td style="white-space:normal;word-break:break-word;min-width:170px">${esc(x.ten_hs)}${src}</td>
+          <td>${esc(x.loai_hs) || '—'}</td>
+          <td title="${esc(x.phongban || '')}">${esc(phongLabel(x.phongban)) || '—'}</td>
+          <td>${esc(x.nguoi_gui)}</td>
+          <td style="text-align:center">${x.so_ban}</td>
+          <td>${esc(x.loai_dau)}</td>
+          <td><span class="badge ${STAMP_BADGE[x.status]}" title="${x.status === 'tu_choi' ? esc(x.ly_do_tu_choi || '') : ''}">${STAMP_LABEL[x.status]}</span></td>
+          <td>${x.ngay_dong_dau ? `${fmtDate(x.ngay_dong_dau)}${x.gio_dong_dau ? '<br><small>' + fmtTime(x.gio_dong_dau) + '</small>' : ''}` : '—'}</td>
+          <td>${esc(x.nguoi_nhan_lai) || '—'}</td>
+          <td style="white-space:normal;max-width:180px">${x.status === 'tu_choi' ? `<span style="color:var(--red-text)">${esc(x.ly_do_tu_choi || '')}</span>` : esc(x.ghi_chu) || '—'}</td>
+          <td class="col-act"><div class="acts">${a}</div></td>
+        </tr>`;
+      }).join('');
+    }
+
+    function filterStampStatus(v) {
+      const sel = document.getElementById('stampStatus');
+      sel.value = (!v || sel.value === v) ? '' : v;
+      renderStamps();
+    }
+
+    function jumpToStamp(id) {
+      showTab('tab-stamp', document.getElementById('tab-stamp-nav'));
+      ['stampSearch', 'stampStatus', 'stampSource'].forEach(i => document.getElementById(i).value = '');
+      renderStamps();
+      const row = document.getElementById('stamp-' + id);
+      if (row) { row.scrollIntoView({ block: 'center' }); row.classList.add('row-flash'); setTimeout(() => row.classList.remove('row-flash'), 2000); }
+    }
+
+    // Đăng ký (từ hồ sơ recId, hoặc lẻ) / sửa (editStampId)
+    let stampRecId = null, stampEditId = null, stampEmp = null;
+    function stampSetEmp(emp, name) {
+      stampEmp = emp || null;
+      document.getElementById('s_nguoigui').value = emp ? emp.fullname : (name || '');
+      document.getElementById('s_phong').value = (emp?.department || '').trim();
+    }
+    function openStampModal(recId, editId) {
+      const r = recId ? records.find(x => x.id === recId) : null;
+      const x = editId ? stamps.find(y => y.id === editId) : null;
+      if (recId && (!r || !canStampFromRecord(r))) { showToast('Hồ sơ này không chuyển đóng dấu được'); return; }
+      stampRecId = r ? r.id : (x?.ho_so_id || null);
+      stampEditId = x ? x.id : null;
+      document.getElementById('s_loai').innerHTML = [...document.getElementById('f_loai').options].map(o => `<option value="${esc(o.value)}">${esc(o.text)}</option>`).join('');
+      const src = document.getElementById('stampSrc');
+      const fromRec = !!stampRecId;
+      if (r) {
+        document.getElementById('s_ten').value = r.ten || '';
+        document.getElementById('s_loai').value = r.loai || '';
+        document.getElementById('s_doitac').value = r.doitac || '';
+        stampSetEmp(employees.find(e => (e.email || '').trim().toLowerCase() === (r.email || '').trim().toLowerCase()) || findEmployeeByName(r.nguoigui), r.nguoigui);
+        if (!document.getElementById('s_phong').value) document.getElementById('s_phong').value = r.phong || '';
+        document.getElementById('s_soban').value = r.sl || 1;
+        document.getElementById('s_loaidau').value = 'Dấu công ty';
+        document.getElementById('s_ghichu').value = '';
+      } else if (x) {
+        document.getElementById('s_ten').value = x.ten_hs || '';
+        document.getElementById('s_loai').value = x.loai_hs || '';
+        document.getElementById('s_doitac').value = x.doi_tac || '';
+        stampSetEmp(employees.find(e => (e.email || '').trim().toLowerCase() === (x.email || '').trim().toLowerCase()), x.nguoi_gui);
+        document.getElementById('s_phong').value = x.phongban || document.getElementById('s_phong').value;
+        document.getElementById('s_soban').value = x.so_ban || 1;
+        document.getElementById('s_loaidau').value = x.loai_dau || 'Dấu công ty';
+        document.getElementById('s_ghichu').value = x.ghi_chu || '';
+      } else {
+        ['s_ten', 's_doitac', 's_ghichu'].forEach(i => document.getElementById(i).value = '');
+        document.getElementById('s_loai').value = '';
+        document.getElementById('s_soban').value = 1;
+        document.getElementById('s_loaidau').value = 'Dấu công ty';
+        stampSetEmp(!isAdmin ? selfEmployee() : null);
+      }
+      // từ hồ sơ đã ký: tên, loại, người gửi, đối tác theo hồ sơ, không sửa
+      ['s_ten', 's_loai', 's_nguoigui', 's_doitac'].forEach(i => document.getElementById(i).disabled = fromRec);
+      src.innerHTML = fromRec
+        ? `<i class="ti ti-file-check" style="font-size:14px;flex-shrink:0"></i><span>Từ hồ sơ <b>#${stampRecId}</b>${r ? ` – ${esc(ldById(r.ld)?.ten_ngan || '')} đã ký ${fmtDate(r.ngaytra)}` : ''}. Hồ sơ gốc giữ nguyên; lượt đóng dấu chuyển cho người giữ mộc.</span>`
+        : '<i class="ti ti-file-plus" style="font-size:14px;flex-shrink:0"></i><span><b>Đăng ký lẻ</b>: không trình qua BTGĐ, chuyển thẳng cho người giữ mộc.</span>';
+      src.style.display = 'flex';
+      document.getElementById('stampTitle').innerHTML = `<i class="ti ti-rubber-stamp" style="margin-right:6px"></i>${x ? 'Sửa đăng ký đóng dấu #' + x.id : 'Đăng ký đóng dấu'}`;
+      document.getElementById('stampSaveBtn').disabled = false;
+      document.getElementById('stampModal').style.display = 'flex';
+    }
+    function closeStampModal() { document.getElementById('stampModal').style.display = 'none'; stampRecId = stampEditId = null; }
+
+    async function saveStamp() {
+      const ten = document.getElementById('s_ten').value.trim();
+      const nguoiGui = document.getElementById('s_nguoigui').value.trim();
+      const soBan = parseInt(document.getElementById('s_soban').value);
+      const old = stampEditId ? stamps.find(y => y.id === stampEditId) : null;
+      const r = stampRecId ? records.find(y => y.id === stampRecId) : null;
+      if (!ten) { showToast('Nhập tên hồ sơ'); return; }
+      if (!nguoiGui) { showToast('Chọn người gửi'); return; }
+      if (!stampRecId && !old && !stampEmp) { showToast('Người gửi phải chọn từ danh sách nhân viên'); return; }
+      if (!soBan || soBan < 1 || soBan > 999) { showToast('Số bản từ 1 đến 999'); return; }
+      const data = {
+        ten_hs: ten, loai_hs: document.getElementById('s_loai').value || null,
+        nguoi_gui: nguoiGui, email: stampEmp?.email || old?.email || r?.email || null,
+        phongban: document.getElementById('s_phong').value.trim() || null,
+        doi_tac: document.getElementById('s_doitac').value.trim() || null,
+        so_ban: soBan, loai_dau: document.getElementById('s_loaidau').value,
+        ghi_chu: document.getElementById('s_ghichu').value.trim() || null,
+      };
+      const btn = document.getElementById('stampSaveBtn');
+      btn.disabled = true;
+      try {
+        if (old) {
+          const { data: up, error } = await sb.from('dong_dau').update({ ...data, updated_at: new Date().toISOString(), updated_by: actorName() })
+            .eq('id', old.id).eq('status', 'cho_dong_dau').select('id');
+          if (error) throw error;
+          if (!up?.length) { showToast('Lượt này đã được xử lý, không sửa được nữa. Đang tải lại.'); closeStampModal(); await loadStamps(); return; }
+          await writeLog({ action: 'sua', entity: 'dong_dau', entityId: old.id, label: stampLabel(old), changes: stampDiff(old, { ...old, ...data }) });
+          showToast('Đã lưu');
+        } else {
+          const { data: cr, error } = await sb.from('dong_dau').insert([{ ...data, ho_so_id: stampRecId, status: 'cho_dong_dau',
+            created_by_uid: curUser?.id, created_by: actorName(), updated_by: actorName() }]).select('id').single();
+          if (error) {
+            if (error.code === '23505') { showToast('Hồ sơ này đã chuyển đóng dấu rồi. Đang tải lại.'); closeStampModal(); await loadStamps(); return; }
+            throw error;
+          }
+          const logs = [{ action: 'tao', entity: 'dong_dau', entityId: cr.id, label: `#${cr.id} ${ten}`, changes: stampDiff(null, { ...data, status: 'cho_dong_dau' }),
+            note: stampRecId ? `Chuyển từ hồ sơ #${stampRecId} đã ký` : 'Đăng ký lẻ, không qua BTGĐ' }];
+          if (r) logs.push({ action: 'chuyen_dong_dau', entityId: r.id, label: recLabel(r), note: `Tạo lượt đóng dấu #${cr.id} (${soBan} bản, ${data.loai_dau})` });
+          await writeLog(logs);
+          showToast(`Đã đăng ký đóng dấu #${cr.id}`);
+        }
+        closeStampModal();
+        await loadStamps();
+      } catch (e) {
+        showToast('❌ ' + (e.code === '42501' ? 'Bạn không có quyền với lượt đóng dấu này' : e.message));
+      } finally {
+        btn.disabled = false;
+      }
+    }
+
+    // Xác nhận đã đóng dấu
+    let stampDoneId = null;
+    function openStampDone(id) {
+      const x = stamps.find(y => y.id === id);
+      if (!x || !isStamper()) return;
+      stampDoneId = id;
+      document.getElementById('sdSummary').innerHTML = `
+        <div><span>Hồ sơ</span><span>#${x.id} ${esc(x.ten_hs)}</span></div>
+        <div><span>Người gửi · Phòng ban</span><span>${esc(x.nguoi_gui)} · ${esc(x.phongban || '—')}</span></div>
+        <div><span>Số bản · Loại dấu</span><span>${x.so_ban} · ${esc(x.loai_dau)}</span></div>`;
+      document.getElementById('sd_ngay').value = todayStr();
+      document.getElementById('sd_gio').value = nowTime();
+      document.getElementById('sd_nguoi').value = curUser?.ho_ten || '';
+      document.getElementById('sd_nhan').value = x.nguoi_gui || '';
+      document.getElementById('sdBtn').disabled = false;
+      document.getElementById('stampDoneModal').style.display = 'flex';
+    }
+    function closeStampDone() { document.getElementById('stampDoneModal').style.display = 'none'; stampDoneId = null; }
+    async function confirmStampDone() {
+      const x = stamps.find(y => y.id === stampDoneId);
+      if (!x) return;
+      const patch = {
+        status: 'da_dong_dau',
+        ngay_dong_dau: document.getElementById('sd_ngay').value || null,
+        gio_dong_dau: document.getElementById('sd_gio').value || null,
+        nguoi_dong_dau: document.getElementById('sd_nguoi').value.trim(),
+        nguoi_nhan_lai: document.getElementById('sd_nhan').value.trim() || null,
+      };
+      if (!patch.ngay_dong_dau || !patch.nguoi_dong_dau) { showToast('Nhập ngày và người đóng dấu'); return; }
+      const btn = document.getElementById('sdBtn');
+      btn.disabled = true;
+      const { data: up, error } = await sb.from('dong_dau').update({ ...patch, updated_at: new Date().toISOString(), updated_by: actorName() })
+        .eq('id', x.id).eq('status', 'cho_dong_dau').select('id');
+      btn.disabled = false;
+      if (error) { showToast('❌ ' + error.message); return; }
+      if (!up?.length) { showToast('Lượt này đã được người khác xử lý. Đang tải lại.'); closeStampDone(); await loadStamps(); return; }
+      await writeLog({ action: 'dong_dau', entity: 'dong_dau', entityId: x.id, label: stampLabel(x), changes: stampDiff(x, { ...x, ...patch }) });
+      closeStampDone();
+      await loadStamps();
+      showToast(`Đã đóng dấu #${x.id}`);
+    }
+
+    function rejectStamp(id) {
+      const x = stamps.find(y => y.id === id);
+      if (!x || !isStamper()) return;
+      openConfirmModal(`Từ chối đóng dấu #${x.id} "${x.ten_hs}"? Người gửi có thể đăng ký lại sau.`, async (reason) => {
+        const patch = { status: 'tu_choi', ly_do_tu_choi: reason };
+        const { data: up, error } = await sb.from('dong_dau').update({ ...patch, updated_at: new Date().toISOString(), updated_by: actorName() })
+          .eq('id', x.id).eq('status', 'cho_dong_dau').select('id');
+        if (error) { showToast('❌ ' + error.message); return; }
+        if (!up?.length) { showToast('Lượt này đã được xử lý. Đang tải lại.'); await loadStamps(); return; }
+        await writeLog({ action: 'tu_choi', entity: 'dong_dau', entityId: x.id, label: stampLabel(x), changes: stampDiff(x, { ...x, ...patch }) });
+        await loadStamps();
+        showToast('Đã từ chối');
+      }, true, 'Từ chối');
+    }
+
+    function deleteStamp(id) {
+      const x = stamps.find(y => y.id === id);
+      if (!x) return;
+      const huy = !isStamper();
+      openConfirmModal(`${huy ? 'Hủy đăng ký' : 'Xóa'} đóng dấu #${x.id} "${x.ten_hs}"?`, async (reason) => {
+        const { data: up, error } = await sb.from('dong_dau').update({ deleted_at: new Date().toISOString(), deleted_by: actorName(), delete_reason: reason })
+          .eq('id', x.id).is('deleted_at', null).select('id');
+        if (error) { showToast('❌ ' + (error.code === '42501' ? 'Chỉ hủy được khi còn Chờ đóng dấu' : error.message)); return; }
+        if (!up?.length) { showToast('Không tìm thấy lượt này. Đang tải lại.'); await loadStamps(); return; }
+        await writeLog({ action: 'xoa', entity: 'dong_dau', entityId: x.id, label: stampLabel(x), note: reason });
+        await loadStamps();
+        showToast(huy ? 'Đã hủy đăng ký' : 'Đã xóa');
+      }, true, huy ? 'Hủy' : 'Xóa');
+    }
+
+    function exportStamps() {
+      if (!isStamper()) return;
+      const rows = stamps.map((x, i) => ({
+        'STT': i + 1, 'Mã': x.id, 'Ngày ĐK': fmtDate((x.created_at || '').slice(0, 10)), 'Nguồn': x.ho_so_id ? 'Hồ sơ #' + x.ho_so_id : 'Đăng ký lẻ',
+        'Tên hồ sơ': x.ten_hs, 'Loại hồ sơ': x.loai_hs || '', 'Phòng ban': x.phongban || '', 'Người gửi': x.nguoi_gui, 'Đối tác': x.doi_tac || '',
+        'Số bản': x.so_ban, 'Loại dấu': x.loai_dau, 'Trạng thái': STAMP_LABEL[x.status], 'Ngày đóng dấu': x.ngay_dong_dau ? fmtDate(x.ngay_dong_dau) : '',
+        'Giờ đóng dấu': x.gio_dong_dau ? fmtTime(x.gio_dong_dau) : '', 'Người đóng dấu': x.nguoi_dong_dau || '', 'Người nhận lại': x.nguoi_nhan_lai || '',
+        'Ghi chú': x.ghi_chu || '', 'Lý do từ chối': x.ly_do_tu_choi || '',
+      }));
+      const ws = XLSX.utils.json_to_sheet(rows), wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'Dong_dau');
+      XLSX.writeFile(wb, `So_dong_dau_${todayStr()}.xlsx`);
+    }
+
+    ['stampModal', 'stampDoneModal'].forEach(id => document.getElementById(id).addEventListener('click', function (e) {
+      if (e.target === this) this.style.display = 'none';
+    }));
+
+    // ════════════════════════════════════════════════════════
     //  v5: Lịch sử hồ sơ (đọc audit_log)
     // ════════════════════════════════════════════════════════
     const ACT_LABEL = {
       tao: 'Đăng ký', sua: 'Sửa', nhan: 'Nhận HS', ky: 'Đã ký', tu_choi: 'Từ chối', xoa: 'Xóa',
       khoi_phuc: 'Khôi phục', trinh_tiep: 'Trình tiếp TGĐ', doi_han_tra: 'Đổi hạn trả', doi_mat_khau: 'Đổi mật khẩu',
+      chuyen_dong_dau: 'Chuyển đóng dấu', dong_dau: 'Đã đóng dấu',
     };
 
-    async function openHistory(id) {
-      const r = records.find(x => x.id === id);
-      document.getElementById('historyTitle').textContent = `Lịch sử hồ sơ #${id}`;
+    async function openHistory(id, entity) {
+      entity = entity || 'records';   // v7.0: 'dong_dau' cho lượt đóng dấu
+      const r = entity === 'dong_dau'
+        ? (x => x && { created_by: x.created_by, created_at: x.created_at })(stamps.find(x => x.id === id))
+        : records.find(x => x.id === id);
+      document.getElementById('historyTitle').textContent = entity === 'dong_dau' ? `Lịch sử đóng dấu #${id}` : `Lịch sử hồ sơ #${id}`;
       const body = document.getElementById('historyBody');
       body.innerHTML = '<div class="empty"><i class="ti ti-loader-2"></i>Đang tải...</div>';
       document.getElementById('historyModal').style.display = 'flex';
       const { data, error } = await sb.from('audit_log')
         .select('at,user_name,action,changes,source,note')
-        .eq('entity', 'records').eq('entity_id', String(id))
+        .eq('entity', entity).eq('entity_id', String(id))
         .order('at', { ascending: true });
       if (error) { body.innerHTML = `<div class="empty">Không đọc được nhật ký: ${esc(error.message)}</div>`; return; }
       const head = r ? `<div style="font-size:12px;color:var(--text2);margin-bottom:12px">Tạo bởi ${esc(r.created_by || '—')}${r.created_at ? ' · ' + new Date(r.created_at).toLocaleString('vi-VN') : ''}</div>` : '';
@@ -2357,7 +2849,7 @@
     async function loadUsers() {
       if (!canManageAcc()) return;
       const { data, error } = await sb.from('nguoi_dung')
-        .select('id,email,ten_dang_nhap,ho_ten,vai_tro,lanh_dao_id,phai_doi_mat_khau,quyen_tai_khoan,created_at,created_by,deleted_at,deleted_by,delete_reason')
+        .select('id,email,ten_dang_nhap,ho_ten,vai_tro,lanh_dao_id,phai_doi_mat_khau,quyen_tai_khoan,quyen_dong_dau,created_at,created_by,deleted_at,deleted_by,delete_reason')
         .order('ten_dang_nhap');
       if (error) { showToast('❌ Không đọc được danh sách người dùng: ' + error.message); return; }
       users = data;
@@ -2383,7 +2875,8 @@
       if (!rows.length) { body.innerHTML = '<tr><td colspan="7"><div class="empty"><i class="ti ti-users"></i>Không có tài khoản nào</div></td></tr>'; return; }
       body.innerHTML = rows.map(u => {
         const role = (u.vai_tro === 'tro_ly' ? capBadge(u.lanh_dao_id).replace('</span>', ' · Trợ lý</span>') : '<span style="font-size:12px">Người trình ký</span>')
-          + (u.vai_tro === 'tro_ly' && u.quyen_tai_khoan ? ' <span class="badge badge-processing" title="Được tạo người dùng, cấp mật khẩu cho Người trình ký">Quản lý TK</span>' : '');
+          + (u.vai_tro === 'tro_ly' && u.quyen_tai_khoan ? ' <span class="badge badge-processing" title="Được tạo người dùng, cấp mật khẩu cho Người trình ký">Quản lý TK</span>' : '')
+          + (u.quyen_dong_dau ? ' <span class="badge badge-stamp" title="Được xác nhận đã đóng dấu / từ chối">Đóng dấu</span>' : '');
         const st = u.deleted_at
           ? `<span class="badge badge-rejected" title="${esc(u.delete_reason || '')}">Đã khóa</span>`
           : u.phai_doi_mat_khau ? '<span class="badge badge-pending" title="Chưa đổi mật khẩu tạm">Chờ đổi MK</span>'
@@ -2426,6 +2919,7 @@
       document.getElementById('u_ld').value = u?.lanh_dao_id ?? (tgd()?.id || '');
       document.getElementById('u_ld').disabled = !isTgdAsst() || (!!u && u.id === curUser?.id);
       document.getElementById('u_quyen').checked = !!u?.quyen_tai_khoan;
+      document.getElementById('u_dongdau').checked = !!u?.quyen_dong_dau;
       document.getElementById('u_quyen').disabled = !!u && u.id === curUser?.id;
       document.getElementById('u_pwGroup').style.display = u ? 'none' : '';
       document.getElementById('u_themNv').checked = true;
@@ -2460,6 +2954,9 @@
       document.getElementById('u_ldGroup').style.display = tl ? '' : 'none';
       // chỉ Trợ lý TGĐ bật / tắt quyền quản lý tài khoản, và chỉ cho trợ lý
       document.getElementById('u_quyenGroup').style.display = tl && isTgdAsst() ? '' : 'none';
+      document.getElementById('u_dongdauGroup').style.display = isTgdAsst() ? '' : 'none';
+      const anyPerm = ['u_quyenGroup', 'u_dongdauGroup'].some(id => document.getElementById(id).style.display !== 'none');
+      document.getElementById('u_permBox').style.display = anyPerm ? '' : 'none';
     }
 
     async function saveUser() {
@@ -2469,6 +2966,7 @@
       const vai_tro = document.getElementById('u_vaitro').value;
       const lanh_dao_id = vai_tro === 'tro_ly' ? +document.getElementById('u_ld').value : null;
       const quyen_tai_khoan = vai_tro === 'tro_ly' && document.getElementById('u_quyen').checked;
+      const quyen_dong_dau = isTgdAsst() && document.getElementById('u_dongdau').checked;
       const password = document.getElementById('u_pw').value;
       if (!ho_ten) { showToast('Nhập họ tên'); return; }
       if (!u && password.length < 6) { showToast('Mật khẩu ban đầu tối thiểu 6 ký tự'); return; }
@@ -2476,13 +2974,13 @@
       btn.disabled = true;
       try {
         if (u) {
-          await callAdmin('update', { id: u.id, ho_ten, vai_tro, lanh_dao_id, quyen_tai_khoan });
+          await callAdmin('update', { id: u.id, ho_ten, vai_tro, lanh_dao_id, quyen_tai_khoan, quyen_dong_dau });
           showToast('Đã lưu ' + u.ten_dang_nhap);
         } else {
           const gui_teams = document.getElementById('u_teams').checked;
           const them_nhan_vien = document.getElementById('u_themNv').checked;
           const phong_ban = document.getElementById('u_phong').value.trim();
-          const r = await callAdmin('create', { email, ho_ten, vai_tro, lanh_dao_id, quyen_tai_khoan, password, gui_teams, them_nhan_vien, phong_ban });
+          const r = await callAdmin('create', { email, ho_ten, vai_tro, lanh_dao_id, quyen_tai_khoan, quyen_dong_dau, password, gui_teams, them_nhan_vien, phong_ban });
           if (r.nhan_vien === 'da_them') await loadEmployees();
           else if (r.nhan_vien && r.nhan_vien !== 'da_co') alert('Đã tạo tài khoản, nhưng ' + r.nhan_vien + '\nThêm tay vào bảng employees để người này chọn được ở ô Người gửi.');
           if (r.teams === 'da_gui') showToast(`Đã tạo ${r.ten_dang_nhap} và nhắn mật khẩu qua Teams`);
@@ -2864,7 +3362,7 @@
         <div class="summary">
           ${row('Trình đến', esc(l?.ten || '—'))}
           ${row('Loại hồ sơ', esc(r.loai) || '—')}
-          ${row('Tên hồ sơ', esc(r.ten) || '—')}
+          ${row('Tên hồ sơ', (esc(r.ten) || '—') + luotBadge(r))}
           ${row('SL bản cứng', r.sl ?? '—')}
           ${row('Phòng ban', esc(r.phong) || '—')}
           ${row('Người gửi', esc(r.nguoigui) + (r.email ? ` <span style="color:var(--text3)">· ${esc(r.email)}</span>` : ''))}
@@ -2884,6 +3382,7 @@
       if (can || (!isAdmin && r.status === 'pending')) f += `<button class="btn" onclick="closeDetailModal();openEdit(${r.id})"><i class="ti ti-edit"></i>Sửa</button>`;
       f += `<button class="btn" onclick="closeDetailModal();openCopy(${r.id})"><i class="ti ti-copy"></i>Copy</button>`;
       if (canForward(r)) f += `<button class="btn btn-violet" onclick="closeDetailModal();openForwardModal(${r.id})"><i class="ti ti-arrow-forward-up"></i>Trình tiếp ${esc(tgd()?.ten_ngan)}</button>`;
+      if (canStampFromRecord(r)) f += `<button class="btn btn-stamp" onclick="closeDetailModal();openStampModal(${r.id}, null)"><i class="ti ti-rubber-stamp"></i>Đóng dấu</button>`;
       f += `<button class="btn btn-primary" onclick="closeDetailModal()">Đóng</button>`;
       document.getElementById('detailFooter').innerHTML = f;
       document.getElementById('detailModal').style.display = 'flex';
@@ -3392,6 +3891,35 @@
 
       list.style.display = "none";
     });
+
+    // v7.0: gợi ý nhân viên cho các ô của modal đóng dấu
+    function empAutocomplete(inputId, listId, onPick) {
+      const inp = document.getElementById(inputId), lst = document.getElementById(listId);
+      inp.addEventListener('input', function () {
+        if (onPick) onPick(null);
+        const q = this.value.toLowerCase().trim();
+        if (!q) { lst.style.display = 'none'; return; }
+        const f = employees.filter(e => e.fullname?.toLowerCase().includes(q)).slice(0, 30);
+        lst.innerHTML = f.map(e => `<div class="autocomplete-item" data-id="${esc(e.id)}">
+          <div class="emp-name">${esc(e.fullname)}</div>
+          <div class="emp-email">${esc(e.email)}${e.department ? ' · ' + esc(e.department) : ''}</div></div>`).join('');
+        lst.style.display = f.length ? 'block' : 'none';
+      });
+      lst.addEventListener('click', function (e) {
+        const it = e.target.closest('.autocomplete-item');
+        const emp = it && employees.find(x => String(x.id) === it.dataset.id);
+        if (!emp) return;
+        inp.value = emp.fullname;
+        lst.style.display = 'none';
+        if (onPick) onPick(emp);
+      });
+      inp.addEventListener('blur', () => setTimeout(() => { lst.style.display = 'none'; }, 150));
+    }
+    empAutocomplete('s_nguoigui', 's_nguoiguiList', emp => {
+      stampEmp = emp || null;
+      document.getElementById('s_phong').value = (emp?.department || '').trim();
+    });
+    empAutocomplete('sd_nhan', 'sd_nhanList', null);
 
     // v6.10: ô Người nhận HS gợi ý từ danh sách nhân viên
     (function () {
