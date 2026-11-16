@@ -1344,3 +1344,22 @@ sup.luot-2 { background: var(--blue-bg); color: var(--blue-text); border: 1px so
 .perm-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .perm-text b { font-size: 13px; color: var(--text); }
 .perm-text small { font-size: 12px; color: var(--text2); line-height: 1.45; }
+
+/* v7.4 – Thông báo "Có gì mới" */
+.wn-modal { max-width: 560px; overflow: hidden; }
+.wn-head { padding: 22px 24px 18px; background: linear-gradient(135deg, var(--blue-bg), var(--green-bg)); border-bottom: 1px solid var(--border); }
+.wn-ver { display: inline-block; font-size: 11px; font-weight: 700; letter-spacing: .04em; color: var(--blue-text); background: var(--bg); border: 1px solid var(--blue-line); border-radius: 99px; padding: 2px 10px; }
+.wn-head h2 { margin: 10px 0 4px; font-size: 20px; font-weight: 700; color: var(--title); }
+.wn-head p { margin: 0; font-size: 13px; color: var(--text2); }
+.wn-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+.wn-list li { display: flex; gap: 12px; align-items: flex-start; padding: 10px 4px; border-bottom: 1px solid var(--border); }
+.wn-list li:last-child { border-bottom: none; }
+.wn-ico { flex-shrink: 0; width: 34px; height: 34px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 17px; }
+.wn-ico.c1 { background: var(--stamp-bg); color: var(--stamp); }
+.wn-ico.c2 { background: var(--blue-bg); color: var(--blue-text); }
+.wn-ico.c3 { background: var(--green-bg); color: var(--green-text); }
+.wn-ico.c4 { background: var(--violet-bg); color: var(--violet-text); }
+.wn-txt b { display: block; font-size: 14px; color: var(--text); margin-bottom: 2px; }
+.wn-txt span { font-size: 13px; color: var(--text2); line-height: 1.5; }
+.wn-tag { display: inline-block; margin-left: 6px; font-size: 10.5px; font-weight: 600; padding: 1px 7px; border-radius: 99px; background: var(--amber-bg); color: var(--amber-text); vertical-align: 1px; }
+.wn-note { font-size: 11.5px; color: var(--text3); margin-right: auto; }

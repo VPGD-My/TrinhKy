@@ -55,6 +55,7 @@
       <span class="user-chip" id="userChip" style="display:none" title=""><i class="ti ti-user-circle"></i><span id="userName"></span></span>
       <span class="role-badge role-user" id="roleBadge" style="display:none"></span>
       <button class="btn btn-sm" id="myPwBtn" onclick="openMyPwModal()" style="display:none" title="Đổi mật khẩu của bạn"><i class="ti ti-key"></i>Đổi mật khẩu</button>
+      <button class="btn btn-sm" id="whatsNewBtn" onclick="showWhatsNew(true)" style="display:none" title="Xem các thay đổi mới của ứng dụng"><i class="ti ti-sparkles"></i>Có gì mới</button>
       <button class="btn btn-sm" id="logoutBtn" onclick="logout()" style="display:none" title="Đăng xuất khỏi máy này"><i class="ti ti-logout"></i>Đăng xuất</button>
       <button class="btn theme-btn" id="themeBtn" onclick="toggleTheme()" title="Đổi giao diện sáng / tối"><i class="ti ti-moon"></i></button>
     </div>
@@ -846,6 +847,23 @@
     </div>
   </div>
 
+  <!-- v7.4: Thông báo cập nhật (hiện 1 lần mỗi phiên bản, mỗi tài khoản) -->
+  <div class="modal-bg" id="whatsNewModal" style="display:none">
+    <div class="modal wn-modal" role="dialog" aria-labelledby="wnTitle">
+      <div class="wn-head">
+        <span class="wn-ver" id="wnVer"></span>
+        <h2 id="wnTitle">Sổ trình ký có gì mới</h2>
+        <p>Theo dõi hồ sơ từ lúc trình ký đến khi đóng dấu xong.</p>
+      </div>
+      <div class="modal-body"><ul class="wn-list" id="wnList"></ul></div>
+      <div class="modal-footer">
+        <span class="wn-note">Xem lại bằng nút <b>Có gì mới</b> trên cùng.</span>
+        <button class="btn" onclick="closeWhatsNew(false)">Đã hiểu</button>
+        <button class="btn btn-primary" onclick="closeWhatsNew(true)"><i class="ti ti-rubber-stamp"></i>Xem tab Đóng dấu</button>
+      </div>
+    </div>
+  </div>
+
   <div id="confirmModal" class="modal-bg" style="display:none">
     <div class="confirm-box">
       <h3>Thông báo</h3>
@@ -888,6 +906,40 @@
     document.addEventListener('click', e => {
       if (e.target.classList && e.target.classList.contains('modal-bg') && stkMouseDownEl !== e.target) e.stopImmediatePropagation();
     }, true);
+
+    // ════════════════════════════════════════════════════════
+    //  v7.4: Thông báo "Có gì mới" – hiện 1 lần cho mỗi tài khoản khi APP_VERSION đổi.
+    //  Lần cập nhật sau: đổi APP_VERSION / APP_DATE và nội dung WHATS_NEW.
+    // ════════════════════════════════════════════════════════
+    const APP_VERSION = '7.4', APP_DATE = '05/11/2026';
+    // only: chỉ hiện với người phù hợp; tag: nhãn nhỏ sau tiêu đề
+    const WHATS_NEW = [
+      { icon: 'ti-rubber-stamp', c: 'c1', title: 'Chuyển hồ sơ đã ký sang đóng dấu',
+        text: 'Hồ sơ Hoàn thành có nút Đóng dấu. Lượt đóng dấu được chuyển cho văn thư giữ mộc, trạng thái hiện ngay trên hồ sơ.' },
+      { icon: 'ti-file-plus', c: 'c2', title: 'Đăng ký đóng dấu không cần trình BTGĐ',
+        text: 'Giấy tờ chỉ cần đóng mộc: vào tab Đóng dấu › Đăng ký đóng dấu.' },
+      { icon: 'ti-building', c: 'c3', title: 'Phòng ban tự điền',
+        text: 'Phòng ban lấy theo danh sách nhân viên của người gửi, không cần chọn tay.' },
+      { icon: 'ti-rubber-stamp', c: 'c1', title: 'Bạn được giao xử lý đóng dấu', tag: 'Dành cho bạn',
+        text: 'Tab Đóng dấu hiện số lượt đang chờ. Bấm Đã đóng dấu (ghi ngày, người nhận lại) hoặc Từ chối.', only: () => isStamper() },
+      { icon: 'ti-users', c: 'c4', title: 'Phân quyền mới trong Người dùng', tag: 'Trợ lý TGĐ',
+        text: 'Người dùng › Sửa: bật Xử lý đóng dấu cho văn thư, Quản lý tài khoản cho tổ trợ lý.', only: () => isTgdAsst() },
+    ];
+    const wnKey = () => 'stk.whatsnew.' + (curUser?.id || '');
+    function showWhatsNew(force) {
+      if (!curUser) return;
+      try { if (!force && localStorage.getItem(wnKey()) === APP_VERSION) return; } catch (e) { /* không đọc được thì vẫn hiện */ }
+      document.getElementById('wnVer').textContent = `Phiên bản ${APP_VERSION} · ${APP_DATE}`;
+      document.getElementById('wnList').innerHTML = WHATS_NEW.filter(w => !w.only || w.only()).map(w => `<li>
+        <span class="wn-ico ${w.c}"><i class="ti ${w.icon}"></i></span>
+        <span class="wn-txt"><b>${esc(w.title)}${w.tag ? `<span class="wn-tag">${esc(w.tag)}</span>` : ''}</b><span>${esc(w.text)}</span></span></li>`).join('');
+      document.getElementById('whatsNewModal').style.display = 'flex';
+    }
+    function closeWhatsNew(goStamp) {
+      try { localStorage.setItem(wnKey(), APP_VERSION); } catch (e) { /* bỏ qua */ }
+      document.getElementById('whatsNewModal').style.display = 'none';
+      if (goStamp) showTab('tab-stamp', document.getElementById('tab-stamp-nav'));
+    }
 
     // v6.4: nút con mắt xem / ẩn mật khẩu cho mọi ô mật khẩu
     function initPwEyes() {
@@ -1180,7 +1232,7 @@
       document.getElementById('loginScreen').style.display = 'none';
       document.getElementById('userName').textContent = p.ho_ten;
       document.getElementById('userChip').title = p.email;
-      ['userChip', 'myPwBtn', 'logoutBtn'].forEach(id => document.getElementById(id).style.display = 'inline-flex');
+      ['userChip', 'myPwBtn', 'whatsNewBtn', 'logoutBtn'].forEach(id => document.getElementById(id).style.display = 'inline-flex');
 
       await loadLeaders();
       applyRole(p.vai_tro === 'tro_ly' && !!ldById(p.lanh_dao_id), p.lanh_dao_id);
@@ -1191,7 +1243,7 @@
       // v7.1: văn thư (có quyền xử lý đóng dấu, không phải trợ lý) vào thẳng tab Đóng dấu
       if (p.quyen_dong_dau && p.vai_tro !== 'tro_ly') showTab('tab-stamp', document.getElementById('tab-stamp-nav'));
       if (canManageAcc()) await loadUsers();
-      if (p.phai_doi_mat_khau) openMyPwModal(true);
+      if (p.phai_doi_mat_khau) openMyPwModal(true); else showWhatsNew();   // v7.4: thông báo cập nhật sau khi vào app
     }
 
     async function logout() {
@@ -3325,6 +3377,7 @@
         myPwForced = false;
         closeMyPwModal();
         showToast('Đã đổi mật khẩu.');
+        showWhatsNew();   // v7.4: vừa đổi mật khẩu tạm xong thì mới hiện thông báo
       } finally {
         btn.disabled = false;
       }
