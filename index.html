@@ -34,7 +34,13 @@
     })();
   </script>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
-  <link rel="stylesheet" href="so_trinh_ky.css?v=6">
+  <link rel="stylesheet" href="so_trinh_ky.css?v=7">
+  <!-- v7.5: icon trang -->
+  <link rel="icon" href="01.HinhAnh/icon/favicon.svg" type="image/svg+xml">
+  <link rel="icon" href="01.HinhAnh/icon/favicon.ico" sizes="any">
+  <link rel="apple-touch-icon" href="01.HinhAnh/icon/apple-touch-icon.png">
+  <link rel="manifest" href="01.HinhAnh/icon/site.webmanifest">
+  <meta name="theme-color" content="#119303">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 
@@ -853,13 +859,16 @@
       <div class="wn-head">
         <span class="wn-ver" id="wnVer"></span>
         <h2 id="wnTitle">Sổ trình ký có gì mới</h2>
-        <p>Theo dõi hồ sơ từ lúc trình ký đến khi đóng dấu xong.</p>
+        <p id="wnSub"></p>
       </div>
-      <div class="modal-body"><ul class="wn-list" id="wnList"></ul></div>
+      <div class="modal-body"><div class="wn-review" id="wnReview" style="display:none"></div><ul class="wn-list" id="wnList"></ul></div>
       <div class="modal-footer">
-        <span class="wn-note">Xem lại bằng nút <b>Có gì mới</b> trên cùng.</span>
-        <button class="btn" onclick="closeWhatsNew(false)">Đã hiểu</button>
-        <button class="btn btn-primary" onclick="closeWhatsNew(true)"><i class="ti ti-rubber-stamp"></i>Xem tab Đóng dấu</button>
+        <span class="wn-note" id="wnNote">Xem lại bằng nút <b>Có gì mới</b> trên cùng.</span>
+        <button class="btn" id="wnRevokeBtn" style="display:none" onclick="revokeWhatsNew()">Thu hồi</button>
+        <button class="btn" id="wnSkipBtn" style="display:none" onclick="skipWhatsNew()" title="Không hiện bảng Có gì mới cho phiên bản này">Không thông báo</button>
+        <button class="btn" id="wnLaterBtn" style="display:none" onclick="closeWhatsNew(false)">Để sau</button>
+        <button class="btn btn-primary" id="wnApproveBtn" style="display:none" onclick="approveWhatsNew()"><i class="ti ti-circle-check"></i>Duyệt &amp; đưa lên</button>
+        <button class="btn btn-primary" id="wnOkBtn" onclick="closeWhatsNew(true)">Đã hiểu</button>
       </div>
     </div>
   </div>
@@ -909,37 +918,224 @@
 
     // ════════════════════════════════════════════════════════
     //  v7.4: Thông báo "Có gì mới" – hiện 1 lần cho mỗi tài khoản khi APP_VERSION đổi.
-    //  Lần cập nhật sau: đổi APP_VERSION / APP_DATE và nội dung WHATS_NEW.
+    //  v7.5: phải được Trợ lý TGĐ duyệt (sửa / xóa / thêm mục trên giao diện) mới hiện cho người dùng.
+    //  Lần cập nhật sau: đổi APP_VERSION / APP_DATE / WN_SUB và nội dung WHATS_NEW (bản nháp ban đầu).
+    //  Chỉ ghi các thay đổi CỦA PHIÊN BẢN NÀY, mỗi mục 1 câu ngắn.
     // ════════════════════════════════════════════════════════
-    const APP_VERSION = '7.4', APP_DATE = '05/11/2026';
-    // only: chỉ hiện với người phù hợp; tag: nhãn nhỏ sau tiêu đề
+    const APP_VERSION = '7.5', APP_DATE = '16/11/2026';
+    const WN_SUB = 'Vài thay đổi nhỏ để dùng tiện hơn.';
+    // doi: ai thấy mục này – tat_ca (mặc định) | tro_ly | tro_ly_tgd | dong_dau; tag: nhãn nhỏ sau tiêu đề
     const WHATS_NEW = [
-      { icon: 'ti-rubber-stamp', c: 'c1', title: 'Chuyển hồ sơ đã ký sang đóng dấu',
-        text: 'Hồ sơ Hoàn thành có nút Đóng dấu. Lượt đóng dấu được chuyển cho văn thư giữ mộc, trạng thái hiện ngay trên hồ sơ.' },
-      { icon: 'ti-file-plus', c: 'c2', title: 'Đăng ký đóng dấu không cần trình BTGĐ',
-        text: 'Giấy tờ chỉ cần đóng mộc: vào tab Đóng dấu › Đăng ký đóng dấu.' },
-      { icon: 'ti-building', c: 'c3', title: 'Phòng ban tự điền',
-        text: 'Phòng ban lấy theo danh sách nhân viên của người gửi, không cần chọn tay.' },
-      { icon: 'ti-rubber-stamp', c: 'c1', title: 'Bạn được giao xử lý đóng dấu', tag: 'Dành cho bạn',
-        text: 'Tab Đóng dấu hiện số lượt đang chờ. Bấm Đã đóng dấu (ghi ngày, người nhận lại) hoặc Từ chối.', only: () => isStamper() },
-      { icon: 'ti-users', c: 'c4', title: 'Phân quyền mới trong Người dùng', tag: 'Trợ lý TGĐ',
-        text: 'Người dùng › Sửa: bật Xử lý đóng dấu cho văn thư, Quản lý tài khoản cho tổ trợ lý.', only: () => isTgdAsst() },
+      { icon: 'ti-browser', c: 'c3', title: 'Biểu tượng mới trên tab',
+        text: 'Dễ tìm lại Sổ trình ký khi mở nhiều tab.' },
+      { icon: 'ti-device-mobile', c: 'c2', title: 'Đưa ra màn hình điện thoại',
+        text: 'Menu trình duyệt › Thêm vào màn hình chính để mở như một ứng dụng.' },
+      { icon: 'ti-message-circle', c: 'c4', title: 'Tin Teams cấp mật khẩu gọn hơn',
+        text: 'Mật khẩu tạm được ẩn, bấm Hiện / ẩn mật khẩu mới thấy.' },
     ];
     const wnKey = () => 'stk.whatsnew.' + (curUser?.id || '');
-    function showWhatsNew(force) {
+    const wnDraftKey = () => 'stk.wn.draft.' + APP_VERSION;
+
+    // v7.5: thông báo phải được Trợ lý TGĐ duyệt (bảng thong_bao_cap_nhat) thì người dùng mới thấy.
+    //  Trợ lý TGĐ sửa / xóa / thêm mục ngay trên bảng (bản nháp) → Duyệt & đưa lên, hoặc Không thông báo.
+    //  Người dùng thấy đúng NỘI DUNG ĐÃ DUYỆT lưu trong database; WHATS_NEW trong code chỉ là bản nháp ban đầu.
+    const WN_DOI = {
+      tat_ca:     ['Tất cả', () => true],
+      tro_ly:     ['Trợ lý', () => isAdmin],
+      tro_ly_tgd: ['Trợ lý TGĐ', () => isTgdAsst()],
+      dong_dau:   ['Người xử lý đóng dấu', () => isStamper()],
+    };
+    const WN_MAX_TITLE = 80, WN_MAX_TEXT = 200;
+    const wnFromCode = () => ({ ngay: APP_DATE, mo_ta: WN_SUB,
+      muc: WHATS_NEW.map(w => ({ icon: w.icon, mau: w.c, tieu_de: w.title, noi_dung: w.text, nhan: w.tag || null,
+        doi_tuong: WN_DOI[w.doi] ? w.doi : 'tat_ca' })) });
+    const wnTag = m => m.nhan || (m.doi_tuong && m.doi_tuong !== 'tat_ca' ? (WN_DOI[m.doi_tuong]?.[0] || '') : '');
+    const wnFor = m => (WN_DOI[m.doi_tuong] || WN_DOI.tat_ca)[1]();
+    const wnApproved = () => !!wnRow && wnRow.trang_thai === 'da_duyet';
+
+    let wnRow, wnDraft = null;   // wnRow: undefined = chưa tải, null = chờ duyệt, object = đã duyệt / không thông báo
+
+    async function loadWhatsNewApproval() {
+      const { data, error } = await sb.from('thong_bao_cap_nhat')
+        .select('id, phien_ban, trang_thai, noi_dung, duyet_boi, duyet_luc, created_at')
+        .eq('phien_ban', APP_VERSION).is('deleted_at', null).maybeSingle();
+      if (error) console.warn('Không đọc được trạng thái duyệt thông báo:', error.message);
+      wnRow = error ? null : (data || null);
+      if (wnRow && !wnRow.trang_thai) wnRow.trang_thai = 'da_duyet';
+      const btn = document.getElementById('whatsNewBtn');
+      const pend = !wnRow && isTgdAsst();
+      btn.innerHTML = `<i class="ti ti-sparkles"></i>Có gì mới${pend ? ' · Chờ duyệt' : ''}`;
+      btn.title = pend ? 'Thông báo cập nhật đang chờ bạn duyệt' : 'Xem các thay đổi mới của ứng dụng';
+    }
+
+    function wnLoadDraft() {
+      if (wnDraft) return;
+      try { wnDraft = JSON.parse(localStorage.getItem(wnDraftKey()) || 'null'); } catch (e) { wnDraft = null; }
+      if (!wnDraft || !Array.isArray(wnDraft.muc)) wnDraft = wnFromCode();
+    }
+    function wnSaveDraft() { try { localStorage.setItem(wnDraftKey(), JSON.stringify(wnDraft)); } catch (e) { /* bỏ qua */ } }
+
+    async function showWhatsNew(force) {
       if (!curUser) return;
-      try { if (!force && localStorage.getItem(wnKey()) === APP_VERSION) return; } catch (e) { /* không đọc được thì vẫn hiện */ }
-      document.getElementById('wnVer').textContent = `Phiên bản ${APP_VERSION} · ${APP_DATE}`;
-      document.getElementById('wnList').innerHTML = WHATS_NEW.filter(w => !w.only || w.only()).map(w => `<li>
-        <span class="wn-ico ${w.c}"><i class="ti ${w.icon}"></i></span>
-        <span class="wn-txt"><b>${esc(w.title)}${w.tag ? `<span class="wn-tag">${esc(w.tag)}</span>` : ''}</b><span>${esc(w.text)}</span></span></li>`).join('');
+      if (wnRow === undefined || force) await loadWhatsNewApproval();
+      const reviewer = isTgdAsst();
+      // Trợ lý TGĐ: còn chờ duyệt thì mỗi lần vào app đều mở bản nháp để nhắc
+      if (reviewer && !wnRow) { wnLoadDraft(); wnOpen('edit'); return; }
+      if (!wnApproved()) {
+        if (force) { if (reviewer) wnOpen('skipped'); else showToast('Chưa có thông báo mới.'); }
+        return;
+      }
+      const mine = (wnRow.noi_dung?.muc || []).filter(wnFor);
+      if (!reviewer && !mine.length) { if (force) showToast('Chưa có thông báo mới.'); return; }
+      if (!force) { try { if (localStorage.getItem(wnKey()) === APP_VERSION) return; } catch (e) { /* không đọc được thì vẫn hiện */ } }
+      wnOpen('view');
+    }
+
+    // mode: edit = bản nháp chờ duyệt (Trợ lý TGĐ) · view = đã duyệt · skipped = đã chọn không thông báo
+    function wnOpen(mode) {
+      const reviewer = isTgdAsst();
+      const c = mode === 'edit' ? wnDraft : (wnRow?.noi_dung || {});
+      document.getElementById('wnVer').textContent = `Phiên bản ${APP_VERSION} · ${c.ngay || APP_DATE}`;
+      document.getElementById('wnSub').textContent = mode === 'edit' ? 'Bản nháp, chỉ Trợ lý TGĐ thấy.' : (c.mo_ta || '');
+      const rv = document.getElementById('wnReview'), list = document.getElementById('wnList');
+      const who = wnRow ? `${esc(wnRow.duyet_boi || '—')}${(wnRow.duyet_luc || wnRow.created_at) ? ' · ' + new Date(wnRow.duyet_luc || wnRow.created_at).toLocaleString('vi-VN') : ''}` : '';
+      if (mode === 'edit') {
+        rv.className = 'wn-review pending';
+        rv.innerHTML = '<b>Chờ bạn duyệt.</b> Người dùng chưa thấy thông báo này. Sửa, xóa hoặc thêm mục nếu cần, rồi bấm Duyệt &amp; đưa lên.';
+        wnRenderEditor();
+      } else if (mode === 'skipped') {
+        rv.className = 'wn-review pending';
+        rv.innerHTML = `<b>Không thông báo bản này</b> (${who}). Bấm Mở lại nếu muốn duyệt.`;
+        list.innerHTML = '';
+      } else {
+        rv.className = 'wn-review done';
+        rv.innerHTML = `<b>Đã duyệt</b> bởi ${who}.`;
+        list.innerHTML = (c.muc || []).filter(m => reviewer || wnFor(m)).map(m => {
+          const tag = wnTag(m);
+          return `<li>
+        <span class="wn-ico ${esc(m.mau || 'c2')}"><i class="ti ${esc(m.icon || 'ti-sparkles')}"></i></span>
+        <span class="wn-txt"><b>${esc(m.tieu_de)}${tag ? `<span class="wn-tag">${esc(tag)}</span>` : ''}</b><span>${esc(m.noi_dung)}</span></span></li>`;
+        }).join('');
+      }
+      rv.style.display = reviewer ? 'block' : 'none';
+      const show = (id, on) => { document.getElementById(id).style.display = on ? 'inline-flex' : 'none'; };
+      ['wnApproveBtn', 'wnSkipBtn', 'wnLaterBtn'].forEach(id => show(id, mode === 'edit'));
+      show('wnOkBtn', mode !== 'edit');
+      show('wnRevokeBtn', reviewer && mode !== 'edit');
+      document.getElementById('wnRevokeBtn').textContent = mode === 'skipped' ? 'Mở lại' : 'Thu hồi';
+      document.getElementById('wnOkBtn').textContent = mode === 'skipped' ? 'Đóng' : 'Đã hiểu';
+      document.getElementById('wnNote').style.display = mode === 'view' ? '' : 'none';
       document.getElementById('whatsNewModal').style.display = 'flex';
     }
-    function closeWhatsNew(goStamp) {
-      try { localStorage.setItem(wnKey(), APP_VERSION); } catch (e) { /* bỏ qua */ }
-      document.getElementById('whatsNewModal').style.display = 'none';
-      if (goStamp) showTab('tab-stamp', document.getElementById('tab-stamp-nav'));
+
+    function wnRenderEditor() {
+      const d = wnDraft;
+      const opt = k => Object.entries(WN_DOI).map(([v, [l]]) => `<option value="${v}"${v === k ? ' selected' : ''}>${esc(l)}</option>`).join('');
+      document.getElementById('wnList').innerHTML =
+        `<li class="wn-edit-sub"><label>Dòng mô tả dưới tiêu đề
+          <input class="field" maxlength="120" value="${esc(d.mo_ta || '')}" oninput="wnSet(-1,'mo_ta',this.value)"></label></li>` +
+        d.muc.map((m, i) => `<li class="wn-edit">
+          <span class="wn-ico ${esc(m.mau || 'c2')}"><i class="ti ${esc(m.icon || 'ti-sparkles')}"></i></span>
+          <div class="wn-edit-f">
+            <input class="field" maxlength="${WN_MAX_TITLE}" placeholder="Tiêu đề ngắn" value="${esc(m.tieu_de)}" oninput="wnSet(${i},'tieu_de',this.value)">
+            <textarea class="field" rows="2" maxlength="${WN_MAX_TEXT}" placeholder="Một câu ngắn cho người dùng" oninput="wnSet(${i},'noi_dung',this.value)">${esc(m.noi_dung)}</textarea>
+            <div class="wn-edit-row">
+              <select class="field" title="Ai thấy mục này" onchange="wnSet(${i},'doi_tuong',this.value)">${opt(m.doi_tuong)}</select>
+              <button type="button" class="btn btn-sm" onclick="wnDelItem(${i})"><i class="ti ti-trash"></i>Xóa mục</button>
+            </div>
+          </div></li>`).join('') +
+        `<li class="wn-edit-add">
+          <button type="button" class="btn btn-sm" onclick="wnAddItem()"><i class="ti ti-plus"></i>Thêm mục</button>
+          <button type="button" class="btn btn-sm" onclick="wnResetDraft()">Lấy lại nội dung gốc</button></li>`;
     }
+    function wnSet(i, k, v) {
+      if (i < 0) wnDraft[k] = v;
+      else { wnDraft.muc[i][k] = v; if (k === 'doi_tuong') wnDraft.muc[i].nhan = null; }
+      wnSaveDraft();
+    }
+    function wnDelItem(i) {
+      const t = (wnDraft.muc[i].tieu_de || '').trim() || `mục ${i + 1}`;
+      if (!confirm(`Xóa “${t}” khỏi thông báo?`)) return;
+      wnDraft.muc.splice(i, 1); wnSaveDraft(); wnRenderEditor();
+    }
+    function wnAddItem() {
+      wnDraft.muc.push({ icon: 'ti-sparkles', mau: 'c2', tieu_de: '', noi_dung: '', nhan: null, doi_tuong: 'tat_ca' });
+      wnSaveDraft(); wnRenderEditor();
+      document.querySelector('#wnList .wn-edit:last-of-type input')?.focus();
+    }
+    function wnResetDraft() {
+      if (!confirm('Bỏ các chỉnh sửa và lấy lại nội dung gốc trong code?')) return;
+      wnDraft = wnFromCode(); wnSaveDraft(); wnRenderEditor();
+    }
+
+    // markSeen: false = "Để sau" / "Đóng" (lần sau vẫn nhắc nếu còn chờ duyệt)
+    function closeWhatsNew(markSeen) {
+      if (markSeen && wnApproved()) { try { localStorage.setItem(wnKey(), APP_VERSION); } catch (e) { /* bỏ qua */ } }
+      document.getElementById('whatsNewModal').style.display = 'none';
+    }
+
+    async function approveWhatsNew() {
+      if (!isTgdAsst() || wnRow) return;
+      const muc = wnDraft.muc.map(m => ({ ...m, tieu_de: (m.tieu_de || '').trim(), noi_dung: (m.noi_dung || '').trim() }));
+      if (!muc.length) { showToast('Chưa có mục nào. Thêm mục, hoặc bấm Không thông báo.'); return; }
+      const bad = muc.findIndex(m => !m.tieu_de || !m.noi_dung);
+      if (bad >= 0) { showToast(`Mục ${bad + 1} còn trống tiêu đề hoặc nội dung.`); return; }
+      if (!confirm(`Đưa thông báo phiên bản ${APP_VERSION} (${muc.length} mục) lên cho người dùng?\n\nSau khi duyệt không sửa được, chỉ thu hồi.`)) return;
+      await wnSaveRow('da_duyet', { ...wnDraft, mo_ta: (wnDraft.mo_ta || '').trim(), muc });
+    }
+    async function skipWhatsNew() {
+      if (!isTgdAsst() || wnRow) return;
+      if (!confirm(`Không thông báo phiên bản ${APP_VERSION}?\n\nNgười dùng sẽ không thấy bảng Có gì mới của bản này.`)) return;
+      await wnSaveRow('bo_qua', wnDraft);
+    }
+    async function wnSaveRow(trang_thai, noi_dung) {
+      const btns = ['wnApproveBtn', 'wnSkipBtn'].map(id => document.getElementById(id));
+      btns.forEach(b => b.disabled = true);
+      try {
+        const { data, error } = await sb.from('thong_bao_cap_nhat')
+          .insert([{ phien_ban: APP_VERSION, trang_thai, noi_dung, duyet_boi_uid: curUser.id, duyet_boi: actorName(), created_by: actorName() }])
+          .select('id, phien_ban, trang_thai, noi_dung, duyet_boi, duyet_luc, created_at').single();
+        if (error) throw error;
+        const ok = trang_thai === 'da_duyet';
+        writeLog({ action: ok ? 'duyet_thong_bao' : 'bo_qua_thong_bao', entity: 'thong_bao_cap_nhat', entityId: data.id,
+          label: 'Có gì mới ' + APP_VERSION, note: ok ? `${noi_dung.muc.length} mục` : null });
+        wnRow = data;
+        try { localStorage.removeItem(wnDraftKey()); } catch (e) { /* bỏ qua */ }
+        wnDraft = null;
+        closeWhatsNew(ok);
+        showToast(ok ? '✅ Đã duyệt. Người dùng sẽ thấy thông báo khi vào app lần tới.' : 'Đã chọn không thông báo phiên bản này.');
+      } catch (e) {
+        showToast(e.code === '23505' ? 'Phiên bản này vừa được xử lý. Tải lại trang để xem.' : '❌ Không lưu được: ' + e.message);
+      } finally {
+        btns.forEach(b => b.disabled = false);
+        await loadWhatsNewApproval();
+      }
+    }
+
+    // Thu hồi (đã duyệt) hoặc Mở lại (đã chọn không thông báo) → về bản nháp chờ duyệt.
+    //  Người đã xem thì đã xem; người chưa xem sẽ không thấy nữa.
+    async function revokeWhatsNew() {
+      if (!isTgdAsst() || !wnRow) return;
+      const skipped = wnRow.trang_thai === 'bo_qua';
+      let reason = 'Mở lại để duyệt';
+      if (skipped) { if (!confirm('Mở lại thông báo phiên bản này để duyệt?')) return; }
+      else {
+        reason = (prompt('Lý do thu hồi thông báo này:\n(Người đã xem thì đã xem; người chưa xem sẽ không thấy nữa.)') || '').trim();
+        if (!reason) return;
+      }
+      const { error } = await sb.from('thong_bao_cap_nhat')
+        .update({ deleted_at: new Date().toISOString(), deleted_by: actorName(), delete_reason: reason })
+        .eq('id', wnRow.id).is('deleted_at', null);
+      if (error) { showToast('❌ Không thực hiện được: ' + error.message); return; }
+      writeLog({ action: skipped ? 'mo_lai_thong_bao' : 'thu_hoi_thong_bao', entity: 'thong_bao_cap_nhat', entityId: wnRow.id,
+        label: 'Có gì mới ' + APP_VERSION, note: reason });
+      // nội dung cũ thành bản nháp để sửa tiếp
+      if (Array.isArray(wnRow.noi_dung?.muc)) { wnDraft = JSON.parse(JSON.stringify(wnRow.noi_dung)); wnSaveDraft(); }
+      closeWhatsNew(false);
+      showToast(skipped ? 'Đã mở lại, bạn có thể sửa và duyệt.' : 'Đã thu hồi. Thông báo về lại bản nháp.');
+      await showWhatsNew(true);
+    }
+
 
     // v6.4: nút con mắt xem / ẩn mật khẩu cho mọi ô mật khẩu
     function initPwEyes() {
