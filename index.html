@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>ĐĂNG KÝ HỒ SƠ TRÌNH KÝ</title>
+  <title>ĐĂNG KÝ HỒ SƠ TRÌNH KÝ VÀ ĐÓNG DẤU</title>
   <!-- v5: đặt theme trước khi trang hiện để không bị nháy trắng khi dùng theme tối -->
   <script>
     (function () {
@@ -53,16 +53,18 @@
   <div class="header">
 
     <div class="logo">
-      ĐĂNG KÝ HỒ SƠ TRÌNH KÝ
+      ĐĂNG KÝ HỒ SƠ TRÌNH KÝ VÀ ĐÓNG DẤU
     </div>
 
     <div class="header-right">
       <!-- v6: đăng nhập bằng tài khoản, bỏ công tắc Trợ lý -->
       <span class="user-chip" id="userChip" style="display:none" title=""><i class="ti ti-user-circle"></i><span id="userName"></span></span>
       <span class="role-badge role-user" id="roleBadge" style="display:none"></span>
-      <button class="btn btn-sm" id="myPwBtn" onclick="openMyPwModal()" style="display:none" title="Đổi mật khẩu của bạn"><i class="ti ti-key"></i>Đổi mật khẩu</button>
-      <button class="btn btn-sm" id="whatsNewBtn" onclick="showWhatsNew(true)" style="display:none" title="Xem các thay đổi mới của ứng dụng"><i class="ti ti-sparkles"></i>Có gì mới</button>
-      <button class="btn btn-sm" id="logoutBtn" onclick="logout()" style="display:none" title="Đăng xuất khỏi máy này"><i class="ti ti-logout"></i>Đăng xuất</button>
+      <button class="btn btn-sm" id="myPwBtn" onclick="openMyPwModal()" style="display:none" title="Đổi mật khẩu của bạn"><i class="ti ti-key"></i><span class="hb-t">Đổi mật khẩu</span></button>
+      <button class="btn btn-sm" id="whatsNewBtn" onclick="showWhatsNew(true)" style="display:none" title="Xem các thay đổi mới của ứng dụng"><i class="ti ti-sparkles"></i><span class="hb-t">Có gì mới</span></button>
+      <!-- v7.6: Hướng dẫn sử dụng -->
+      <button class="btn btn-sm" id="guideBtn" onclick="openGuide()" style="display:none" title="Hướng dẫn sử dụng từng bước"><i class="ti ti-book-2"></i>Hướng dẫn</button>
+      <button class="btn btn-sm" id="logoutBtn" onclick="logout()" style="display:none" title="Đăng xuất khỏi máy này"><i class="ti ti-logout"></i><span class="hb-t">Đăng xuất</span></button>
       <button class="btn theme-btn" id="themeBtn" onclick="toggleTheme()" title="Đổi giao diện sáng / tối"><i class="ti ti-moon"></i></button>
     </div>
   </div>
@@ -106,6 +108,7 @@
             <option value="processing">Đang xử lý</option>
             <option value="done">Hoàn thành</option>
             <option value="rejected">Từ chối</option>
+            <option value="chua_nhan">Đã ký, chưa có người nhận</option>
           </select>
           <span id="filterCount" style="font-size:12px;color:var(--text3)"></span>
         </div>
@@ -323,7 +326,8 @@
       <input type="password" class="field" id="loginPw" name="password" autocomplete="current-password">
       <div class="pw-error" id="loginError"></div>
       <button type="submit" class="btn btn-primary login-btn" id="loginBtn"><i class="ti ti-login"></i>Đăng nhập</button>
-      <p class="login-help">Quên mật khẩu: liên hệ Trợ lý Tổng Giám đốc để được cấp lại.</p>
+      <div class="login-forgot"><i class="ti ti-alert-circle"></i><span>Quên mật khẩu: liên hệ <b>Trợ lý PTGĐ</b> hoặc <b>Trợ lý TGĐ</b> để được cấp lại.</span></div>
+      <p class="login-help"><a href="#" onclick="openGuide(); return false;"><i class="ti ti-book-2"></i> Xem hướng dẫn sử dụng</a></p>
     </form>
   </div>
 
@@ -589,6 +593,8 @@
         <div class="pw-icon"><i class="ti ti-key"></i></div>
         <h2 style="font-size:15px;font-weight:600;margin-bottom:4px;text-align:center" id="myPwTitle">Đổi mật khẩu</h2>
         <p style="font-size:12px;color:var(--text2);margin-bottom:14px;text-align:center" id="myPwSub">Các máy đang đăng nhập vẫn giữ đăng nhập.</p>
+        <!-- v7.6: lần đầu đăng nhập nhắc cách lấy lại mật khẩu -->
+        <div class="login-forgot" id="myPwHelp" style="display:none;margin:0 0 12px"><i class="ti ti-alert-circle"></i><span>Nếu quên mật khẩu, liên hệ <b>Trợ lý PTGĐ</b> hoặc <b>Trợ lý TGĐ</b> để được cấp lại.</span></div>
         <div class="form-group" style="margin-bottom:10px">
           <label id="myPwOldLabel">Mật khẩu hiện tại<span class="required">*</span></label>
           <input type="password" class="field" id="myPwOld" autocomplete="current-password">
@@ -853,6 +859,71 @@
     </div>
   </div>
 
+
+  <!-- v7.6: Hướng dẫn sử dụng (chip Hướng dẫn trên header). Nội dung sinh từ bản PDF; ảnh ở 01.HinhAnh/huong-dan/ -->
+  <div class="gd-bg" id="guideModal" style="display:none" onclick="if(event.target===this)closeGuide()">
+    <div class="gd" role="dialog" aria-modal="true" aria-labelledby="gdTitle">
+      <div class="gd-head">
+        <div>
+          <h2 id="gdTitle"><i class="ti ti-book-2"></i>Hướng dẫn sử dụng</h2>
+          <p>Đăng ký trình ký và đóng dấu, từng bước kèm hình chụp ứng dụng</p>
+        </div>
+        <div class="gd-head-act">
+          <button class="btn btn-sm" onclick="openGuide('video')" title="Xem video hướng dẫn"><i class="ti ti-player-play"></i>Video</button>
+          <button class="btn btn-sm" onclick="exportGuidePdf()" title="Xuất hướng dẫn thành file PDF (chọn Lưu dưới dạng PDF)"><i class="ti ti-file-export"></i>Xuất PDF</button>
+          <button class="action-btn" onclick="closeGuide()" style="padding:4px 6px" aria-label="Đóng"><i class="ti ti-x"></i></button>
+        </div>
+      </div>
+      <div class="gd-main">
+        <nav class="gd-nav" id="gdNav" aria-label="Mục lục hướng dẫn"><div class="gd-nav-g">Bắt đầu</div><a class="gd-nav-a" href="#gd-video" data-gd="video">Video hướng dẫn</a><a class="gd-nav-a" href="#gd-tong-quan" data-gd="tong-quan">Quy trình trình ký và đóng dấu</a><a class="gd-nav-a" href="#gd-dang-nhap" data-gd="dang-nhap">Đăng nhập</a><a class="gd-nav-a" href="#gd-doi-mat-khau" data-gd="doi-mat-khau">Đặt mật khẩu lần đầu</a><a class="gd-nav-a" href="#gd-quen-mat-khau" data-gd="quen-mat-khau">Quên mật khẩu</a><div class="gd-nav-g">Hồ sơ trình ký</div><a class="gd-nav-a" href="#gd-dang-ky" data-gd="dang-ky">Đăng ký hồ sơ</a><a class="gd-nav-a" href="#gd-theo-doi" data-gd="theo-doi">Theo dõi hồ sơ</a><a class="gd-nav-a" href="#gd-trinh-tiep" data-gd="trinh-tiep">Trình tiếp Tổng Giám đốc</a><a class="gd-nav-a" href="#gd-ket-qua-trinh-tiep" data-gd="ket-qua-trinh-tiep">Hồ sơ sau khi trình tiếp</a><div class="gd-nav-g">Đóng dấu</div><a class="gd-nav-a" href="#gd-dong-dau" data-gd="dong-dau">Đăng ký đóng dấu</a><a class="gd-nav-a" href="#gd-theo-doi-dong-dau" data-gd="theo-doi-dong-dau">Theo dõi đóng dấu</a><div class="gd-nav-g">Hỗ trợ</div><a class="gd-nav-a" href="#gd-hoi-dap" data-gd="hoi-dap">Câu hỏi thường gặp</a></nav>
+        <div class="gd-content" id="gdContent"><div class="gd-print-cover"><img src="01.HinhAnh/Logo DTR 2024.png" alt=""><h1>Hướng dẫn Đăng ký trình ký và đóng dấu</h1><p class="sub">Dành cho người trình ký · từng bước, kèm hình chụp ứng dụng</p><h3>Mục lục</h3><ol><li>Quy trình trình ký và đóng dấu</li><li>Đăng nhập</li><li>Đặt mật khẩu lần đầu</li><li>Quên mật khẩu</li><li>Đăng ký hồ sơ</li><li>Theo dõi hồ sơ</li><li>Trình tiếp Tổng Giám đốc</li><li>Hồ sơ sau khi trình tiếp</li><li>Đăng ký đóng dấu</li><li>Theo dõi đóng dấu</li><li>Câu hỏi thường gặp</li></ol><p class="foot">© 2026 Văn phòng Giám đốc</p></div><section class="gd-sec gd-full" id="gd-video"><div class="gd-sec-head"><span class="gd-sec-kick">Video</span><h2>Video hướng dẫn</h2></div>
+<p class="gd-lead">Khoảng 1 phút, đi qua toàn bộ quy trình: đăng nhập, đăng ký hồ sơ, theo dõi, trình tiếp TGĐ và đăng ký đóng dấu. Các mục bên dưới hướng dẫn chi tiết từng bước.</p>
+<div class="gd-video-box"><video id="gdVideo" controls preload="metadata" playsinline><source src="01.HinhAnh/huong-dan/huong-dan-trinh-ky.mp4" type="video/mp4"></video>
+<div class="gd-video-miss" id="gdVideoMiss" hidden><i class="ti ti-movie-off"></i><b>Chưa có video</b><span>Đặt file <code>huong-dan-trinh-ky.mp4</code> vào thư mục <code>01.HinhAnh/huong-dan/</code> để video hiện ở đây.</span></div></div></section><section class="gd-sec gd-full" id="gd-tong-quan"><div class="gd-sec-head"><span class="gd-sec-kick">Tổng quan</span><h2>Quy trình trình ký và đóng dấu</h2></div><div class="gd-sec-body">
+<p class="gd-lead">Hồ sơ đi qua các bước dưới đây. Mỗi bước có một mục riêng ở thanh bên.</p>
+<div class="gd-flow">
+ <div class="gd-fs"><i>1</i><b>Đăng nhập</b><small>Mật khẩu tạm, đổi lần đầu</small></div><em>›</em>
+ <div class="gd-fs"><i>2</i><b>Đăng ký hồ sơ</b><small>Chọn Trình ký đến</small></div><em>›</em>
+ <div class="gd-fs"><i>3</i><b>Theo dõi</b><small>Trợ lý nhận, lãnh đạo ký</small></div><em>›</em>
+ <div class="gd-fs"><i>4</i><b>Trình tiếp TGĐ</b><small>Khi PTGĐ đã ký, nếu cần</small></div><em>›</em>
+ <div class="gd-fs"><i>5</i><b>Đóng dấu</b><small>Văn thư đóng dấu</small></div>
+</div>
+<h3>Trạng thái hồ sơ</h3>
+<table class="gd-tbl">
+<tr><th>Trạng thái</th><th>Ý nghĩa</th><th>Bạn cần làm</th></tr>
+<tr><td><span class="gd-bd gd-pend">Chờ xác nhận</span></td><td>Đã đăng ký, trợ lý chưa nhận bản cứng</td><td>Mang bản cứng tới trợ lý của lãnh đạo được trình</td></tr>
+<tr><td><span class="gd-bd gd-proc">Đang xử lý</span></td><td>Trợ lý đã nhận; ngày dự kiến trả được tính tự động</td><td>Theo dõi ngày dự kiến trả</td></tr>
+<tr><td><span class="gd-bd gd-done">Hoàn thành</span></td><td>Lãnh đạo đã ký</td><td>Nhận lại hồ sơ; Trình tiếp TGĐ hoặc Đóng dấu nếu cần</td></tr>
+<tr><td><span class="gd-bd gd-vio">Chưa có người nhận</span></td><td>Đã ký (Hoàn thành) nhưng chưa ghi người nhận lại hồ sơ</td><td>Tới trợ lý nhận lại hồ sơ đã ký</td></tr>
+<tr><td><span class="gd-bd gd-rej">Từ chối</span></td><td>Lãnh đạo không ký; có lý do từ chối</td><td>Xem lý do, dùng nút Copy để đăng ký lại</td></tr>
+</table>
+<h3>Trạng thái đóng dấu</h3>
+<table class="gd-tbl">
+<tr><td><span class="gd-bd gd-pend">Chờ đóng dấu</span></td><td>Đã đăng ký, chờ văn thư giữ mộc xử lý. Còn sửa / hủy được.</td></tr>
+<tr><td><span class="gd-bd gd-done">Đã đóng dấu</span></td><td>Văn thư đã đóng dấu; có ngày giờ, người đóng dấu, người nhận lại.</td></tr>
+<tr><td><span class="gd-bd gd-rej">Từ chối</span></td><td>Văn thư không đóng dấu; xem lý do, có thể đăng ký lại.</td></tr>
+</table></div></section><section class="gd-sec gd-side" id="gd-dang-nhap"><div class="gd-sec-head"><span class="gd-sec-kick">Bước 1</span><h2>Đăng nhập</h2></div><div class="gd-sec-body"><ol class="gd-steps"><li><span class="gd-n">1</span><div><b>Nhập tên đăng nhập</b><p>Là phần trước @ của email công ty, ví dụ <code>an.nv</code>. Phần <code>@duytanrecycling.com</code> đã có sẵn.</p></div></li><li><span class="gd-n">2</span><div><b>Nhập mật khẩu</b><p>Lần đầu: dùng mật khẩu tạm trợ lý gửi cho bạn qua Teams. Bấm biểu tượng con mắt để xem lại chữ đã gõ.</p></div></li><li><span class="gd-n">3</span><div><b>Bấm Đăng nhập</b><p>Trang tự nhớ đăng nhập trên máy này. Dùng máy chung thì bấm Đăng xuất khi xong việc.</p></div></li><li><span class="gd-n">4</span><div><b>Quên mật khẩu</b><p>Liên hệ Trợ lý PTGĐ hoặc Trợ lý TGĐ. Xem mục “Quên mật khẩu” bên dưới.</p></div></li></ol></div><figure class="gd-shot"><div class="gd-frame"><img src="01.HinhAnh/huong-dan/login.jpg" loading="lazy" alt=""><span class="gd-mk" style="left:9.55%;top:42.44%">1</span><span class="gd-mk" style="left:9.55%;top:55.21%">2</span><span class="gd-mk" style="left:9.55%;top:65.82%">3</span><span class="gd-mk" style="left:9.55%;top:78.19%">4</span></div></figure></section><section class="gd-sec gd-side" id="gd-doi-mat-khau"><div class="gd-sec-head"><span class="gd-sec-kick">Bước 1 (tiếp)</span><h2>Đặt mật khẩu lần đầu</h2></div><div class="gd-sec-body"><ol class="gd-steps"><li><span class="gd-n">1</span><div><b>Nhập mật khẩu tạm được cấp</b></div></li><li><span class="gd-n">2</span><div><b>Nhập mật khẩu mới</b><p>Tối thiểu 6 ký tự. Nên dùng chữ hoa, chữ thường và số.</p></div></li><li><span class="gd-n">3</span><div><b>Nhập lại mật khẩu mới</b></div></li><li><span class="gd-n">4</span><div><b>Bấm Đổi mật khẩu</b><p>Xong là vào thẳng Danh sách hồ sơ. Muốn đổi lại sau này: nút Đổi mật khẩu trên thanh tiêu đề.</p></div></li></ol><div class="gd-note gd-tip"><b>Ghi nhớ</b><p>Hộp đặt mật khẩu lần đầu có dòng nhắc: nếu quên mật khẩu, liên hệ <b>Trợ lý PTGĐ</b> hoặc <b>Trợ lý TGĐ</b> để được cấp lại.</p></div></div><figure class="gd-shot"><div class="gd-frame"><img src="01.HinhAnh/huong-dan/pw.jpg" loading="lazy" alt=""><span class="gd-mk" style="left:9.09%;top:53.69%">1</span><span class="gd-mk" style="left:9.09%;top:65.41%">2</span><span class="gd-mk" style="left:9.09%;top:77.13%">3</span><span class="gd-mk" style="left:55.45%;top:88.66%">4</span></div></figure></section><section class="gd-sec gd-full" id="gd-quen-mat-khau"><div class="gd-sec-head"><span class="gd-sec-kick">Hỗ trợ</span><h2>Quên mật khẩu</h2></div><div class="gd-sec-body">
+<p class="gd-lead">Liên hệ <b>Trợ lý PTGĐ</b> hoặc <b>Trợ lý TGĐ</b> để được cấp lại mật khẩu.</p>
+<div class="gd-cards2">
+ <div class="gd-cd"><span class="gd-kick">Bạn thường trình</span><b>Phó Tổng Giám đốc</b><p>Liên hệ Trợ lý của PTGĐ đó</p></div>
+ <div class="gd-cd"><span class="gd-kick">Bạn thường trình</span><b>Tổng Giám đốc</b><p>Liên hệ Trợ lý TGĐ</p></div>
+</div>
+<ol class="gd-steps gd-plain">
+ <li><span class="gd-n">1</span><div><b>Trợ lý cấp lại mật khẩu tạm</b><p>Mật khẩu tạm được gửi cho bạn qua Teams.</p></div></li>
+ <li><span class="gd-n">2</span><div><b>Đăng nhập bằng mật khẩu tạm</b><p>Làm như Bước 1.</p></div></li>
+ <li><span class="gd-n">3</span><div><b>Đặt mật khẩu mới</b><p>App bắt buộc đổi mật khẩu ngay sau khi đăng nhập.</p></div></li>
+</ol><div class="gd-note gd-warn"><b>Bảo mật</b><p>Không chia sẻ mật khẩu cho người khác. Mỗi thao tác trên app đều được ghi nhật ký theo tài khoản.</p></div></div></section><section class="gd-sec gd-side" id="gd-dang-ky"><div class="gd-sec-head"><span class="gd-sec-kick">Bước 2</span><h2>Đăng ký hồ sơ</h2></div><div class="gd-sec-body"><p class="gd-lead">Bấm <b>+ Đăng ký hồ sơ</b> (góc phải, trên bảng), điền form rồi lưu.</p><ol class="gd-steps"><li><span class="gd-n">1</span><div><b>Chọn Trình ký đến</b><p>Chọn đúng lãnh đạo. Hồ sơ chuyển tới trợ lý của lãnh đạo đó.</p></div></li><li><span class="gd-n">2</span><div><b>Chọn Loại hồ sơ</b></div></li><li><span class="gd-n">3</span><div><b>Nhập Tên hồ sơ</b></div></li><li><span class="gd-n">4</span><div><b>Nhập Đối tác</b><p>Phòng ban và Người gửi tự điền theo tài khoản của bạn.</p></div></li><li><span class="gd-n">5</span><div><b>Chọn Mức ưu tiên</b><p>Số ngày làm việc của từng mức hiện ngay trong danh sách.</p></div></li><li><span class="gd-n">6</span><div><b>Bấm Lưu hồ sơ</b><p>Hồ sơ hiện trong danh sách với trạng thái Chờ xác nhận.</p></div></li></ol></div><figure class="gd-shot"><div class="gd-frame"><img src="01.HinhAnh/huong-dan/add.jpg" loading="lazy" alt=""><span class="gd-mk" style="left:1.76%;top:23.32%">1</span><span class="gd-mk" style="left:3.51%;top:36.07%">2</span><span class="gd-mk" style="left:48.78%;top:35.91%">3</span><span class="gd-mk" style="left:48.78%;top:57.72%">4</span><span class="gd-mk" style="left:3.51%;top:65.27%">5</span><span class="gd-mk" style="left:77.57%;top:91.78%">6</span></div></figure></section><section class="gd-sec gd-wide" id="gd-theo-doi"><div class="gd-sec-head"><span class="gd-sec-kick">Bước 3</span><h2>Theo dõi hồ sơ</h2></div><figure class="gd-shot gd-wide"><div class="gd-frame"><img src="01.HinhAnh/huong-dan/status.jpg" loading="lazy" alt=""><span class="gd-mk" style="left:0.14%;top:6.82%">1</span><span class="gd-mk" style="left:80.83%;top:87.95%">2</span><span class="gd-mk" style="left:17.64%;top:21.82%">3</span></div></figure><div class="gd-sec-body"><div class="gd-cols"><ol class="gd-steps"><li><span class="gd-n">1</span><div><b>Thẻ thống kê</b><p>Đếm hồ sơ theo trạng thái. Thẻ <b>Chưa có người nhận</b>: hồ sơ đã ký nhưng chưa ai nhận lại. Bấm thẻ để lọc danh sách.</p></div></li><li><span class="gd-n">2</span><div><b>Cột Trạng thái</b><p>Chờ xác nhận → Đang xử lý → Hoàn thành (hoặc Từ chối). Cột DK trả HS cho biết ngày dự kiến trả.</p></div></li><li><span class="gd-n">3</span><div><b>Bộ lọc</b><p>Lọc theo lãnh đạo được trình, loại hồ sơ, trạng thái; ô tìm kiếm theo tên.</p></div></li></ol><div><div class="gd-note gd-tip"><b>Mẹo</b><p>Danh sách chỉ gồm hồ sơ bạn đăng ký và hồ sơ người khác đăng ký giúp bạn. Bấm vào một dòng để xem đầy đủ thông tin, nút <b>Lịch sử</b> để xem nhật ký thay đổi.</p></div></div></div></div></section><section class="gd-sec gd-side" id="gd-trinh-tiep"><div class="gd-sec-head"><span class="gd-sec-kick">Bước 4</span><h2>Trình tiếp Tổng Giám đốc</h2></div><div class="gd-sec-body"><p class="gd-lead">Hồ sơ trình PTGĐ đã <b>Hoàn thành</b> có nút <b>Trình tiếp TGĐ</b> ở cột Thao tác. Bấm nút, kiểm tra rồi xác nhận.</p><ol class="gd-steps"><li><span class="gd-n">1</span><div><b>Luồng trình</b><p>Từ PTGĐ đã ký sang TGĐ.</p></div></li><li><span class="gd-n">2</span><div><b>Thông tin hồ sơ</b><p>Lấy theo hồ sơ gốc.</p></div></li><li><span class="gd-n">3</span><div><b>Ghi chú</b><p>Hồ sơ PTGĐ giữ nguyên; app tạo hồ sơ mới trình TGĐ.</p></div></li><li><span class="gd-n">4</span><div><b>Bấm Trình tiếp TGĐ</b><p>Có thể chọn lại mức ưu tiên và số bản cứng trước khi xác nhận.</p></div></li></ol><div class="gd-note gd-warn"><b>Lưu ý</b><p>Mỗi hồ sơ chỉ trình tiếp được <b>một lần</b>. Hồ sơ đã chuyển đóng dấu thì không trình tiếp nữa, và ngược lại.</p></div></div><figure class="gd-shot"><div class="gd-frame"><img src="01.HinhAnh/huong-dan/fw.jpg" loading="lazy" alt=""><span class="gd-mk" style="left:3.82%;top:24.20%">1</span><span class="gd-mk" style="left:3.82%;top:42.72%">2</span><span class="gd-mk" style="left:3.82%;top:73.91%">3</span><span class="gd-mk" style="left:71.47%;top:90.55%">4</span></div></figure></section><section class="gd-sec gd-wide" id="gd-ket-qua-trinh-tiep"><div class="gd-sec-head"><span class="gd-sec-kick">Bước 4 (tiếp)</span><h2>Hồ sơ sau khi trình tiếp</h2></div><figure class="gd-shot gd-wide"><div class="gd-frame"><img src="01.HinhAnh/huong-dan/fwres.jpg" loading="lazy" alt=""><span class="gd-mk" style="left:22.64%;top:70.00%">1</span><span class="gd-mk" style="left:22.64%;top:89.27%">2</span></div></figure><div class="gd-sec-body"><div class="gd-cols"><ol class="gd-steps"><li><span class="gd-n">1</span><div><b>Hồ sơ PTGĐ ghi “Đã trình TGĐ #…”</b><p>Bấm vào nhãn để nhảy tới hồ sơ mới.</p></div></li><li><span class="gd-n">2</span><div><b>Hồ sơ mới ghi “Từ PTGĐ … #…”</b><p>Trạng thái Chờ xác nhận; mang bản cứng tới Trợ lý TGĐ và theo dõi như Bước 3.</p></div></li></ol><div></div></div></div></section><section class="gd-sec gd-side" id="gd-dong-dau"><div class="gd-sec-head"><span class="gd-sec-kick">Bước 5</span><h2>Đăng ký đóng dấu</h2></div><div class="gd-sec-body"><p class="gd-lead">Hồ sơ <b>Hoàn thành</b> có nút <b>Đóng dấu</b> ở cột Thao tác. Bấm để mở form đăng ký đóng dấu.</p><ol class="gd-steps"><li><span class="gd-n">1</span><div><b>Kiểm tra thông tin</b><p>Tên, loại hồ sơ, người gửi, đối tác lấy theo hồ sơ đã ký, không sửa được.</p></div></li><li><span class="gd-n">2</span><div><b>Số bản cần đóng dấu</b></div></li><li><span class="gd-n">3</span><div><b>Chọn Loại dấu</b><p>Dấu công ty, Dấu giáp lai, Dấu treo, Dấu chức danh hoặc Khác.</p></div></li><li><span class="gd-n">4</span><div><b>Ghi chú / Yêu cầu</b><p>Ví dụ: đóng giáp lai các trang, cần trước 15h.</p></div></li><li><span class="gd-n">5</span><div><b>Bấm Lưu</b><p>Hồ sơ hiện nhãn “Chờ đóng dấu #…”; lượt đóng dấu chuyển cho văn thư giữ mộc.</p></div></li></ol></div><figure class="gd-shot"><div class="gd-frame"><img src="01.HinhAnh/huong-dan/st.jpg" loading="lazy" alt=""><span class="gd-mk" style="left:3.82%;top:14.29%">1</span><span class="gd-mk" style="left:3.82%;top:65.45%">2</span><span class="gd-mk" style="left:48.68%;top:65.61%">3</span><span class="gd-mk" style="left:3.82%;top:78.74%">4</span><span class="gd-mk" style="left:81.18%;top:91.86%">5</span></div></figure></section><section class="gd-sec gd-wide" id="gd-theo-doi-dong-dau"><div class="gd-sec-head"><span class="gd-sec-kick">Bước 5 (tiếp)</span><h2>Theo dõi đóng dấu</h2></div><figure class="gd-shot gd-wide"><div class="gd-frame"><img src="01.HinhAnh/huong-dan/tab.jpg" loading="lazy" alt=""><span class="gd-mk" style="left:10.97%;top:10.00%">1</span><span class="gd-mk" style="left:60.49%;top:90.24%">2</span><span class="gd-mk" style="left:85.76%;top:53.81%">3</span></div></figure><div class="gd-sec-body"><div class="gd-cols"><ol class="gd-steps"><li><span class="gd-n">1</span><div><b>Mở tab Đóng dấu</b><p>Trên thanh điều hướng, cạnh Danh sách hồ sơ.</p></div></li><li><span class="gd-n">2</span><div><b>Xem trạng thái</b><p>Chờ đóng dấu → Đã đóng dấu, kèm ngày giờ, người đóng dấu và người nhận lại hồ sơ.</p></div></li><li><span class="gd-n">3</span><div><b>Đăng ký lẻ</b><p>Cần đóng dấu giấy tờ không qua trình ký: bấm <b>Đăng ký đóng dấu</b> trong tab này.</p></div></li></ol><div><div class="gd-note gd-tip"><b>Lưu ý</b><p>Sửa hoặc hủy lượt đóng dấu được khi còn <b>Chờ đóng dấu</b>. Bị từ chối thì xem lý do và đăng ký lại.</p></div></div></div></div></section><section class="gd-sec gd-full" id="gd-hoi-dap"><div class="gd-sec-head"><span class="gd-sec-kick">Hỏi đáp</span><h2>Câu hỏi thường gặp</h2></div><div class="gd-sec-body"><div class="gd-faq">
+<div><b>Đăng ký nhầm lãnh đạo thì sao?</b><p>Khi hồ sơ còn Chờ xác nhận, bấm Sửa ở cột Thao tác để chọn lại. Nếu trợ lý đã nhận, liên hệ trợ lý đó.</p></div>
+<div><b>Hồ sơ bị từ chối, đăng ký lại thế nào?</b><p>Xem lý do ở cột Lý do từ chối, bấm Copy để tạo hồ sơ mới với thông tin cũ, sửa rồi lưu.</p></div>
+<div><b>PTGĐ đã ký, có cần trình TGĐ không?</b><p>Chỉ khi hồ sơ cần TGĐ ký tiếp. Nếu không, bấm Đóng dấu (nếu cần) hoặc nhận lại hồ sơ.</p></div>
+<div><b>Không thấy nút Trình tiếp TGĐ / Đóng dấu?</b><p>Hai nút chỉ có ở hồ sơ Hoàn thành. Hồ sơ đã trình tiếp thì không đóng dấu từ hồ sơ đó nữa (đóng dấu ở hồ sơ TGĐ), và ngược lại.</p></div>
+<div><b>Ngày dự kiến trả tính thế nào?</b><p>Tính từ ngày trợ lý nhận hồ sơ, theo số ngày làm việc của mức ưu tiên và lịch công tác / nghỉ của lãnh đạo được trình.</p></div>
+<div><b>Quên mật khẩu?</b><p>Liên hệ Trợ lý PTGĐ hoặc Trợ lý TGĐ để được cấp lại mật khẩu tạm.</p></div>
+</div></div></section><p class="gd-end">© 2026 Văn phòng Giám đốc</p></div>
+      </div>
+    </div>
+  </div>
+
   <!-- v7.4: Thông báo cập nhật (hiện 1 lần mỗi phiên bản, mỗi tài khoản) -->
   <div class="modal-bg" id="whatsNewModal" style="display:none">
     <div class="modal wn-modal" role="dialog" aria-labelledby="wnTitle">
@@ -964,7 +1035,7 @@
       if (wnRow && !wnRow.trang_thai) wnRow.trang_thai = 'da_duyet';
       const btn = document.getElementById('whatsNewBtn');
       const pend = !wnRow && isTgdAsst();
-      btn.innerHTML = `<i class="ti ti-sparkles"></i>Có gì mới${pend ? ' · Chờ duyệt' : ''}`;
+      btn.innerHTML = `<i class="ti ti-sparkles"></i><span class="hb-t">Có gì mới${pend ? ' · Chờ duyệt' : ''}</span>`;   // v7.6: nhãn trong span để thu gọn khi header hẹp
       btn.title = pend ? 'Thông báo cập nhật đang chờ bạn duyệt' : 'Xem các thay đổi mới của ứng dụng';
     }
 
@@ -1428,7 +1499,7 @@
       document.getElementById('loginScreen').style.display = 'none';
       document.getElementById('userName').textContent = p.ho_ten;
       document.getElementById('userChip').title = p.email;
-      ['userChip', 'myPwBtn', 'whatsNewBtn', 'logoutBtn'].forEach(id => document.getElementById(id).style.display = 'inline-flex');
+      ['userChip', 'myPwBtn', 'whatsNewBtn', 'guideBtn', 'logoutBtn'].forEach(id => document.getElementById(id).style.display = 'inline-flex');
 
       await loadLeaders();
       applyRole(p.vai_tro === 'tro_ly' && !!ldById(p.lanh_dao_id), p.lanh_dao_id);
@@ -1550,8 +1621,11 @@
         card('pending', 'Chờ xác nhận', c('pending'), 'var(--amber-text)') +
         card('processing', 'Đang xử lý', c('processing'), 'var(--blue)') +
         card('done', 'Hoàn thành', c('done'), 'var(--green)') +
-        card('rejected', 'Từ chối', c('rejected'), 'var(--red-text)');
+        card('rejected', 'Từ chối', c('rejected'), 'var(--red-text)') +
+        // v7.6: hồ sơ đã ký nhưng chưa ghi người nhận lại
+        card('chua_nhan', 'Chưa có người nhận', base.filter(chuaNhan).length, 'var(--violet)');
     }
+    const chuaNhan = r => r.status === 'done' && !(r.nguoinhan || '').trim();   // v7.6
 
     // Bấm thẻ: chỉ lọc danh sách, số trên thẻ giữ nguyên.
     function filterByStatus(status) {
@@ -1566,7 +1640,7 @@
       const st = document.getElementById('filterStatus').value;
       return scopeRecords().filter(r => {
         const mq = !q || ((r.ten || '') + (r.nguoigui || '') + (r.doitac || '') + (r.phong || '') + phongLabel(r.phong)).toLowerCase().includes(q);
-        return mq && (!loai || r.loai === loai) && (!st || r.status === st);
+        return mq && (!loai || r.loai === loai) && (!st || (st === 'chua_nhan' ? chuaNhan(r) : r.status === st));
       });
     }
 
@@ -1577,7 +1651,7 @@
       // giữ viền thẻ đang lọc đúng với ô "Tất cả trạng thái"
       const st = document.getElementById('filterStatus').value;
       document.querySelectorAll('#statsBar .stat').forEach((el, i) =>
-        el.classList.toggle('on', ['', 'pending', 'processing', 'done', 'rejected'][i] === st));
+        el.classList.toggle('on', ['', 'pending', 'processing', 'done', 'rejected', 'chua_nhan'][i] === st));
       if (!data.length) { tbody.innerHTML = `<tr><td colspan="20"><div class="empty"><i class="ti ti-inbox"></i>Chưa có hồ sơ nào</div></td></tr>`; return; }
       tbody.innerHTML = data.map((r, i) => {
         const utLabel = r.priority === 1 ? 'Cao' : r.priority === 3 ? 'Thấp' : 'Vừa';
@@ -3528,6 +3602,7 @@
       document.getElementById('myPwSub').textContent = myPwForced
         ? 'Bạn đang dùng mật khẩu tạm được cấp. Đặt mật khẩu của riêng bạn để tiếp tục.'
         : 'Tài khoản ' + curUser.ten_dang_nhap + '. Các máy khác đang đăng nhập vẫn giữ đăng nhập.';
+      document.getElementById('myPwHelp').style.display = myPwForced ? 'flex' : 'none';   // v7.6
       document.getElementById('myPwOldLabel').innerHTML = (myPwForced ? 'Mật khẩu tạm được cấp' : 'Mật khẩu hiện tại') + '<span class="required">*</span>';
       // bắt buộc đổi: không đóng được, chỉ đổi mật khẩu hoặc đăng xuất (máy dùng chung)
       const cb = document.getElementById('myPwCancelBtn');
@@ -4061,6 +4136,69 @@
       document.getElementById('importModal').style.display = 'none';
       importedRows = []; importedLeaders = []; importedOffs = []; importNotes = [];
     }
+
+    // ── v7.6: HƯỚNG DẪN SỬ DỤNG ─────────────────────────────────
+    //  Chip "Hướng dẫn" trên header (và link ở màn đăng nhập) mở trang hướng dẫn:
+    //  thanh bên mục lục + một trang cuộn, nội dung như bản PDF (01.HinhAnh/huong-dan/).
+    function openGuide(id) {
+      document.getElementById('guideModal').style.display = 'flex';
+      const c = document.getElementById('gdContent');
+      const s = id ? document.getElementById('gd-' + id) : null;
+      if (s) s.scrollIntoView({ block: 'start' });
+      gdSpy();
+      c.focus({ preventScroll: true });
+    }
+    function closeGuide() {
+      document.getElementById('guideModal').style.display = 'none';
+      const v = document.getElementById('gdVideo'); if (v) v.pause();
+    }
+    // Xuất PDF: in trang hướng dẫn (bìa + mục lục + mỗi mục một trang) → chọn "Lưu dưới dạng PDF"
+    function exportGuidePdf() {
+      const html = document.documentElement, theme = html.getAttribute('data-theme'), title = document.title;
+      const imgs = [...document.querySelectorAll('#guideModal img')];
+      imgs.forEach(i => { i.loading = 'eager'; });
+      const done = () => {
+        html.setAttribute('data-theme', theme); document.title = title;
+        document.body.classList.remove('gd-printing');
+        window.removeEventListener('afterprint', done);
+      };
+      html.setAttribute('data-theme', 'light');   // in luôn theo theme sáng
+      document.title = 'Huong_dan_Dang_ky_trinh_ky_va_dong_dau';
+      document.body.classList.add('gd-printing');
+      window.addEventListener('afterprint', done);
+      Promise.all(imgs.map(i => i.decode().catch(() => { }))).then(() => setTimeout(() => window.print(), 100));
+    }
+    function gdSpy() {
+      const c = document.getElementById('gdContent');
+      const secs = [...c.querySelectorAll('.gd-sec')];
+      const top = c.getBoundingClientRect().top;
+      let cur = secs[0].id;
+      secs.forEach(s => { if (s.getBoundingClientRect().top - top <= 90) cur = s.id; });
+      if (c.scrollTop + c.clientHeight >= c.scrollHeight - 4) cur = secs[secs.length - 1].id;
+      document.querySelectorAll('#gdNav .gd-nav-a').forEach(a => {
+        const on = 'gd-' + a.dataset.gd === cur;
+        a.classList.toggle('on', on);
+        if (on) a.setAttribute('aria-current', 'true'); else a.removeAttribute('aria-current');
+      });
+    }
+    (function () {
+      const c = document.getElementById('gdContent');
+      c.tabIndex = -1;
+      const v = document.getElementById('gdVideo');
+      if (v) v.addEventListener('error', () => { v.hidden = true; document.getElementById('gdVideoMiss').hidden = false; }, true);
+      c.addEventListener('scroll', gdSpy, { passive: true });
+      document.getElementById('gdNav').addEventListener('click', e => {
+        const a = e.target.closest('.gd-nav-a');
+        if (!a) return;
+        e.preventDefault();
+        const smooth = !window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        document.getElementById('gd-' + a.dataset.gd).scrollIntoView({ behavior: smooth ? 'smooth' : 'auto', block: 'start' });
+      });
+      document.addEventListener('keydown', e => {
+        if (e.key === 'Escape' && document.getElementById('guideModal').style.display === 'flex') closeGuide();
+      });
+    })();
+    // ── END HƯỚNG DẪN ───────────────────────────────────────────
 
     function showToast(msg) {
       document.querySelectorAll('.toast').forEach(x => x.remove());   // chỉ hiện 1 thông báo, không chồng chữ
