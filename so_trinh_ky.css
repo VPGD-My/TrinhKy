@@ -1515,3 +1515,51 @@ sup.luot-2 { background: var(--blue-bg); color: var(--blue-text); border: 1px so
   .gd-print-cover ol { margin: 0; padding-left: 6mm; columns: 2; column-gap: 14mm; font-size: 11pt; line-height: 1.9; }
   .gd-print-cover .foot { margin-top: 12mm; font-size: 9pt; color: var(--text3); }
 }
+
+/* v7.6: Thông báo tính năng mới – nhiều thông báo, nháp / phát hành, sửa được */
+.wn-modal { max-width: 860px; }
+.wn-modal .modal-header h2 { display: flex; align-items: center; gap: 8px; }
+.wn-modal .modal-body { max-height: calc(76vh / var(--z, 1)); overflow-y: auto; background: var(--bg2); }
+.wn-tools { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.wn-tools:not(:empty) { margin-bottom: 14px; }
+.wn-tools p { margin: 0; flex: 1; min-width: 240px; font-size: 12px; color: var(--text2); line-height: 1.5; }
+.wn-feed { display: flex; flex-direction: column; gap: 12px; }
+.wn-card { background: var(--bg); border: 1px solid var(--border); border-left: 4px solid var(--border2); border-radius: var(--radius-lg); padding: 14px 16px 10px; }
+.wn-card.unread { border-left-color: var(--blue); }
+.wn-card.draft { background: var(--amber-bg); border-color: color-mix(in srgb, var(--amber-text) 25%, transparent); border-left-color: var(--amber-text); }
+.wn-card.editing { border-left-color: var(--title); padding-bottom: 14px; }
+.wn-card-h { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.wn-card-t { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; min-width: 0; }
+.wn-card-t h3 { margin: 0; font-size: 15px; font-weight: 700; color: var(--text); }
+.wn-meta { font-size: 12px; color: var(--text3); }
+.wn-card.draft .wn-meta { color: var(--amber-text); }
+.wn-st { font-size: 11px; font-weight: 700; padding: 2px 9px; border-radius: 99px; white-space: nowrap; }
+.wn-st.nhap { background: var(--amber-text); color: var(--bg); }
+.wn-st.moi { background: var(--blue); color: var(--bg); }
+.wn-acts { display: flex; gap: 6px; flex-shrink: 0; }
+.wn-acts .wn-del { color: var(--del); }
+.wn-desc { margin: 6px 0 0; font-size: 13px; color: var(--text2); }
+.wn-card .wn-list { margin-top: 4px; }
+.wn-card .wn-list li { padding: 8px 0; }
+.wn-card.draft .wn-list li { border-bottom-color: color-mix(in srgb, var(--amber-text) 18%, transparent); }
+.wn-card .wn-ico { width: 30px; height: 30px; border-radius: 8px; font-size: 15px; }
+.wn-edited { margin: 4px 0 0; font-size: 11px; color: var(--text3); }
+.wn-empty { text-align: center; padding: 36px 0; color: var(--text3); font-size: 13px; }
+.wn-empty i { font-size: 28px; }
+#whatsNewBtn { position: relative; overflow: visible; }
+#whatsNewBtn > .ti-sparkles { color: #F5A400; filter: drop-shadow(0 0 3px rgba(245, 164, 0, .45)); }
+html[data-theme="dark"] #whatsNewBtn > .ti-sparkles { color: #FFC83D; }
+.wn-badges { position: absolute; top: -8px; right: -8px; display: flex; gap: 2px; pointer-events: none; }
+.wn-badge { display: inline-flex; align-items: center; justify-content: center; min-width: 18px; height: 18px; padding: 0 5px;
+  border-radius: 99px; background: var(--danger); color: #fff; font-size: 10.5px; font-weight: 700; line-height: 1; box-shadow: 0 0 0 2px var(--bg); }
+.wn-badge.draft { background: var(--amber-text); color: var(--bg); }
+.wn-ed { display: flex; flex-direction: column; gap: 10px; }
+.wn-ed-head { font-size: 14px; font-weight: 700; color: var(--title); }
+.wn-lb { display: flex; flex-direction: column; gap: 4px; font-size: 12px; font-weight: 600; color: var(--text2); }
+.wn-opt { font-weight: 400; color: var(--text3); }
+.wn-ed-item { display: flex; flex-direction: column; gap: 6px; padding: 10px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--bg); }
+.wn-ed-row { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.wn-ed-row select { flex: 1 1 120px; width: auto; min-width: 0; }
+.wn-ed-item textarea { resize: vertical; min-height: 52px; }
+.wn-ed-act { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+@media (max-width: 640px) { .wn-card-h { flex-direction: column; } }
